@@ -1,0 +1,35 @@
+const locale = {
+	APPLICATIONS: 'Applicazioni',
+	DASHBOARDS: 'Dashboard',
+	CALENDAR: 'Calendario',
+	ECOMMERCE: 'E-Commerce',
+	ACADEMY: 'Accademia',
+	MAIL: 'Mail',
+	TASKS: 'Attività',
+	FILE_MANAGER: 'Gestore file',
+	CONTACTS: 'Contatti',
+	MESSENGER: 'Messenger',
+	SCRUMBOARD: 'Scrumboard',
+	NOTES: 'Note',
+	ADMIN: 'Amministratore',
+	VENDOR: 'Venditore',
+	VENDOR_DASHBOARD: 'Dashboard',
+	VENDOR_ANALYTICS: 'Analisi',
+	VENDOR_ORDERS: 'Ordini',
+	VENDOR_PRODUCTS: 'Prodotti',
+	VENDOR_PRODUCTS_ALL: 'Prodotti',
+	VENDOR_PRODUCTS_NEW: 'Nuovo prodotto',
+	VENDOR_CATEGORIES: 'Categorie',
+	VENDOR_CATEGORIES_ALL: 'Categorie',
+	VENDOR_CATEGORIES_NEW: 'Nuova categoria',
+	VENDOR_REPORTS: 'Report',
+	VENDOR_PAYOUTS: 'Pagamenti',
+	VENDOR_KYC: 'Verifica KYC',
+	USER_ACCOUNT: 'Account',
+	USER_PASSWORD: 'Cambia password',
+	MY_STORE: 'Il mio negozio',
+	VENDOR_STORE: 'Il mio negozio'
+};
+
+export default locale;
+

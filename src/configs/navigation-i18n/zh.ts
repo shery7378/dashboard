@@ -1,0 +1,35 @@
+const locale = {
+	APPLICATIONS: '应用程序',
+	DASHBOARDS: '仪表板',
+	CALENDAR: '日历',
+	ECOMMERCE: '电子商务',
+	ACADEMY: '学院',
+	MAIL: '邮件',
+	TASKS: '任务',
+	FILE_MANAGER: '文件管理器',
+	CONTACTS: '联系人',
+	MESSENGER: '信使',
+	SCRUMBOARD: 'Scrumboard',
+	NOTES: '笔记',
+	ADMIN: '管理员',
+	VENDOR: '供应商',
+	VENDOR_DASHBOARD: '仪表板',
+	VENDOR_ANALYTICS: '分析',
+	VENDOR_ORDERS: '订单',
+	VENDOR_PRODUCTS: '产品',
+	VENDOR_PRODUCTS_ALL: '产品',
+	VENDOR_PRODUCTS_NEW: '新产品',
+	VENDOR_CATEGORIES: '类别',
+	VENDOR_CATEGORIES_ALL: '类别',
+	VENDOR_CATEGORIES_NEW: '新类别',
+	VENDOR_REPORTS: '报告',
+	VENDOR_PAYOUTS: '付款',
+	VENDOR_KYC: 'KYC验证',
+	USER_ACCOUNT: '账户',
+	USER_PASSWORD: '更改密码',
+	MY_STORE: '我的商店',
+	VENDOR_STORE: '我的商店'
+};
+
+export default locale;
+

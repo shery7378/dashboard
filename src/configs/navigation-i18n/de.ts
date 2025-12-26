@@ -1,0 +1,35 @@
+const locale = {
+	APPLICATIONS: 'Anwendungen',
+	DASHBOARDS: 'Dashboards',
+	CALENDAR: 'Kalender',
+	ECOMMERCE: 'E-Commerce',
+	ACADEMY: 'Akademie',
+	MAIL: 'Mail',
+	TASKS: 'Aufgaben',
+	FILE_MANAGER: 'Dateimanager',
+	CONTACTS: 'Kontakte',
+	MESSENGER: 'Messenger',
+	SCRUMBOARD: 'Scrumboard',
+	NOTES: 'Notizen',
+	ADMIN: 'Administrator',
+	VENDOR: 'Verkäufer',
+	VENDOR_DASHBOARD: 'Dashboard',
+	VENDOR_ANALYTICS: 'Analytik',
+	VENDOR_ORDERS: 'Bestellungen',
+	VENDOR_PRODUCTS: 'Produkte',
+	VENDOR_PRODUCTS_ALL: 'Produkte',
+	VENDOR_PRODUCTS_NEW: 'Neues Produkt',
+	VENDOR_CATEGORIES: 'Kategorien',
+	VENDOR_CATEGORIES_ALL: 'Kategorien',
+	VENDOR_CATEGORIES_NEW: 'Neue Kategorie',
+	VENDOR_REPORTS: 'Berichte',
+	VENDOR_PAYOUTS: 'Auszahlungen',
+	VENDOR_KYC: 'KYC-Verifizierung',
+	USER_ACCOUNT: 'Konto',
+	USER_PASSWORD: 'Passwort ändern',
+	MY_STORE: 'Mein Geschäft',
+	VENDOR_STORE: 'Mein Geschäft'
+};
+
+export default locale;
+

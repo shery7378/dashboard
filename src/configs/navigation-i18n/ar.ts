@@ -1,0 +1,33 @@
+const locale = {
+	APPLICATIONS: 'تطبيقات',
+	DASHBOARDS: 'لوحات',
+	CALENDAR: 'التقويم',
+	ECOMMERCE: 'التجارة الإلكترونية',
+	ACADEMY: 'الأكاديمية',
+	MAIL: 'بريد',
+	TASKS: 'لكى يفعل',
+	FILE_MANAGER: 'مدير الملفات',
+	CONTACTS: 'جهات الاتصال',
+	MESSENGER: 'ماسنجر',
+	SCRUMBOARD: 'مجلس',
+	NOTES: 'ملاحظات',
+	ADMIN: 'المسؤول',
+	VENDOR: 'البائع',
+	VENDOR_DASHBOARD: 'لوحة التحكم',
+	VENDOR_ANALYTICS: 'التحليلات',
+	VENDOR_ORDERS: 'الطلبات',
+	VENDOR_PRODUCTS: 'المنتجات',
+	VENDOR_PRODUCTS_ALL: 'المنتجات',
+	VENDOR_PRODUCTS_NEW: 'منتج جديد',
+	VENDOR_CATEGORIES: 'الفئات',
+	VENDOR_CATEGORIES_ALL: 'الفئات',
+	VENDOR_CATEGORIES_NEW: 'فئة جديدة',
+	VENDOR_REPORTS: 'التقارير',
+	VENDOR_PAYOUTS: 'المدفوعات',
+	VENDOR_KYC: 'التحقق من الهوية',
+	USER_ACCOUNT: 'الحساب',
+	USER_PASSWORD: 'تغيير كلمة المرور',
+	MY_STORE: 'متجري'
+};
+
+export default locale;

@@ -1,0 +1,33 @@
+const locale = {
+	APPLICATIONS: 'Programlar',
+	DASHBOARDS: 'Kontrol Paneli',
+	CALENDAR: 'Takvim',
+	ECOMMERCE: 'E-Ticaret',
+	ACADEMY: 'Akademi',
+	MAIL: 'Posta',
+	TASKS: 'Yapılacaklar',
+	FILE_MANAGER: 'Dosya Yöneticisi',
+	CONTACTS: 'Kişiler',
+	MESSENGER: 'Sohbet',
+	SCRUMBOARD: 'Proje',
+	NOTES: 'Notlar',
+	ADMIN: 'Yönetici',
+	VENDOR: 'Satıcı',
+	VENDOR_DASHBOARD: 'Kontrol Paneli',
+	VENDOR_ANALYTICS: 'Analitik',
+	VENDOR_ORDERS: 'Siparişler',
+	VENDOR_PRODUCTS: 'Ürünler',
+	VENDOR_PRODUCTS_ALL: 'Ürünler',
+	VENDOR_PRODUCTS_NEW: 'Yeni Ürün',
+	VENDOR_CATEGORIES: 'Kategoriler',
+	VENDOR_CATEGORIES_ALL: 'Kategoriler',
+	VENDOR_CATEGORIES_NEW: 'Yeni kategori',
+	VENDOR_REPORTS: 'Raporlar',
+	VENDOR_PAYOUTS: 'Ödemeler',
+	VENDOR_KYC: 'KYC Doğrulama',
+	USER_ACCOUNT: 'Hesap',
+	USER_PASSWORD: 'Şifre Değiştir',
+	MY_STORE: 'Mağazam'
+};
+
+export default locale;
