@@ -1,81 +1,82 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-	reactStrictMode: false,
-	typescript: {
-		// Dangerously allow production builds to successfully complete even if
-		// your project has type errors.
-		ignoreBuildErrors: true
-	},
-	// Image optimization
-	images: {
-		formats: ['image/avif', 'image/webp'],
-		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-		minimumCacheTTL: 60,
-	},
+  reactStrictMode: false,
 
-	// Compression
-	compress: true,
+  // ⛔ Disable Turbopack (important)
+  turbopack: {},
 
-	// HTTP Cache Headers - CDN Ready
-	async headers() {
-		return [
-			{
-				source: '/_next/static/:path*',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
-				]
-			},
-			{
-				source: '/_next/image/:path*',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
-				]
-			},
-			{
-				source: '/assets/:path*',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
-				]
-			},
-			{
-				source: '/icons/:path*',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
-				]
-			},
-			{
-				source: '/favicon.ico',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=86400' }
-				]
-			},
-			{
-				source: '/manifest.json',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=3600, stale-while-revalidate=86400' }
-				]
-			},
-			{
-				source: '/service-worker.js',
-				headers: [
-					{ key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' }
-				]
-			},
-		];
-	},
-	webpack: (config) => {
-		if (config.module && config.module.rules) {
-			config.module.rules.push({
-				test: /\.(json|js|ts|tsx|jsx)$/,
-				resourceQuery: /raw/,
-				use: 'raw-loader'
-			});
-		}
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 
-		return config;
-	}
+  images: {
+    formats: ['image/avif', 'image/webp'],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    minimumCacheTTL: 60,
+  },
+
+  compress: true,
+
+  async headers() {
+    return [
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/_next/image/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/assets/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/icons/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/favicon.ico',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+        ],
+      },
+      {
+        source: '/manifest.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/service-worker.js',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
+    ];
+  },
+
+  webpack: (config) => {
+    config.module.rules.push({
+      test: /\.(json|js|ts|tsx|jsx)$/,
+      resourceQuery: /raw/,
+      use: 'raw-loader',
+    });
+    return config;
+  },
 };
 
 export default nextConfig;
