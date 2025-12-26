@@ -60,7 +60,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true
   },
   "exclude": [
@@ -77,6 +77,7 @@
     ".next/types/**/*.ts",
     "next.config.mjs",
     "next.config.ts",
-    "build/types/**/*.ts"
+    "build/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
   ]
 }

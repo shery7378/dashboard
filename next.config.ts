@@ -2,10 +2,6 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
 	reactStrictMode: false,
-	eslint: {
-		// Only enable ESLint in development
-		ignoreDuringBuilds: process.env.NODE_ENV === 'production'
-	},
 	typescript: {
 		// Dangerously allow production builds to successfully complete even if
 		// your project has type errors.
