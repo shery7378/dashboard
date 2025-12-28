@@ -41,6 +41,8 @@ interface PaymentCredential {
 	description?: string;
 	credential_keys?: string[];
 	has_credentials?: boolean;
+	logo_id?: number;
+	logo_url?: string;
 }
 
 // Payment methods are now fetched from the database via API
@@ -69,6 +71,9 @@ function PaymentMethodsTab() {
 		description: '',
 	});
 	const [errors, setErrors] = useState<Record<string, string>>({});
+	const [logoFile, setLogoFile] = useState<File | null>(null);
+	const [logoPreview, setLogoPreview] = useState<string | null>(null);
+	const [removeLogo, setRemoveLogo] = useState(false);
 
 	const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
@@ -188,6 +193,8 @@ function PaymentMethodsTab() {
 					description: item.description || '',
 					credential_keys: item.credential_keys || [],
 					has_credentials: item.has_credentials || false,
+					logo_id: item.logo_id,
+					logo_url: item.logo_url,
 				}));
 				setCredentials(formattedData);
 			}
@@ -214,6 +221,7 @@ function PaymentMethodsTab() {
 			// Fetch full credential details for editing
 			fetchCredentialDetails(credential.id!);
 			setEditingCredential(credential);
+			// Don't reset logoFile here - let fetchCredentialDetails set it
 		} else {
 			// For new credentials, ensure payment methods are loaded
 			if (availablePaymentMethods.length === 0) {
@@ -229,6 +237,9 @@ function PaymentMethodsTab() {
 				credentials: {},
 				description: '',
 			});
+			setLogoFile(null);
+			setLogoPreview(null);
+			setRemoveLogo(false);
 		}
 		setDialogOpen(true);
 		setErrors({});
@@ -266,7 +277,16 @@ function PaymentMethodsTab() {
 					is_test_mode: data.is_test_mode ?? false,
 					credentials: data.credentials || {},
 					description: data.description || '',
+					logo_id: data.logo_id,
+					logo_url: data.logo_url,
 				});
+				// Set logo preview if logo exists
+				if (data.logo_url) {
+					setLogoPreview(data.logo_url);
+				} else {
+					setLogoPreview(null);
+				}
+				setRemoveLogo(false);
 			}
 		} catch (error: any) {
 			console.error('Error fetching credential details:', error);
@@ -286,6 +306,9 @@ function PaymentMethodsTab() {
 			description: '',
 		});
 		setErrors({});
+		setLogoFile(null);
+		setLogoPreview(null);
+		setRemoveLogo(false);
 	};
 
 	const handleInputChange = (field: string, value: any) => {
@@ -364,6 +387,41 @@ function PaymentMethodsTab() {
 		return Object.keys(newErrors).length === 0;
 	};
 
+	const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		console.log('File selected:', file ? { name: file.name, size: file.size, type: file.type } : 'none');
+		if (file) {
+			// Validate file type
+			if (!file.type.startsWith('image/')) {
+				enqueueSnackbar('Please select an image file', { variant: 'error' });
+				return;
+			}
+			// Validate file size (2MB)
+			if (file.size > 2 * 1024 * 1024) {
+				enqueueSnackbar('Image size must be less than 2MB', { variant: 'error' });
+				return;
+			}
+			console.log('Setting logo file state');
+			setLogoFile(file);
+			setRemoveLogo(false);
+			// Create preview
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				setLogoPreview(reader.result as string);
+				console.log('Logo preview set');
+			};
+			reader.readAsDataURL(file);
+		} else {
+			console.log('No file selected');
+		}
+	};
+
+	const handleRemoveLogo = () => {
+		setLogoFile(null);
+		setLogoPreview(null);
+		setRemoveLogo(true);
+	};
+
 	const handleSubmit = async () => {
 		if (!validateForm()) {
 			return;
@@ -385,46 +443,142 @@ function PaymentMethodsTab() {
 				? `${apiUrl}/api/admin/payment-method-credentials/${editingCredential.id}`
 				: `${apiUrl}/api/admin/payment-method-credentials`;
 
-			// Ensure all required fields are present
-			const payload: any = {
-				name: formData.name || '',
-				is_active: formData.is_active ?? true,
-				is_test_mode: formData.is_test_mode ?? false,
-				credentials: formData.credentials || {},
-				description: formData.description || '',
-			};
+			// Always use FormData when editing (to handle logo properly) or when creating with logo
+			// When creating without logo, use JSON for simplicity
+			const shouldUseFormData = editingCredential || logoFile || removeLogo;
+			
+			console.log('Submitting form:', {
+				shouldUseFormData,
+				logoFile: logoFile ? { name: logoFile.name, size: logoFile.size, type: logoFile.type } : null,
+				removeLogo,
+				editingCredential: !!editingCredential,
+			});
+			
+			if (shouldUseFormData) {
+				// Use FormData for file upload
+				const formDataToSend = new FormData();
+				formDataToSend.append('name', formData.name || '');
+				formDataToSend.append('is_active', formData.is_active ? '1' : '0');
+				formDataToSend.append('is_test_mode', formData.is_test_mode ? '1' : '0');
+				formDataToSend.append('description', formData.description || '');
+				
+				// Add credentials as JSON string
+				formDataToSend.append('credentials', JSON.stringify(formData.credentials || {}));
+				
+				// Only include payment_method for new records
+				if (!editingCredential) {
+					formDataToSend.append('payment_method', formData.payment_method || '');
+				}
+				
+				// Add logo file or remove flag
+				// Only append logo if it's a new file (logoFile exists)
+				// Only append remove_logo if explicitly set
+				// If neither, don't append anything (keeps existing logo)
+				if (logoFile) {
+					console.log('Appending logo file to FormData:', {
+						name: logoFile.name,
+						size: logoFile.size,
+						type: logoFile.type,
+						lastModified: logoFile.lastModified
+					});
+					formDataToSend.append('logo', logoFile);
+					
+					// Verify it was added - log all FormData entries
+					const entries: string[] = [];
+					for (const [key, value] of formDataToSend.entries()) {
+						if (value instanceof File) {
+							entries.push(`${key}: File(${value.name}, ${value.size} bytes)`);
+						} else {
+							entries.push(`${key}: ${value}`);
+						}
+					}
+					console.log('FormData contents:', entries);
+				} else if (removeLogo && editingCredential) {
+					console.log('Appending remove_logo flag');
+					formDataToSend.append('remove_logo', '1');
+				} else {
+					console.log('No logo file or remove flag - keeping existing logo (if any)');
+				}
 
-			// Only include payment_method for new records (not when editing)
-			if (!editingCredential) {
-				payload.payment_method = formData.payment_method || '';
-			}
+				// Don't set Content-Type header - let axios set it automatically with boundary
+				const config = {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: 'application/json',
+						// Remove Content-Type - axios will set it with boundary for FormData
+					},
+					withCredentials: true,
+				};
 
-			console.log('Submitting payment credentials:', payload);
-			console.log('Form data state:', formData);
+				console.log('Sending FormData request');
+				// Use POST with _method=PUT for file uploads (PUT doesn't work well with multipart/form-data)
+				let response;
+				if (editingCredential) {
+					formDataToSend.append('_method', 'PUT');
+					response = await axios.post(url, formDataToSend, config);
+				} else {
+					response = await axios.post(url, formDataToSend, config);
+				}
 
-			// Use proper axios method calls
-			const config = {
-				headers: {
-					Authorization: `Bearer ${token}`,
-					Accept: 'application/json',
-					'Content-Type': 'application/json',
-				},
-				withCredentials: true,
-			};
+				if (response.data.success) {
+					enqueueSnackbar(
+						editingCredential
+							? 'Payment credentials updated successfully'
+							: 'Payment credentials created successfully',
+						{ variant: 'success' }
+					);
+					handleCloseDialog();
+					fetchCredentials();
+				}
 
-			const response = editingCredential
-				? await axios.put(url, payload, config)
-				: await axios.post(url, payload, config);
+				if (response.data.success) {
+					enqueueSnackbar(
+						editingCredential
+							? 'Payment credentials updated successfully'
+							: 'Payment credentials created successfully',
+						{ variant: 'success' }
+					);
+					handleCloseDialog();
+					fetchCredentials();
+				}
+			} else {
+				// Use JSON for regular updates without logo
+				const payload: any = {
+					name: formData.name || '',
+					is_active: formData.is_active ?? true,
+					is_test_mode: formData.is_test_mode ?? false,
+					credentials: formData.credentials || {},
+					description: formData.description || '',
+				};
 
-			if (response.data.success) {
-				enqueueSnackbar(
-					editingCredential
-						? 'Payment credentials updated successfully'
-						: 'Payment credentials created successfully',
-					{ variant: 'success' }
-				);
-				handleCloseDialog();
-				fetchCredentials();
+				// Only include payment_method for new records (not when editing)
+				if (!editingCredential) {
+					payload.payment_method = formData.payment_method || '';
+				}
+
+				const config = {
+					headers: {
+						Authorization: `Bearer ${token}`,
+						Accept: 'application/json',
+						'Content-Type': 'application/json',
+					},
+					withCredentials: true,
+				};
+
+				const response = editingCredential
+					? await axios.put(url, payload, config)
+					: await axios.post(url, payload, config);
+
+				if (response.data.success) {
+					enqueueSnackbar(
+						editingCredential
+							? 'Payment credentials updated successfully'
+							: 'Payment credentials created successfully',
+						{ variant: 'success' }
+					);
+					handleCloseDialog();
+					fetchCredentials();
+				}
 			}
 		} catch (error: any) {
 			console.error('Error saving credentials:', error);
@@ -509,6 +663,7 @@ function PaymentMethodsTab() {
 				<Table>
 					<TableHead>
 						<TableRow>
+							<TableCell>Logo</TableCell>
 							<TableCell>Payment Method</TableCell>
 							<TableCell>Name</TableCell>
 							<TableCell>Status</TableCell>
@@ -520,7 +675,7 @@ function PaymentMethodsTab() {
 					<TableBody>
 						{credentials.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={6} align="center">
+								<TableCell colSpan={7} align="center">
 									<Typography variant="body2" color="text.secondary">
 										No payment credentials found. Click "Add Payment Method" to create one.
 									</Typography>
@@ -529,6 +684,24 @@ function PaymentMethodsTab() {
 						) : (
 							credentials.map((credential) => (
 								<TableRow key={credential.id || Math.random()}>
+									<TableCell>
+										{credential.logo_url ? (
+											<img 
+												src={credential.logo_url} 
+												alt={credential.name} 
+												style={{ 
+													width: '40px', 
+													height: '40px', 
+													objectFit: 'contain',
+													borderRadius: '4px'
+												}} 
+											/>
+										) : (
+											<Box sx={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.100', borderRadius: 1 }}>
+												<FuseSvgIcon>heroicons-outline:photograph</FuseSvgIcon>
+											</Box>
+										)}
+									</TableCell>
 									<TableCell>
 										<Typography variant="body2" fontWeight="medium">
 											{credential.payment_method || 'N/A'}
@@ -637,6 +810,56 @@ function PaymentMethodsTab() {
 								value={formData.description || ''}
 								onChange={(e) => handleInputChange('description', e.target.value)}
 							/>
+
+							<Box sx={{ mt: 2 }}>
+								<Typography variant="subtitle2" sx={{ mb: 1 }}>
+									Logo
+								</Typography>
+								{logoPreview && (
+									<Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+										<img 
+											src={logoPreview} 
+											alt="Logo preview" 
+											style={{ 
+												maxWidth: '150px', 
+												maxHeight: '150px', 
+												objectFit: 'contain',
+												border: '1px solid #ddd',
+												borderRadius: '4px',
+												padding: '8px'
+											}} 
+										/>
+										<Button
+											size="small"
+											variant="outlined"
+											color="error"
+											onClick={handleRemoveLogo}
+										>
+											Remove Logo
+										</Button>
+									</Box>
+								)}
+								<input
+									accept="image/*"
+									style={{ display: 'none' }}
+									id="logo-upload"
+									type="file"
+									onChange={handleLogoChange}
+								/>
+								<label htmlFor="logo-upload">
+									<Button
+										variant="outlined"
+										component="span"
+										fullWidth
+										startIcon={<FuseSvgIcon>heroicons-outline:photograph</FuseSvgIcon>}
+									>
+										{logoPreview ? 'Change Logo' : 'Upload Logo'}
+									</Button>
+								</label>
+								<Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+									Upload a logo image (JPG, PNG, GIF, SVG, WEBP - Max 2MB)
+								</Typography>
+							</Box>
 
 							<Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
 								<FormControlLabel
