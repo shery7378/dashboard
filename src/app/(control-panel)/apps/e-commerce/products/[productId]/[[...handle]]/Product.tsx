@@ -75,7 +75,7 @@ const schema = z.object({
 	gallery_images: z
 		.array(
 			z.object({
-				url: z.string().nonempty('Image URL is required'),
+				url: z.string().min(1, 'Image URL is required'),
 				is_featured: z.boolean().optional(),
 			})
 		)
@@ -95,17 +95,75 @@ function Product() {
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
 	const { t } = useTranslation('products');
 
-	const routeParams = useParams<{ productId: string }>();
+	const routeParams = useParams<{ productId: string; handle?: string[] }>();
 
-	const { productId } = routeParams;
+	// Extract productId from route params - handle might be an array if slug is present
+	// In Next.js, with route [productId]/[[...handle]], productId should be the first segment
+	let productId = routeParams.productId;
+	
+	// If handle exists and productId looks like it might be part of handle, extract correctly
+	// This handles edge cases where the route might be malformed
+	if (routeParams.handle && Array.isArray(routeParams.handle) && routeParams.handle.length > 0) {
+		// If productId is actually a slug (not numeric), we might need to handle differently
+		// But typically productId should be numeric
+		console.warn('Route has handle segments:', routeParams.handle);
+	}
+
+	// Ensure productId is a string and extract just the ID part (in case it includes slug)
+	// The productId should be numeric, so extract just the numeric part
+	const numericId = productId ? String(productId).split('/')[0] : '';
+	productId = numericId || productId;
+
+	// Debug: Log route params to understand the structure
+	console.log('Product route params:', { 
+		originalProductId: routeParams.productId, 
+		extractedProductId: productId,
+		handle: routeParams.handle,
+		fullParams: routeParams 
+	});
 
 	const {
 		data: product,
 		isLoading,
-		isError
+		isError,
+		error,
+		refetch
 	} = useGetECommerceProductQuery(productId, {
-		skip: !productId || productId === 'new'
+		skip: !productId || productId === 'new' || productId === ''
 	});
+
+	// Debug: Log API query state
+	if (productId && productId !== 'new') {
+		console.log('Product query state:', { 
+			productId, 
+			isLoading, 
+			isError, 
+			hasData: !!product,
+			productData: product?.data ? { id: product.data.id, name: product.data.name } : null,
+			error: error ? {
+				status: (error as any)?.status,
+				data: (error as any)?.data,
+				message: (error as any)?.message || (error as any)?.error,
+				originalStatus: (error as any)?.originalStatus
+			} : null,
+			apiUrl: `/api/products/${productId}`,
+			fullResponse: product
+		});
+		
+		// If we get a 404, try to get more details
+		if (isError && error) {
+			const errorStatus = (error as any)?.status || (error as any)?.originalStatus;
+			if (errorStatus === 404) {
+				console.error('Product 404 - Possible reasons:', {
+					productId,
+					productIdType: typeof productId,
+					productIdNumeric: isNaN(Number(productId)) ? 'Not numeric' : Number(productId),
+					errorData: (error as any)?.data,
+					suggestion: 'Product might not exist, be inactive, or require authentication'
+				});
+			}
+		}
+	}
 
 	const [tabValue, setTabValue] = useState('basic-info');
 
@@ -180,27 +238,64 @@ function Product() {
 	 * Show Message if the requested products is not exists
 	*/
 	if (isError && productId !== 'new') {
+		const errorStatus = (error as any)?.status || (error as any)?.originalStatus;
+		const errorData = (error as any)?.data;
+		const errorMessage = errorData?.message || (error as any)?.message || (error as any)?.error || 'Unknown error';
+		
+		console.error('Product not found error:', {
+			productId,
+			errorStatus,
+			errorData,
+			errorMessage,
+			apiUrl: `/api/products/${productId}`,
+			fullError: error
+		});
+		
 		return (
 			<motion.div
 				initial={{ opacity: 0 }}
 				animate={{ opacity: 1, transition: { delay: 0.1 } }}
-				className="flex flex-col flex-1 items-center justify-center h-full"
+				className="flex flex-col flex-1 items-center justify-center h-full space-y-4"
 			>
 				<Typography
 					color="text.secondary"
 					variant="h5"
 				>
-					There is no such product!
+					Product not found!
 				</Typography>
-				<Button
-					className="mt-6"
-					component={Link}
-					variant="outlined"
-					to="/apps/e-commerce/products"
-					color="inherit"
+				<Typography
+					color="text.secondary"
+					variant="body2"
+					className="text-center max-w-md"
 				>
-					Go to Products Page
-				</Button>
+					Product ID: {productId}<br />
+					API URL: /api/products/{productId}<br />
+					{errorStatus && `HTTP Status: ${errorStatus}`}<br />
+					{errorMessage && `Error: ${errorMessage}`}
+					<br /><br />
+					<strong>Possible reasons:</strong><br />
+					• Product doesn't exist in database<br />
+					• Product is inactive (check active status)<br />
+					• Authentication/authorization issue<br />
+					• Product belongs to different store
+				</Typography>
+				<div className="flex gap-2 mt-4">
+					<Button
+						variant="outlined"
+						onClick={() => refetch()}
+						color="primary"
+					>
+						Retry
+					</Button>
+					<Button
+						component={Link}
+						variant="outlined"
+						to="/apps/e-commerce/products"
+						color="inherit"
+					>
+						Go to Products Page
+					</Button>
+				</div>
 			</motion.div>
 		);
 	}
@@ -214,8 +309,8 @@ function Product() {
 		// return <FuseLoading />;
 	}
 
-	// Show MultiKonnect listing creation interface for vendors/suppliers creating new products
-	if (productId === 'new' && isVendorOrSupplier) {
+	// Show MultiKonnect listing creation interface for vendors/suppliers (both new and edit)
+	if (isVendorOrSupplier) {
 		return (
 			<FormProvider {...methods}>
 				<MultiKonnectListingCreation />

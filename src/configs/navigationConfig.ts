@@ -56,7 +56,7 @@ const navigationConfig: FuseNavItemType[] = [
 			divider(),
 			{
 				id: 'admin.vendors',
-				title: 'Vendors',
+				title: 'Sellers',
 				type: 'item',
 				icon: 'feather:user-check',
 				url: '/vendors',
@@ -272,18 +272,18 @@ const navigationConfig: FuseNavItemType[] = [
 		],
 	},
 
-	// Vendor menu (vendors can buy from suppliers - wholesale catalog access)
+	// Seller menu (sellers can buy from suppliers - wholesale catalog access)
 	{
 		id: 'vendor',
 		type: 'group',
 		icon: 'heroicons-outline:shopping-bag',
-		translate: 'VENDOR',
+		translate: 'SELLER',
 		auth: [...authRoles.vendor, ...authRoles.supplier], // Allow vendor and supplier roles only
 		children: [
 			{
 				id: 'vendor.dashboards',
 				title: 'Dashboard',
-				translate: 'VENDOR_DASHBOARD',
+				translate: 'SELLER_DASHBOARD',
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-document-check',
 				url: '/dashboards/vendor',
@@ -292,7 +292,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.analytics',
 				title: 'Analytics',
-				translate: 'VENDOR_ANALYTICS',
+				translate: 'SELLER_ANALYTICS',
 				type: 'item',
 				icon: 'heroicons-outline:chart-bar',
 				url: '/dashboards/vendor-analytics',
@@ -302,7 +302,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.orders',
 				title: 'Orders',
-				translate: 'VENDOR_ORDERS',
+				translate: 'SELLER_ORDERS',
 				type: 'item',
 				icon: 'feather:package',
 				url: '/apps/e-commerce/orders',
@@ -312,29 +312,22 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.products',
 				title: 'Products',
-				translate: 'VENDOR_PRODUCTS',
+				translate: 'SELLER_PRODUCTS',
 				type: 'collapse',
 				icon: 'heroicons-outline:shopping-cart',
 				children: [
 					{
 						id: 'vendor.products.all',
 						title: 'Products',
-						translate: 'VENDOR_PRODUCTS_ALL',
+						translate: 'SELLER_PRODUCTS_ALL',
 						type: 'item',
 						url: '/apps/e-commerce/products',
 						end: true,
 					},
 					{
-						id: 'vendor.products.new',
-						title: 'New Product',
-						translate: 'VENDOR_PRODUCTS_NEW',
-						type: 'item',
-						url: '/apps/e-commerce/products/new',
-					},
-					{
 						id: 'vendor.products.wholesale',
 						title: 'Wholesale Catalog',
-						translate: 'VENDOR_PRODUCTS_WHOLESALE',
+						translate: 'SELLER_PRODUCTS_WHOLESALE',
 						type: 'item',
 						url: '/apps/e-commerce/wholesale-catalog',
 						end: true,
@@ -345,21 +338,21 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.categories',
 				title: 'Categories',
-				translate: 'VENDOR_CATEGORIES',
+				translate: 'SELLER_CATEGORIES',
 				type: 'collapse',
 				icon: 'material-outline:category',
 				children: [
 					{
 						id: 'vendor.categories.all',
 						title: 'Categories',
-						translate: 'VENDOR_CATEGORIES_ALL',
+						translate: 'SELLER_CATEGORIES_ALL',
 						type: 'item',
 						url: '/apps/e-commerce/categories',
 					},
 					{
 						id: 'vendor.categories.new',
 						title: 'New category',
-						translate: 'VENDOR_CATEGORIES_NEW',
+						translate: 'SELLER_CATEGORIES_NEW',
 						type: 'item',
 						url: '/apps/e-commerce/categories/new',
 					},
@@ -369,7 +362,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.reports',
 				title: 'Reports',
-				translate: 'VENDOR_REPORTS',
+				translate: 'SELLER_REPORTS',
 				type: 'item',
 				url: '/apps/e-commerce/reports',
 				icon: 'heroicons-outline:arrow-trending-up',
@@ -379,7 +372,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.live-selling',
 				title: 'Live Selling',
-				translate: 'VENDOR_LIVE_SELLING',
+				translate: 'SELLER_LIVE_SELLING',
 				type: 'item',
 				url: '/apps/e-commerce/live-selling',
 				icon: 'heroicons-outline:video-camera',
@@ -390,7 +383,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.payouts',
 				title: 'Payouts',
-				translate: 'VENDOR_PAYOUTS',
+				translate: 'SELLER_PAYOUTS',
 				type: 'item',
 				url: '/apps/e-commerce/payouts',
 				icon: 'heroicons-outline:currency-dollar',
@@ -400,7 +393,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.order-settings',
 				title: 'Order Options',
-				translate: 'VENDOR_ORDER_OPTIONS',
+				translate: 'SELLER_ORDER_OPTIONS',
 				type: 'item',
 				url: '/apps/e-commerce/order-settings',
 				icon: 'heroicons-outline:cog-6-tooth',
@@ -432,7 +425,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.messages',
 				title: 'Messages',
-				translate: 'VENDOR_MESSAGES',
+				translate: 'SELLER_MESSAGES',
 				type: 'item',
 				icon: 'heroicons-outline:chat-bubble-left-right',
 				url: '/apps/messages',
@@ -443,7 +436,7 @@ const navigationConfig: FuseNavItemType[] = [
 			{
 				id: 'vendor.kyc',
 				title: 'KYC Verification',
-				translate: 'VENDOR_KYC',
+				translate: 'SELLER_KYC',
 				type: 'item',
 				icon: 'heroicons-outline:identification',
 				url: '/pages/kyc',

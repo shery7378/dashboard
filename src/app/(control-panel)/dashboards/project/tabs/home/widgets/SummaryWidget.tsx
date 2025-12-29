@@ -16,8 +16,8 @@ function SummaryWidget() {
 	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
 	const widget = widgets?.summary as WidgetDataType;
 	const data = widget?.data;
-	const ranges = widget?.ranges;
-	const currentRangeDefault = widget?.currentRange;
+	const ranges = widget?.ranges || {};
+	const currentRangeDefault = widget?.currentRange || 'DT';
 
 	const [currentRange, setCurrentRange] = useState<RangeType>(currentRangeDefault as RangeType);
 
@@ -48,7 +48,7 @@ function SummaryWidget() {
 					}}
 					variant="filled"
 				>
-					{Object.entries(ranges).map(([key, n]) => {
+					{Object.entries(ranges || {}).map(([key, n]) => {
 						return (
 							<MenuItem
 								key={key}
@@ -64,17 +64,17 @@ function SummaryWidget() {
 				</IconButton>
 			</div>
 			<div className="text-center mt-4">
-				<Typography className="text-7xl sm:text-8xl font-bold tracking-tight leading-none text-blue-500">
-					{data.count[currentRange]}
+				<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-blue-500">
+					{data?.count?.[currentRange] ?? 0}
 				</Typography>
-				<Typography className="text-lg font-medium text-blue-600 dark:text-blue-500">{data.name}</Typography>
+				<Typography className="text-base font-semibold text-blue-600 dark:text-blue-500 mt-2">{data?.name ?? ''}</Typography>
 			</div>
 			<Typography
 				className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
 				color="text.secondary"
 			>
-				<span className="truncate">{data.extra.name}:</span>
-				<b>{data.extra.count[currentRange]}</b>
+				<span className="truncate">{data?.extra?.name ?? ''}:</span>
+				<b>{data?.extra?.count?.[currentRange] ?? 0}</b>
 			</Typography>
 		</Paper>
 	);

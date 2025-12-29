@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     Box,
     Card,
@@ -54,15 +54,55 @@ function WholesaleCatalog() {
         errorPolicy: 'all',
     });
 
+    // Debug logging for troubleshooting
+    useEffect(() => {
+        if (error) {
+            console.error('Wholesale Catalog API Error:', {
+                error,
+                status: (error as any)?.status,
+                data: (error as any)?.data,
+                endpoint: '/api/products/suppliers',
+                apiBaseUrl: process.env.NEXT_PUBLIC_API_URL,
+            });
+        }
+        if (data) {
+            console.log('Wholesale Catalog API Response:', {
+                data,
+                products: data?.products,
+                productsData: data?.products?.data,
+                dataArray: data?.data,
+                total: data?.products?.meta?.total ?? data?.meta?.total,
+            });
+        }
+    }, [error, data]);
+
     const [importProduct, { isLoading: isImporting }] = useImportProductMutation();
 
     const products = useMemo(() => {
         // Handle different response formats
-        let productList = data?.products?.data ?? data?.data ?? [];
+        let productList: any[] = [];
+        
+        if (data) {
+            // Try multiple possible response structures
+            if (Array.isArray(data)) {
+                productList = data;
+            } else if (data.products?.data && Array.isArray(data.products.data)) {
+                productList = data.products.data;
+            } else if (data.data && Array.isArray(data.data)) {
+                productList = data.data;
+            } else if (data.products && Array.isArray(data.products)) {
+                productList = data.products;
+            }
+        }
+        
+        // Ensure we have an array
+        if (!Array.isArray(productList)) {
+            productList = [];
+        }
         
         // Sort products
         if (sortBy === 'name') {
-            productList = [...productList].sort((a, b) => a.name.localeCompare(b.name));
+            productList = [...productList].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         } else if (sortBy === 'price') {
             productList = [...productList].sort((a, b) => {
                 const priceA = parseFloat((a.price_tax_incl || a.price || 0).toString());
@@ -254,11 +294,57 @@ function WholesaleCatalog() {
                     <Typography variant="body2" component="div">
                         <strong>Failed to load products.</strong>
                         <br />
-                        {error && 'data' in error && typeof error.data === 'object' && error.data !== null && 'message' in error.data
-                            ? (error.data as any).message
-                            : error && 'status' in error
-                            ? `Error ${(error as any).status}: ${(error as any).statusText || 'Please check your connection and try again.'}`
-                            : 'Please check your connection and try again.'}
+                        {(() => {
+                            // Extract error message from different error formats
+                            let errorMessage = 'Please check your connection and try again.';
+                            let errorStatus = null;
+                            
+                            if (error && 'data' in error) {
+                                const errorData = error.data;
+                                
+                                // Handle object error data
+                                if (typeof errorData === 'object' && errorData !== null) {
+                                    if ('message' in errorData) {
+                                        errorMessage = (errorData as any).message;
+                                    } else if ('error' in errorData && typeof (errorData as any).error === 'object') {
+                                        errorMessage = (errorData as any).error?.message || errorMessage;
+                                    }
+                                } else if (typeof errorData === 'string') {
+                                    errorMessage = errorData;
+                                }
+                            }
+                            
+                            // Get status code
+                            if (error && 'status' in error) {
+                                errorStatus = (error as any).status;
+                            }
+                            
+                            // Build detailed error message
+                            let fullMessage = errorMessage;
+                            
+                            if (errorStatus) {
+                                if (errorStatus === 404) {
+                                    fullMessage = `Route not found (404). The API endpoint /api/products/suppliers may not be registered. Please check your backend routes.`;
+                                } else if (errorStatus === 401) {
+                                    fullMessage = `Unauthorized (401). Please ensure you are logged in and have the correct permissions.`;
+                                } else if (errorStatus === 403) {
+                                    fullMessage = `Forbidden (403). You don't have permission to access supplier products.`;
+                                } else if (errorStatus === 500) {
+                                    fullMessage = `Server error (500). ${errorMessage}`;
+                                } else {
+                                    fullMessage = `Error ${errorStatus}: ${errorMessage}`;
+                                }
+                            }
+                            
+                            return fullMessage;
+                        })()}
+                        <br />
+                        <Typography variant="caption" sx={{ mt: 1, display: 'block', opacity: 0.8 }}>
+                            API Endpoint: /api/products/suppliers
+                            {error && 'status' in error && (
+                                <> | Status: {(error as any).status}</>
+                            )}
+                        </Typography>
                     </Typography>
                 </Alert>
             )}

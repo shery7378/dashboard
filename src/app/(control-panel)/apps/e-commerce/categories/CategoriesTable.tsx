@@ -36,7 +36,7 @@ function CategoriesTable() {
 
 	const [pagination, setPagination] = useState({
 		pageIndex: 0, // MRT uses 0-based indexing
-		pageSize: 10,
+		pageSize: 1000, // Increased to show all categories
 	});
 
 	const [deleteCategory] = useDeleteECommerceCategoryMutation();

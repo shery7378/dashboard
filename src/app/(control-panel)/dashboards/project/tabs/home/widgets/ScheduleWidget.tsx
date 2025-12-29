@@ -19,10 +19,11 @@ import ScheduleDataType from './types/ScheduleDataType';
 function ScheduleWidget() {
 	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
 	const widget = widgets?.schedule as ScheduleDataType;
-	const series = widget?.series;
-	const ranges = widget?.ranges;
+	const series = widget?.series || {};
+	const ranges = widget?.ranges || {};
 	const [tabValue, setTabValue] = useState(0);
-	const currentRange = Object.keys(ranges)[tabValue];
+	const rangeKeys = Object.keys(ranges);
+	const currentRange = rangeKeys[tabValue] || rangeKeys[0] || 'TW';
 
 	if (isLoading) {
 		return <FuseLoading />;
@@ -41,7 +42,7 @@ function ScheduleWidget() {
 						value={tabValue}
 						onChange={(ev, value: number) => setTabValue(value)}
 					>
-						{Object.entries(ranges).map(([key, label], index) => (
+						{Object.entries(ranges || {}).map(([key, label], index) => (
 							<FuseTab
 								key={key}
 								value={index}
@@ -52,7 +53,7 @@ function ScheduleWidget() {
 				</div>
 			</div>
 			<List className="py-0 mt-2 divide-y">
-				{series[currentRange].map((item, index) => (
+				{(series[currentRange] || []).map((item, index) => (
 					<ListItem
 						key={index}
 						className="px-0"

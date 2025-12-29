@@ -34,7 +34,30 @@ function ProductsTable() {
   const [singleDeleteId, setSingleDeleteId] = useState<number | null>(null);
 
   const productList: EcommerceProduct[] = useMemo(() => {
-    return products?.products?.data?.map((product) => ProductModel(product)) ?? [];
+    // Handle different possible API response structures
+    const productsData = (products as any)?.data || (products as any)?.products?.data || (products as any)?.products || products || [];
+    const productArray = Array.isArray(productsData) ? productsData : [];
+    return productArray.map((product: any) => {
+      const mapped = ProductModel(product);
+      // Ensure tags and product_attributes are arrays (handle null/undefined)
+      if (!Array.isArray(mapped.tags)) {
+        (mapped as any).tags = [];
+      }
+      if (!Array.isArray((mapped as any).product_attributes)) {
+        (mapped as any).product_attributes = [];
+      }
+      // Log for debugging
+      console.log('Mapped product:', {
+        id: mapped.id,
+        name: mapped.name,
+        tags: (mapped as any).tags,
+        product_attributes: (mapped as any).product_attributes,
+        price_tax_excl: mapped.price_tax_excl,
+        quantity: mapped.quantity,
+        product_variants: (mapped as any).product_variants
+      });
+      return mapped;
+    });
   }, [products]);
 
   const columns = useMemo<MRT_ColumnDef<EcommerceProduct>[]>(() => [
@@ -61,11 +84,29 @@ function ProductsTable() {
     {
       accessorKey: 'name',
       header: t('name'),
-      Cell: ({ row }) => (
-        <Typography component={Link} to={`/apps/e-commerce/products/${row.original.id}/${row.original.slug}`} role="button">
-          <u>{row.original.name}</u>
-        </Typography>
-      )
+      Cell: ({ row }) => {
+        // Ensure product ID is a string and handle empty slug
+        const productId = String((row.original as any).id || '');
+        const slug = (row.original as any).slug || '';
+        
+        // Always use just the productId in the URL (slug is optional and handled by [[...handle]])
+        // This ensures the route matches correctly
+        const productUrl = `/apps/e-commerce/products/${productId}${slug && slug.trim() !== '' ? `/${slug}` : ''}`;
+        
+        console.log('Product link:', { 
+          productId, 
+          slug, 
+          url: productUrl, 
+          productIdType: typeof productId,
+          product: { id: (row.original as any).id, name: row.original.name }
+        });
+        
+        return (
+          <Typography component={Link} to={productUrl} role="button">
+            <u>{row.original.name}</u>
+          </Typography>
+        );
+      }
     },
     {
       accessorKey: 'categories',
@@ -86,72 +127,157 @@ function ProductsTable() {
     {
       accessorKey: 'tags',
       header: t('tags'),
-      accessorFn: (row) => (
-        <div className="flex flex-wrap space-x-0.5 space-y-0.5">
-          {Array.isArray(row.tags) && row.tags.length > 0
-            ? row.tags.map((tag: any) => (
-              <Chip
-                key={tag.id ?? tag.name}
-                className="text-sm"
-                size="small"
-                color="primary"
-                label={tag.name ?? tag}
-              />
-            ))
-            : '-'}
-        </div>
-      )
+      Cell: ({ row }) => {
+        const tags = row.original.tags || [];
+        const subcategories = (row.original as any).subcategories || [];
+        
+        // Combine tags and subcategories
+        const allItems: any[] = [];
+        
+        // Add tags
+        if (Array.isArray(tags) && tags.length > 0) {
+          allItems.push(...tags.map((tag: any) => ({ ...tag, type: 'tag' })));
+        }
+        
+        // Add subcategories
+        if (Array.isArray(subcategories) && subcategories.length > 0) {
+          allItems.push(...subcategories.map((sub: any) => ({ ...sub, type: 'subcategory' })));
+        }
+        
+        return (
+          <div className="flex flex-wrap space-x-0.5 space-y-0.5">
+            {allItems.length > 0
+              ? allItems.map((item: any, index: number) => (
+                <Chip
+                  key={item?.id ?? item?.name ?? index}
+                  className="text-sm"
+                  size="small"
+                  color={item.type === 'subcategory' ? 'default' : 'primary'}
+                  label={item?.name ?? item ?? '-'}
+                />
+              ))
+              : '-'}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'product_attributes',
       header: t('attributes'),
-      accessorFn: (row) => (
-        <div className="flex flex-wrap space-x-0.5 space-y-0.5">
-          {Array.isArray(row.product_attributes) && row.product_attributes.length > 0
-            ? row.product_attributes.map((attr: any) => (
-              <Chip
-                key={`${attr.id}`} // Using unique key to avoid duplicate key warnings
-                className="text-sm"
-                size="small"
-                color="default"
-                label={`${attr.attribute_name}: ${attr.attribute_value || attr.value || '-'}`}
-                sx={{
-                  ...(attr.attribute_name === 'Color' && attr.attribute_value
-                    ? {
-                      backgroundColor: `${attr.attribute_value} !important`,
-                      '& .MuiChip-label': {
-                       color: `${ getContrastColor(attr.attribute_value.toLowerCase())} `, // Ensure text is readable on colored background
-                      },
-                    }
-                    : {}),
-                }}
-              />
-          ))
-            : '-'}
-        </div>
-      )
+      Cell: ({ row }) => {
+        // Check both product_attributes and attributes from variants
+        const productAttrs = (row.original as any).product_attributes || [];
+        const variants = (row.original as any).product_variants || (row.original as any).variants || [];
+        
+        // Get attributes from variants if product_attributes is empty
+        let attributes = productAttrs;
+        if (attributes.length === 0 && variants.length > 0) {
+          // Extract unique attributes from variants
+          const variantAttrs: any[] = [];
+          variants.forEach((variant: any) => {
+            if (variant.attributes && Array.isArray(variant.attributes)) {
+              variant.attributes.forEach((attr: any) => {
+                if (!variantAttrs.find(a => a.attribute_name === attr.attribute_name && a.attribute_value === attr.attribute_value)) {
+                  variantAttrs.push(attr);
+                }
+              });
+            }
+          });
+          attributes = variantAttrs;
+        }
+        
+        return (
+          <div className="flex flex-wrap space-x-0.5 space-y-0.5">
+            {Array.isArray(attributes) && attributes.length > 0
+              ? attributes.map((attr: any, index: number) => (
+                <Chip
+                  key={attr?.id ?? `${attr?.attribute_name}-${attr?.attribute_value}-${index}`}
+                  className="text-sm"
+                  size="small"
+                  color="default"
+                  label={`${attr?.attribute_name || attr?.name || 'Attribute'}: ${attr?.attribute_value || attr?.value || '-'}`}
+                  sx={{
+                    ...(attr?.attribute_name === 'Color' && attr?.attribute_value
+                      ? {
+                        backgroundColor: `${attr.attribute_value} !important`,
+                        '& .MuiChip-label': {
+                         color: `${ getContrastColor(attr.attribute_value.toLowerCase())} `,
+                        },
+                      }
+                      : {}),
+                  }}
+                />
+            ))
+              : '-'}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'priceTaxIncl',
       header: t('price'),
-      accessorFn: (row) => `£${parseFloat(row.price_tax_excl).toFixed(2)}`
+      Cell: ({ row }) => {
+        // Check if product has variants - use variant price if available
+        const variants = (row.original as any).product_variants || (row.original as any).variants || [];
+        if (variants.length > 0) {
+          // Get the lowest price from variants
+          const prices = variants
+            .map((v: any) => parseFloat(v.price || v.price_tax_excl || 0))
+            .filter((p: number) => !isNaN(p) && p > 0);
+          if (prices.length > 0) {
+            const minPrice = Math.min(...prices);
+            return `£${minPrice.toFixed(2)}`;
+          }
+        }
+        // Fallback to product price
+        const price = parseFloat(String(row.original.price_tax_excl || row.original.price || 0));
+        return price > 0 ? `£${price.toFixed(2)}` : '-';
+      }
     },
     {
       accessorKey: 'quantity',
       header: t('quantity'),
-      accessorFn: (row) => (
-        <div className="flex items-center space-x-2">
-          <span>{row.quantity}</span>
-          <i
-            className={clsx(
-              'inline-block w-2 h-2 rounded-sm',
-              row.quantity <= 5 && 'bg-red-500',
-              row.quantity > 5 && row.quantity <= 25 && 'bg-orange-500',
-              row.quantity > 25 && 'bg-green-500'
+      Cell: ({ row }) => {
+        // Check if product has variants - sum up variant quantities
+        const variants = (row.original as any).product_variants || (row.original as any).variants || [];
+        if (variants.length > 0) {
+          const totalStock = variants.reduce((sum: number, v: any) => {
+            return sum + (parseInt(String(v.quantity || v.qty || 0)));
+          }, 0);
+          return (
+            <div className="flex items-center space-x-2">
+              <span>{totalStock > 0 ? totalStock : '-'}</span>
+              {totalStock > 0 && (
+                <i
+                  className={clsx(
+                    'inline-block w-2 h-2 rounded-sm',
+                    totalStock <= 5 && 'bg-red-500',
+                    totalStock > 5 && totalStock <= 25 && 'bg-orange-500',
+                    totalStock > 25 && 'bg-green-500'
+                  )}
+                />
+              )}
+            </div>
+          );
+        }
+        // Fallback to product quantity
+        const quantity = parseInt(String(row.original.quantity || 0));
+        return (
+          <div className="flex items-center space-x-2">
+            <span>{quantity > 0 ? quantity : '-'}</span>
+            {quantity > 0 && (
+              <i
+                className={clsx(
+                  'inline-block w-2 h-2 rounded-sm',
+                  quantity <= 5 && 'bg-red-500',
+                  quantity > 5 && quantity <= 25 && 'bg-orange-500',
+                  quantity > 25 && 'bg-green-500'
+                )}
+              />
             )}
-          />
-        </div>
-      )
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'active',

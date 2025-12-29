@@ -1,17 +1,54 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useGetSalesQuery, useGetVendorPerformanceQuery, useGetSalesHeatmapQuery } from './apis/AnalyticsApi';
 import { Card, CardContent, CardHeader, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Paper, Stack, Avatar } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import axios from 'axios';
 // Using Box with CSS grid to avoid Grid import/version mismatches
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
+// Currency symbols mapping
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  GBP: '£',
+  EUR: '€',
+  JPY: '¥',
+  CNY: '¥',
+  INR: '₹',
+  AUD: 'A$',
+  CAD: 'C$',
+  CHF: 'CHF',
+  SEK: 'kr',
+  NZD: 'NZ$',
+  MXN: '$',
+  SGD: 'S$',
+  HKD: 'HK$',
+  NOK: 'kr',
+  TRY: '₺',
+  RUB: '₽',
+  ZAR: 'R',
+  BRL: 'R$',
+  AED: 'د.إ',
+  SAR: '﷼',
+  PKR: '₨',
+  BDT: '৳',
+  THB: '฿',
+  MYR: 'RM',
+  IDR: 'Rp',
+  PHP: '₱',
+  VND: '₫',
+  KRW: '₩',
+};
+
 export default function ReportsPage() {
+  const [defaultCurrency, setDefaultCurrency] = useState<string>('GBP'); // Default to GBP
+  const [currencySymbol, setCurrencySymbol] = useState<string>('£');
+
   const { data: salesData } = useGetSalesQuery({ interval: 'day' });
   const { data: vendorPerf } = useGetVendorPerformanceQuery({ limit: 10 });
   const { data: heatmap } = useGetSalesHeatmapQuery({});
@@ -20,17 +57,42 @@ export default function ReportsPage() {
   const vendors = vendorPerf?.data ?? [];
   const heat = heatmap?.data ?? [];
 
+  // Fetch default currency from API
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+        const response = await axios.get(`${apiUrl}/api/currencies/rates`, {
+          withCredentials: true,
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.data?.default_currency) {
+          const currency = response.data.default_currency;
+          setDefaultCurrency(currency);
+          setCurrencySymbol(CURRENCY_SYMBOLS[currency] || currency);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch default currency, using GBP as fallback', error);
+        setDefaultCurrency('GBP');
+        setCurrencySymbol('£');
+      }
+    };
+
+    fetchCurrency();
+  }, []);
+
   // Aggregates for KPIs
   const totalSales = sales.reduce((sum, s) => sum + (Number(s.total_sales) || 0), 0);
   const totalOrders = sales.reduce((sum, s) => sum + (Number(s.orders) || 0), 0);
   const topVendor = vendors[0];
 
-  const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: defaultCurrency, maximumFractionDigits: 0 });
   const compactCurrency = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
   const formatCompactCurrency = (v: number) => {
-    if (!isFinite(v)) return '$0';
+    if (!isFinite(v)) return `${currencySymbol}0`;
     const compact = compactCurrency.format(v).replace(/\s/g, '');
-    return v >= 1000 ? `$${compact}` : currency.format(v);
+    return v >= 1000 ? `${currencySymbol}${compact}` : currency.format(v);
   };
 
   // Peaks for annotations
@@ -56,14 +118,17 @@ export default function ReportsPage() {
     },
   ];
 
+  // Prepare chart data - filter out vendors with no name or zero sales
+  const validVendors = vendors.filter((v) => v.vendor_name && Number(v.total_sales) > 0);
+  
   const barSeries = [
     {
       name: 'Sales',
-      data: vendors.map((v) => Number(v.total_sales)),
+      data: validVendors.map((v) => Number(v.total_sales) || 0),
     },
   ];
 
-  const barCategories = vendors.map((v) => v.vendor_name);
+  const barCategories = validVendors.map((v) => v.vendor_name || 'Unknown Seller');
 
   // Heatmap totals
   const totalHeatOrders = heat.reduce((sum: number, h: any) => sum + (Number(h.orders) || 0), 0);
@@ -131,7 +196,7 @@ export default function ReportsPage() {
                   <EmojiEventsIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.85)' }}>Top Vendor</Typography>
+                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.85)' }}>Top Seller</Typography>
                   <Typography variant="h6" sx={{ fontWeight: 700, color: 'common.white' }}>{topVendor?.vendor_name || '—'}</Typography>
                   <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>{topVendor ? currency.format(Number(topVendor.total_sales)) : ''}</Typography>
                 </Box>
@@ -220,27 +285,52 @@ export default function ReportsPage() {
         <Box>
           <Card sx={{ height: '100%', boxShadow: 6, borderRadius: 3 }}>
             <CardHeader
-              title="Top Vendors"
+              title="Top Sellers"
               subheader="By total sales"
               titleTypographyProps={{ sx: { fontWeight: 700 } }}
               subheaderTypographyProps={{ sx: { color: 'text.secondary' } }}
             />
             <CardContent>
-              <ReactApexChart
-                type="bar"
-                height={320}
-                options={{
-                  theme: { mode: 'light' },
-                  chart: { toolbar: { show: false } },
-                  colors: ['#22C55E'],
-                  xaxis: { categories: barCategories, labels: { rotateAlways: true, rotate: -25, trim: true } },
-                  plotOptions: { bar: { horizontal: false, borderRadius: 6, columnWidth: '45%' } },
-                  dataLabels: { enabled: false },
-                  legend: { show: false },
-                  tooltip: { y: { formatter: (val: number) => currency.format(val) } },
-                }}
-                series={barSeries}
-              />
+              {vendors.length === 0 ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 320 }}>
+                  <Typography color="text.secondary">No seller data available</Typography>
+                </Box>
+              ) : (
+                <ReactApexChart
+                  type="bar"
+                  height={320}
+                  options={{
+                    theme: { mode: 'light' },
+                    chart: { 
+                      toolbar: { show: false },
+                      animations: { enabled: true, speed: 600 }
+                    },
+                    colors: ['#22C55E'],
+                    xaxis: { 
+                      categories: barCategories, 
+                      labels: { 
+                        rotateAlways: true, 
+                        rotate: -25, 
+                        trim: true,
+                        maxHeight: 60
+                      } 
+                    },
+                    yaxis: {
+                      title: { text: 'Total Sales' },
+                      labels: { formatter: (v: number) => formatCompactCurrency(v) }
+                    },
+                    plotOptions: { bar: { horizontal: false, borderRadius: 6, columnWidth: '45%' } },
+                    dataLabels: { 
+                      enabled: true,
+                      formatter: (val: number) => formatCompactCurrency(val),
+                      style: { fontSize: '11px', fontWeight: 600 }
+                    },
+                    legend: { show: false },
+                    tooltip: { y: { formatter: (val: number) => currency.format(val) } },
+                  }}
+                  series={barSeries}
+                />
+              )}
             </CardContent>
           </Card>
         </Box>
@@ -249,7 +339,7 @@ export default function ReportsPage() {
           <Card sx={{ boxShadow: 6, borderRadius: 3 }}>
             <CardHeader
               title="Sales Heatmap (by Store)"
-              subheader="Aggregated by store coordinates"
+              subheader={`Aggregated by store coordinates${totalHeatOrders < totalOrders ? ` (Only stores with coordinates: ${totalHeatOrders} of ${totalOrders} orders)` : ''}`}
               titleTypographyProps={{ sx: { fontWeight: 700 } }}
               subheaderTypographyProps={{ sx: { color: 'text.secondary' } }}
             />

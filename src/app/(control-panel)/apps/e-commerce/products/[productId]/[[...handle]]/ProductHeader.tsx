@@ -77,27 +77,383 @@ function ProductHeader() {
   const { name, gallery_images } = watch() as EcommerceProduct;
 
   function transformFormValues(values: EcommerceProduct): any {
+    // Build categories array from main_category and subcategory
+    const categoriesArray: number[] = [];
+    
+    // Add main category ID if it exists
+    if (values.main_category && (values.main_category as any).id) {
+      const mainCatId = Number((values.main_category as any).id);
+      if (!isNaN(mainCatId) && mainCatId > 0) {
+        categoriesArray.push(mainCatId);
+      }
+    }
+    
+    // Add subcategory IDs if they exist
+    if (values.subcategory && Array.isArray(values.subcategory)) {
+      values.subcategory.forEach((subcat: any) => {
+        if (subcat && subcat.id) {
+          const subCatId = Number(subcat.id);
+          if (!isNaN(subCatId) && subCatId > 0 && !categoriesArray.includes(subCatId)) {
+            categoriesArray.push(subCatId);
+          }
+        }
+      });
+    }
+    
+    // Fallback to existing categories if main_category/subcategory not provided
+    if (categoriesArray.length === 0 && values.categories && Array.isArray(values.categories)) {
+      values.categories.forEach((cat: any) => {
+        const catId = typeof cat === 'object' ? Number(cat.id) : Number(cat);
+        if (!isNaN(catId) && catId > 0 && !categoriesArray.includes(catId)) {
+          categoriesArray.push(catId);
+        }
+      });
+    }
+    
+    console.log('Transforming categories:', {
+      main_category: values.main_category,
+      subcategory: values.subcategory,
+      existing_categories: values.categories,
+      final_categories: categoriesArray
+    });
+    
     const transformed: any = {
       ...values,
-      categories: values.categories?.map((cat) => cat.id) ?? [],
+      // Preserve main_category and subcategory for backend (backend expects these fields)
+      // Only include if they exist in form values (don't create fake ones)
+      ...(values.main_category && { main_category: values.main_category }),
+      ...(values.subcategory && Array.isArray(values.subcategory) && values.subcategory.length > 0 && { subcategory: values.subcategory }),
+      categories: categoriesArray, // Use combined categories array for compatibility
       tags: values.tags ?? [],
       active: Number(values.active), // Convert true/false or 1/0 to 1/0
+      // Explicitly ensure these fields are included (even if 0 or empty)
+      // Convert price fields to numbers (backend requires numeric)
+      price_tax_excl: parseFloat(String(values.price_tax_excl ?? values.price ?? 0)) || 0,
+      price_tax_incl: parseFloat(String(values.price_tax_incl ?? values.price ?? 0)) || 0,
+      price: parseFloat(String(values.price ?? values.price_tax_excl ?? 0)) || 0,
+      // Database has 'quantity' column, but Laravel model uses 'qty' - send both to be safe
+      quantity: parseInt(String(values.quantity ?? 0)) || 0,
+      qty: parseInt(String(values.quantity ?? 0)) || 0, // Laravel model fillable expects 'qty'
+      // Ensure manage_stock and in_stock are set (required for qty to be saved)
+      manage_stock: values.manage_stock !== undefined ? Boolean(values.manage_stock) : ((values.quantity ?? 0) > 0 ? true : false),
+      in_stock: values.in_stock !== undefined ? Boolean(values.in_stock) : ((values.quantity ?? 0) > 0 ? true : false),
+      // Transform product_attributes to attributes format (backend expects 'attributes' not 'product_attributes')
+      // Backend expects: attributes: [{ attribute_id: number, values: [number, ...] }]
+      attributes: (() => {
+        // First check if attributes already exist in the correct format (from API)
+        if (values.attributes && Array.isArray(values.attributes) && values.attributes.length > 0) {
+          // Check if already in correct format (has attribute_id and values array)
+          const firstAttr = values.attributes[0];
+          if (firstAttr && typeof firstAttr === 'object' && 'attribute_id' in firstAttr && 'values' in firstAttr) {
+            // Already in correct format, just ensure IDs are numbers
+            return values.attributes.map((attr: any) => ({
+              attribute_id: Number(attr.attribute_id),
+              values: Array.isArray(attr.values) ? attr.values.map((v: any) => Number(v)) : []
+            }));
+          }
+        }
+        
+        // Otherwise, try to transform from product_attributes
+        const productAttrs = values.product_attributes ?? (values as any).attributes ?? [];
+        if (!Array.isArray(productAttrs) || productAttrs.length === 0) {
+          return [];
+        }
+        
+        // Transform from frontend format to backend format
+        const attributesMap = new Map<number, number[]>();
+        
+        productAttrs.forEach((attr: any) => {
+          // Handle different possible formats
+          const attrId = attr.attribute_id ?? attr.id ?? attr.attributeId;
+          const valueId = attr.attribute_value_id ?? attr.value_id ?? attr.valueId ?? attr.id;
+          
+          // Only process if we have both attribute_id and value_id (backend requires IDs)
+          if (attrId && valueId) {
+            const numAttrId = Number(attrId);
+            const numValueId = Number(valueId);
+            
+            if (!isNaN(numAttrId) && !isNaN(numValueId)) {
+              if (!attributesMap.has(numAttrId)) {
+                attributesMap.set(numAttrId, []);
+              }
+              const valuesArray = attributesMap.get(numAttrId)!;
+              if (!valuesArray.includes(numValueId)) {
+                valuesArray.push(numValueId);
+              }
+            }
+          } else {
+            // Log warning if attribute doesn't have IDs (can't be saved without IDs)
+            console.warn('Product attribute missing IDs, skipping:', attr);
+          }
+        });
+        
+        // Convert map to array format expected by backend
+        return Array.from(attributesMap.entries()).map(([attribute_id, values]) => ({
+          attribute_id: Number(attribute_id),
+          values: values.map(v => Number(v))
+        }));
+      })(),
+      // Keep product_attributes for compatibility (but backend uses 'attributes')
+      product_attributes: values.product_attributes ?? (values as any).attributes ?? [],
+      // Ensure description is included
+      description: values.description ?? '',
+      // Ensure SEO fields are included (backend expects meta object)
+      meta: {
+        meta_title: values.meta_title ?? (values as any).meta?.meta_title ?? '',
+        meta_description: values.meta_description ?? (values as any).meta?.meta_description ?? '',
+        meta_keywords: values.meta_keywords ?? (values as any).meta?.meta_keywords ?? '',
+      },
+      // Also include meta fields at root level for compatibility
+      meta_title: values.meta_title ?? (values as any).meta?.meta_title ?? '',
+      meta_description: values.meta_description ?? (values as any).meta?.meta_description ?? '',
+      meta_keywords: values.meta_keywords ?? (values as any).meta?.meta_keywords ?? '',
+      // Store delivery_slots and store_postcode in extraFields (they're not in products table)
+      // These fields will be stored in extraFields JSON column or separate table
+      extraFields: {
+        ...(values.extraFields || {}),
+        delivery_slots: values.delivery_slots ?? (values as any).delivery_slots ?? '',
+        store_postcode: values.store_postcode ?? (values as any).store_postcode ?? '',
+      },
+      // Also include at root level for compatibility (backend might handle these separately)
+      delivery_slots: values.delivery_slots ?? (values as any).delivery_slots ?? '',
+      store_postcode: values.store_postcode ?? (values as any).store_postcode ?? '',
     };
     
-    // Transform product_variants to variants if it exists (backend expects 'variants')
-    if (values.product_variants && Array.isArray(values.product_variants) && values.product_variants.length > 0) {
-      transformed.variants = values.product_variants;
-    } else if (values.variants && Array.isArray(values.variants) && values.variants.length > 0) {
-      // Use variants if it exists directly
-      transformed.variants = values.variants;
+    // Transform product_variants to variants (backend expects 'variants' field to always exist)
+    // Always include variants field, even if empty array, to satisfy backend validation
+    if (values.product_variants && Array.isArray(values.product_variants)) {
+      // Ensure all variant prices are numeric and all required fields are present
+      transformed.variants = values.product_variants.map((variant: any, index: number) => {
+        if (variant && typeof variant === 'object') {
+          const variantPrice = variant.price !== undefined && variant.price !== null 
+            ? parseFloat(String(variant.price)) || 0 
+            : 0;
+          const variantQty = variant.qty !== undefined && variant.qty !== null
+            ? parseInt(String(variant.qty)) || parseInt(String(variant.quantity)) || 0
+            : parseInt(String(variant.quantity)) || 0;
+          
+          // Generate uid and uids if not present (backend requires these)
+          const variantUid = variant.uid || variant.sku || `variant-${index + 1}`;
+          const variantUids = variant.uids || variantUid;
+          
+          // Map price - use price_tax_excl if available, otherwise use price
+          const finalPrice = variant.price_tax_excl !== undefined && variant.price_tax_excl !== null
+            ? parseFloat(String(variant.price_tax_excl)) || variantPrice
+            : variantPrice;
+          
+          return {
+            ...variant,
+            // Required fields
+            name: variant.name || '',
+            sku: variant.sku || '',
+            uid: variantUid,
+            uids: variantUids,
+            // Send price in both formats (model expects 'price', database might have 'price_tax_excl')
+            price: finalPrice, // Laravel model fillable expects 'price'
+            price_tax_excl: finalPrice, // Database column (if exists)
+            price_tax_incl: variant.price_tax_incl !== undefined && variant.price_tax_incl !== null
+              ? parseFloat(String(variant.price_tax_incl)) || finalPrice
+              : finalPrice, // Database column (if exists)
+            special_price: variant.special_price !== undefined && variant.special_price !== null
+              ? parseFloat(String(variant.special_price)) || 0
+              : 0,
+            compared_price: variant.compared_price !== undefined && variant.compared_price !== null
+              ? parseFloat(String(variant.compared_price)) || 0
+              : 0,
+            // Send quantity in both formats (model expects 'qty', database might have 'quantity')
+            quantity: variantQty, // Database column (if exists)
+            qty: variantQty, // Laravel model fillable expects 'qty'
+            // Ensure boolean fields are properly set (backend requires these)
+            manage_stock: variant.manage_stock !== undefined ? Boolean(variant.manage_stock) : (variantQty > 0 ? true : false),
+            in_stock: variant.in_stock !== undefined ? Boolean(variant.in_stock) : (variantQty > 0 ? true : false),
+            is_active: variant.is_active !== undefined ? Boolean(variant.is_active) : true,
+            is_default: variant.is_default !== undefined ? Boolean(variant.is_default) : false,
+            // Position is set by backend, but include if present
+            position: variant.position !== undefined ? parseInt(String(variant.position)) || (index + 1) : (index + 1),
+          };
+        }
+        return variant;
+      });
+      console.log('Transforming product_variants to variants:', transformed.variants.length, 'variants');
+      console.log('Sample variant data:', transformed.variants.length > 0 ? transformed.variants[0] : 'No variants');
+    } else if (values.variants && Array.isArray(values.variants)) {
+      // Use variants if it exists directly, but ensure prices are numeric and required fields are present
+      transformed.variants = values.variants.map((variant: any, index: number) => {
+        if (variant && typeof variant === 'object') {
+          const variantPrice = variant.price !== undefined && variant.price !== null 
+            ? parseFloat(String(variant.price)) || 0 
+            : 0;
+          const variantQty = variant.qty !== undefined && variant.qty !== null
+            ? parseInt(String(variant.qty)) || parseInt(String(variant.quantity)) || 0
+            : parseInt(String(variant.quantity)) || 0;
+          
+          // Generate uid and uids if not present (backend requires these)
+          const variantUid = variant.uid || variant.sku || `variant-${index + 1}`;
+          const variantUids = variant.uids || variantUid;
+          
+          // Map price - use price_tax_excl if available, otherwise use price
+          const finalPrice = variant.price_tax_excl !== undefined && variant.price_tax_excl !== null
+            ? parseFloat(String(variant.price_tax_excl)) || variantPrice
+            : variantPrice;
+          
+          return {
+            ...variant,
+            // Required fields
+            name: variant.name || '',
+            sku: variant.sku || '',
+            uid: variantUid,
+            uids: variantUids,
+            // Send price in both formats (model expects 'price', database might have 'price_tax_excl')
+            price: finalPrice, // Laravel model fillable expects 'price'
+            price_tax_excl: finalPrice, // Database column (if exists)
+            price_tax_incl: variant.price_tax_incl !== undefined && variant.price_tax_incl !== null
+              ? parseFloat(String(variant.price_tax_incl)) || finalPrice
+              : finalPrice, // Database column (if exists)
+            special_price: variant.special_price !== undefined && variant.special_price !== null
+              ? parseFloat(String(variant.special_price)) || 0
+              : 0,
+            compared_price: variant.compared_price !== undefined && variant.compared_price !== null
+              ? parseFloat(String(variant.compared_price)) || 0
+              : 0,
+            // Send quantity in both formats (model expects 'qty', database might have 'quantity')
+            quantity: variantQty, // Database column (if exists)
+            qty: variantQty, // Laravel model fillable expects 'qty'
+            // Ensure boolean fields are properly set
+            manage_stock: variant.manage_stock !== undefined ? Boolean(variant.manage_stock) : (variantQty > 0 ? true : false),
+            in_stock: variant.in_stock !== undefined ? Boolean(variant.in_stock) : (variantQty > 0 ? true : false),
+            is_active: variant.is_active !== undefined ? Boolean(variant.is_active) : true,
+            is_default: variant.is_default !== undefined ? Boolean(variant.is_default) : false,
+            position: variant.position !== undefined ? parseInt(String(variant.position)) || (index + 1) : (index + 1),
+          };
+        }
+        return variant;
+      });
+      console.log('Using variants directly:', transformed.variants.length, 'variants');
+      console.log('Sample variant data:', transformed.variants.length > 0 ? transformed.variants[0] : 'No variants');
+    } else {
+      // Always set variants field, even if empty, to satisfy backend validation requirement
+      transformed.variants = [];
+      console.log('Setting empty variants array (no product_variants found)');
     }
+    
+    // Ensure variants is always an array (defensive check)
+    if (!Array.isArray(transformed.variants)) {
+      console.warn('variants is not an array, converting to empty array');
+      transformed.variants = [];
+    }
+    
+    // Ensure extraFields always exists (backend requires it)
+    if (!transformed.extraFields || typeof transformed.extraFields !== 'object') {
+      transformed.extraFields = {};
+    }
+    
+    // Store delivery_slots and store_postcode in extraFields (they're not direct columns in products table)
+    // Merge them into extraFields if they exist at root level
+    if (transformed.delivery_slots) {
+      transformed.extraFields.delivery_slots = transformed.delivery_slots;
+    }
+    if (transformed.store_postcode) {
+      transformed.extraFields.store_postcode = transformed.store_postcode;
+    }
+    
+    // Remove undefined values to avoid sending them to API (but keep required fields)
+    // Also preserve fields that are 0 or empty arrays/strings as they are valid values
+    Object.keys(transformed).forEach(key => {
+      if (transformed[key] === undefined && 
+          key !== 'extraFields' && 
+          key !== 'variants' && 
+          key !== 'categories' && // Preserve categories (required for backend)
+          key !== 'tags' && 
+          key !== 'product_attributes' && 
+          key !== 'price_tax_excl' && 
+          key !== 'price_tax_incl' && 
+          key !== 'price' && 
+          key !== 'quantity' && 
+          key !== 'qty' &&
+          key !== 'manage_stock' && // Preserve manage_stock (required for qty)
+          key !== 'in_stock' && // Preserve in_stock (required for qty)
+          key !== 'attributes' && // Preserve attributes (backend requires this format)
+          key !== 'product_attributes' && // Preserve product_attributes for compatibility
+          key !== 'description' && // Preserve description
+          key !== 'meta' && // Preserve meta object
+          key !== 'meta_title' && // Preserve SEO fields (for compatibility)
+          key !== 'meta_description' &&
+          key !== 'meta_keywords' &&
+          key !== 'delivery_slots' && // Preserve delivery fields
+          key !== 'store_postcode') {
+        delete transformed[key];
+      }
+    });
+    
+    // Ensure categories is always an array (even if empty)
+    if (!Array.isArray(transformed.categories)) {
+      transformed.categories = [];
+    }
+    
+    // Ensure description is always a string (even if empty)
+    if (typeof transformed.description !== 'string') {
+      transformed.description = transformed.description?.toString() || '';
+    }
+    
+    // Ensure SEO fields are always strings (even if empty)
+    if (typeof transformed.meta_title !== 'string') {
+      transformed.meta_title = transformed.meta_title?.toString() || '';
+    }
+    if (typeof transformed.meta_description !== 'string') {
+      transformed.meta_description = transformed.meta_description?.toString() || '';
+    }
+    
+    // Ensure delivery fields are always strings (even if empty)
+    if (typeof transformed.delivery_slots !== 'string') {
+      transformed.delivery_slots = transformed.delivery_slots?.toString() || '';
+    }
+    if (typeof transformed.store_postcode !== 'string') {
+      transformed.store_postcode = transformed.store_postcode?.toString() || '';
+    }
+    
+    console.log('Final transformed data - variants field:', transformed.variants, 'length:', transformed.variants.length);
+    if (transformed.variants.length > 0) {
+      console.log('Final transformed data - First variant details:', {
+        name: transformed.variants[0].name,
+        sku: transformed.variants[0].sku,
+        price: transformed.variants[0].price,
+        qty: transformed.variants[0].qty,
+        manage_stock: transformed.variants[0].manage_stock,
+        in_stock: transformed.variants[0].in_stock,
+        is_active: transformed.variants[0].is_active,
+        uid: transformed.variants[0].uid,
+        hasAllRequiredFields: !!(transformed.variants[0].name && transformed.variants[0].sku && transformed.variants[0].price !== undefined)
+      });
+    }
+    console.log('Final transformed data - extraFields:', transformed.extraFields);
+    console.log('Final transformed data - categories:', transformed.categories, 'length:', transformed.categories?.length);
+    console.log('Final transformed data - tags:', transformed.tags, 'length:', transformed.tags?.length);
+    console.log('Final transformed data - attributes:', transformed.attributes, 'length:', transformed.attributes?.length);
+    console.log('Final transformed data - product_attributes:', transformed.product_attributes, 'length:', transformed.product_attributes?.length);
+    console.log('Final transformed data - price:', transformed.price, 'price_tax_excl:', transformed.price_tax_excl, 'qty:', transformed.qty, 'quantity:', transformed.quantity);
+    console.log('Final transformed data - manage_stock:', transformed.manage_stock, 'in_stock:', transformed.in_stock);
+    console.log('Final transformed data - description:', transformed.description, 'length:', transformed.description?.length);
+    console.log('Final transformed data - meta_title:', transformed.meta_title, 'length:', transformed.meta_title?.length);
+    console.log('Final transformed data - meta_description:', transformed.meta_description, 'length:', transformed.meta_description?.length);
+    console.log('Final transformed data - delivery_slots:', transformed.delivery_slots);
+    console.log('Final transformed data - store_postcode:', transformed.store_postcode);
+    console.log('Transformed data keys:', Object.keys(transformed));
     
     return transformed;
   }
 
   /** ✅ Save handler */
   function handleSaveProduct() {
-    const values = getValues() as EcommerceProduct;
+    let values = getValues() as EcommerceProduct;
+    
+    // Ensure product_variants exists before transforming (defensive check)
+    if (!values.product_variants || !Array.isArray(values.product_variants)) {
+      console.log('product_variants missing or not array, setting to empty array');
+      setValue('product_variants', [], { shouldDirty: false });
+      // Re-get values after setting
+      values = getValues() as EcommerceProduct;
+    }
+    
     saveProduct(transformFormValues(values))
       .unwrap()
       .then((data) => {
@@ -119,7 +475,15 @@ function ProductHeader() {
 
   /** ✅ Create handler */
   function handleCreateProduct() {
-    const values = getValues() as EcommerceProduct;
+    let values = getValues() as EcommerceProduct;
+    
+    // Ensure product_variants exists before transforming (defensive check)
+    if (!values.product_variants || !Array.isArray(values.product_variants)) {
+      console.log('product_variants missing or not array, setting to empty array');
+      setValue('product_variants', [], { shouldDirty: false });
+      // Re-get values after setting
+      values = getValues() as EcommerceProduct;
+    }
     
     // Debug: Log current form values
     console.log('Creating product with values:', {
@@ -184,21 +548,45 @@ function ProductHeader() {
         return;
       }
 
-      createProduct(transformFormValues(values))
+      const transformedData = transformFormValues(values);
+      console.log('Sending product data to API:', transformedData);
+      console.log('Variants being sent:', transformedData.variants);
+      
+      createProduct(transformedData)
         .unwrap()
         .then((data) => {
+          console.log('Product created successfully:', data);
+          console.log('Full response data:', JSON.stringify(data, null, 2));
+          
+          // Try different possible response structures
+          const productId = data?.data?.id || data?.data?.product?.id || data?.id || data?.product_id;
+          
+          if (!productId) {
+            console.error('No product ID in response:', data);
+            enqueueSnackbar('Product created but ID not found in response. Check console for details.', { 
+              variant: 'warning',
+              autoHideDuration: 8000
+            });
+            return;
+          }
+          
+          console.log('Extracted product ID:', productId);
+          
           setSuccessMessage(t('your_product_has_been_created'));
           setSuccessDialogOpen(true);
-          setCreatedProductId(data.data.id);
+          setCreatedProductId(String(productId));
           enqueueSnackbar(t('product_created_successfully'), {
             variant: 'success',
           });
         })
         .catch((error) => {
           console.error('Error creating product:', error);
+          console.error('Error status:', error.status);
+          console.error('Error data:', error.data);
           
           // Handle different error types
           let errorMessage = t('failed_to_create_product');
+          const errorDetails: string[] = [];
           
           if (error.data) {
             if (error.data.message) {
@@ -206,15 +594,39 @@ function ProductHeader() {
             } else if (error.data.error) {
               errorMessage = error.data.error;
             } else if (error.data.errors) {
-              // Laravel validation errors
-              const firstError = Object.values(error.data.errors)[0];
-              errorMessage = Array.isArray(firstError) ? firstError[0] : String(firstError);
+              // Laravel validation errors - show all errors
+              console.error('Validation errors:', error.data.errors);
+              const errors = error.data.errors;
+              Object.keys(errors).forEach((field) => {
+                const fieldErrors = errors[field];
+                if (Array.isArray(fieldErrors)) {
+                  fieldErrors.forEach((err: string) => {
+                    errorDetails.push(`${field}: ${err}`);
+                  });
+                } else {
+                  errorDetails.push(`${field}: ${fieldErrors}`);
+                }
+              });
+              
+              // Show first error as main message, all errors in console
+              if (errorDetails.length > 0) {
+                errorMessage = errorDetails[0];
+                console.error('All validation errors:', errorDetails);
+              }
             }
           } else if (error.message) {
             errorMessage = error.message;
           }
           
-          enqueueSnackbar(errorMessage, { variant: 'error' });
+          // Show error message with details if available
+          if (errorDetails.length > 1) {
+            enqueueSnackbar(`${errorMessage} (${errorDetails.length} errors - check console)`, { 
+              variant: 'error',
+              autoHideDuration: 8000
+            });
+          } else {
+            enqueueSnackbar(errorMessage, { variant: 'error', autoHideDuration: 6000 });
+          }
         });
     });
   }
@@ -243,7 +655,31 @@ function ProductHeader() {
   function handleCloseDialog() {
     setSuccessDialogOpen(false);
     if (createdProductId) {
-      navigate(`/apps/e-commerce/products/${createdProductId}`);
+      console.log('Navigating to product:', createdProductId);
+      
+      // Add a small delay to ensure product is available in backend
+      setTimeout(() => {
+        // Check if we're on the listing route - if so, navigate to listing route
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/listing/')) {
+          // Stay on listing route but update to the new product ID
+          console.log('Navigating to listing route:', `/listing/${createdProductId}`);
+          navigate(`/listing/${createdProductId}`, { replace: true });
+        } else {
+          // Navigate to the product edit page in the main app
+          console.log('Navigating to product edit page:', `/apps/e-commerce/products/${createdProductId}`);
+          navigate(`/apps/e-commerce/products/${createdProductId}`);
+        }
+      }, 500); // 500ms delay to allow backend to process
+    } else {
+      // If no product ID, just go to products list
+      const currentPath = window.location.pathname;
+      if (currentPath.includes('/listing/')) {
+        // Stay on listing route for new product
+        navigate('/listing/new', { replace: true });
+      } else {
+        navigate('/apps/e-commerce/products');
+      }
     }
   }
 
@@ -264,11 +700,11 @@ function ProductHeader() {
             initial={{ scale: 0 }}
             animate={{ scale: 1, transition: { delay: 0.3 } }}
           >
-            {gallery_images && gallery_images.length > 0 ? (
+            {Array.isArray(gallery_images) && gallery_images.length > 0 ? (
               <img
                 className="w-8 sm:w-12 rounded-sm"
                 src={
-                  gallery_images.find((img) => img.is_featured)?.url ??
+                  (Array.isArray(gallery_images) ? gallery_images.find((img: any) => img && img.is_featured) : null)?.url ??
                   '/assets/images/apps/ecommerce/product-image-placeholder.png'
                 }
                 alt={name}
@@ -323,6 +759,7 @@ function ProductHeader() {
               color="secondary"
               disabled={_.isEmpty(dirtyFields) || !isValid || isSaving}
               onClick={handleSaveProduct}
+              data-product-save-button
             >
               {isSaving ? t('saving') : t('save')}
             </Button>

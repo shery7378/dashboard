@@ -28,27 +28,31 @@ function FeaturesWidget() {
 		<Paper className="flex flex-col flex-auto shadow-sm rounded-xl overflow-hidden">
 			<div className="flex items-center justify-between px-2 pt-2">
 				<Typography
-					className="px-3 text-lg font-medium tracking-tight leading-6 truncate"
-					color="text.secondary"
+					className="px-3 text-lg font-semibold tracking-tight leading-6 truncate"
+					color="text.primary"
 				>
-					{title}
+					{title || ''}
 				</Typography>
 				<IconButton aria-label="more">
 					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
 			</div>
 			<div className="text-center mt-4">
-				<Typography className="text-7xl sm:text-8xl font-bold tracking-tight leading-none text-green-500">
-					{String(data.count)}
+				<Typography className="text-5xl sm:text-6xl font-bold tracking-tight leading-none text-green-500">
+					{typeof data?.count === 'number' && data.count > 0 
+						? `£${Number(data.count).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+						: '£0.00'}
 				</Typography>
-				<Typography className="text-lg font-medium text-green-600">{data.name}</Typography>
+				<Typography className="text-base font-semibold text-green-600 mt-2">{data?.name ?? ''}</Typography>
 			</div>
 			<Typography
 				className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
 				color="text.secondary"
 			>
-				<span className="truncate">{data.extra.name}:</span>
-				<b>{String(data.extra.count)}</b>
+				<span className="truncate">{data?.extra?.name ?? ''}:</span>
+				<b>{typeof data?.extra?.count === 'number' && data.extra.count > 0
+					? `£${Number(data.extra.count).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+					: '£0.00'}</b>
 			</Typography>
 		</Paper>
 	);

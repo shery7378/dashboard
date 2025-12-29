@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import FusePageSimple from '@fuse/core/FusePageSimple';
 import FuseLoading from '@fuse/core/FuseLoading';
@@ -9,26 +9,88 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useGetSalesQuery, useGetTopProductsQuery } from '../../reports/apis/AnalyticsApi';
+import axios from 'axios';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
+// Currency symbols mapping
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$',
+  GBP: '£',
+  EUR: '€',
+  JPY: '¥',
+  CNY: '¥',
+  INR: '₹',
+  AUD: 'A$',
+  CAD: 'C$',
+  CHF: 'CHF',
+  SEK: 'kr',
+  NZD: 'NZ$',
+  MXN: '$',
+  SGD: 'S$',
+  HKD: 'HK$',
+  NOK: 'kr',
+  TRY: '₺',
+  RUB: '₽',
+  ZAR: 'R',
+  BRL: 'R$',
+  AED: 'د.إ',
+  SAR: '﷼',
+  PKR: '₨',
+  BDT: '৳',
+  THB: '฿',
+  MYR: 'RM',
+  IDR: 'Rp',
+  PHP: '₱',
+  VND: '₫',
+  KRW: '₩',
+};
+
 export default function VendorAnalyticsApp() {
+  const [defaultCurrency, setDefaultCurrency] = useState<string>('GBP'); // Default to GBP
+  const [currencySymbol, setCurrencySymbol] = useState<string>('£');
+
   const { data: salesData, isLoading: loadingSales } = useGetSalesQuery({ interval: 'day' });
   const { data: topProductsData, isLoading: loadingProducts } = useGetTopProductsQuery({ limit: 10 });
 
   const sales = salesData?.data ?? [];
   const topProducts = topProductsData?.data ?? [] as Array<{ product_id: number; product_name: string; total_sales: number; orders: number }>;
 
+  // Fetch default currency from API
+  useEffect(() => {
+    const fetchCurrency = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+        const response = await axios.get(`${apiUrl}/api/currencies/rates`, {
+          withCredentials: true,
+          headers: { 'Accept': 'application/json' }
+        });
+        
+        if (response.data?.default_currency) {
+          const currency = response.data.default_currency;
+          setDefaultCurrency(currency);
+          setCurrencySymbol(CURRENCY_SYMBOLS[currency] || currency);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch default currency, using GBP as fallback', error);
+        setDefaultCurrency('GBP');
+        setCurrencySymbol('£');
+      }
+    };
+
+    fetchCurrency();
+  }, []);
+
   const totalSales = sales.reduce((sum, s) => sum + (Number(s.total_sales) || 0), 0);
   const totalOrders = sales.reduce((sum, s) => sum + (Number(s.orders) || 0), 0);
   const topProduct = topProducts[0];
 
-  const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: defaultCurrency, maximumFractionDigits: 0 });
   const compactCurrency = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
   const formatCompactCurrency = (v: number) => {
-    if (!isFinite(v)) return '$0';
+    if (!isFinite(v)) return `${currencySymbol}0`;
     const compact = compactCurrency.format(v).replace(/\s/g, '');
-    return v >= 1000 ? `$${compact}` : currency.format(v);
+    return v >= 1000 ? `${currencySymbol}${compact}` : currency.format(v);
   };
 
   const lineSeries = [
@@ -58,7 +120,7 @@ export default function VendorAnalyticsApp() {
     <FusePageSimple
       header={
         <Box sx={{ px: { xs: 2, md: 4 }, py: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Vendor Analytics</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Seller Analytics</Typography>
           <Typography color="text.secondary">Sales, top products, and performance</Typography>
         </Box>
       }

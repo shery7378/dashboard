@@ -2,7 +2,7 @@
 import { styled } from '@mui/material/styles';
 import ListItemText from '@mui/material/ListItemText';
 import clsx from 'clsx';
-import { useMemo } from 'react';
+import { useMemo, MouseEvent } from 'react';
 import { Link, ListItemButton, ListItemButtonProps } from '@mui/material';
 import FuseNavBadge from '../../FuseNavBadge';
 import FuseSvgIcon from '../../../FuseSvgIcon';
@@ -13,14 +13,14 @@ type ListItemButtonStyleProps = ListItemButtonProps & {
 };
 
 const Root = styled(ListItemButton)<ListItemButtonStyleProps>(({ theme, ...props }) => ({
-	minHeight: 36,
+	minHeight: 44,
 	width: '100%',
 	borderRadius: '8px',
 	margin: '0 0 4px 0',
 	paddingRight: 16,
 	paddingLeft: props.itempadding > 80 ? 80 : props.itempadding,
-	paddingTop: 10,
-	paddingBottom: 10,
+	paddingTop: 12,
+	paddingBottom: 12,
 	'&.active': {
 		backgroundColor: `${theme.vars.palette.secondary.main}!important`,
 		color: `${theme.vars.palette.secondary.contrastText}!important`,
@@ -55,19 +55,28 @@ function FuseNavVerticalLink(props: FuseNavItemComponentProps) {
 				disabled: item.disabled,
 				to: item.url,
 				role: 'button',
-				target: item.target ? item.target : '_blank',
+				...(item.target && { target: item.target }),
 				exact: item?.exact
 			})
 		}),
 		[item, component]
 	);
 
+	const handleClick = (e: MouseEvent) => {
+		if (item.target === '_blank' && item.url) {
+			e.preventDefault();
+			window.open(item.url, '_blank');
+		} else {
+			onItemClick && onItemClick(item);
+		}
+	};
+
 	const memoizedContent = useMemo(
 		() => (
 			<Root
 				component={component}
 				className="fuse-list-item"
-				onClick={() => onItemClick && onItemClick(item)}
+				onClick={handleClick}
 				itempadding={itempadding}
 				sx={item.sx}
 				{...itemProps}
@@ -86,7 +95,7 @@ function FuseNavVerticalLink(props: FuseNavItemComponentProps) {
 					primary={item.title}
 					secondary={item.subtitle}
 					classes={{
-						primary: 'text-md font-medium fuse-list-item-text-primary truncate',
+						primary: 'text-base font-semibold fuse-list-item-text-primary truncate',
 						secondary: 'text-sm font-medium fuse-list-item-text-secondary leading-[1.5] truncate'
 					}}
 				/>

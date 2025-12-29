@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
@@ -56,7 +56,7 @@ interface Variant {
 }
 
 function MultiKonnectListingCreation() {
-	const { watch, setValue, control, formState } = useFormContext();
+	const { watch, setValue, control, formState, trigger } = useFormContext();
 	const { errors } = formState;
 	const { productId } = useParams<{ productId: string }>();
 	const { data: session } = useSession();
@@ -68,6 +68,17 @@ function MultiKonnectListingCreation() {
 	const [variants, setVariants] = useState<Variant[]>([]);
 	const [storageOptions, setStorageOptions] = useState<string[]>([]);
 	const [colorOptions, setColorOptions] = useState<string[]>([]);
+	// Dynamic attribute names - can be customized for different product types
+	const [attribute1Name, setAttribute1Name] = useState<string>('Storage');
+	const [attribute2Name, setAttribute2Name] = useState<string>('Color');
+	const [showAttributeNameDialog, setShowAttributeNameDialog] = useState(false);
+	const [editingAttribute, setEditingAttribute] = useState<'attribute1' | 'attribute2' | null>(null);
+	const [newAttributeName, setNewAttributeName] = useState('');
+	const [feeSettingsDialogOpen, setFeeSettingsDialogOpen] = useState(false);
+	const [tempFeeSettings, setTempFeeSettings] = useState({
+		commissionRate: 0.025,
+		promoFee: 0,
+	});
 	const [offers, setOffers] = useState({
 		accessoryShield: false,
 		setupAtDoorstep: false,
@@ -94,15 +105,84 @@ function MultiKonnectListingCreation() {
 	const [processingImageIndex, setProcessingImageIndex] = useState<number | null>(null);
 	const [imageProcessingDialogOpen, setImageProcessingDialogOpen] = useState(false);
 	const [imageProcessingMessage, setImageProcessingMessage] = useState('');
+	const [isUploadingImage, setIsUploadingImage] = useState(false);
+	const [isUploadingColorImage, setIsUploadingColorImage] = useState(false);
 	const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
 	const [colorImages, setColorImages] = useState<Record<string, string>>({}); // Map color name to image URL
 	const [selectedColorForImage, setSelectedColorForImage] = useState<string | null>(null);
 	const [colorImageDialogOpen, setColorImageDialogOpen] = useState(false);
+	const [seoTone, setSeoTone] = useState<string>('Neutral');
+	const sectionRefs = useRef<{ [key: number]: HTMLElement | null }>({});
+	const observerRef = useRef<IntersectionObserver | null>(null);
+	const prevProductTitleRef = useRef<string>('');
+	const prevVariantsRef = useRef<string>('');
+	const prevColorImagesRef = useRef<string>('');
+	const prevSlugRef = useRef<string>('');
+	const prevOffersRef = useRef<string>('');
+	const hasInitializedRef = useRef(false);
+	const prevProductVariantsRef = useRef<string>('');
+	const prevExtraFieldsRef = useRef<string>('');
+	
+	// Admin-configurable fee settings - load from localStorage or use defaults
+	// Note: Shipping charges are set by vendor, not admin
+	const [feeSettings, setFeeSettings] = useState(() => {
+		if (typeof window !== 'undefined') {
+			const saved = localStorage.getItem('admin_fee_settings');
+			if (saved) {
+				try {
+					return JSON.parse(saved);
+				} catch (e) {
+					console.error('Error parsing fee settings:', e);
+				}
+			}
+		}
+		return {
+			commissionRate: 0.025, // 2.5% default
+			promoFee: 0, // Promotional fee
+		};
+	});
+
+	// Save fee settings to localStorage when changed
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			localStorage.setItem('admin_fee_settings', JSON.stringify(feeSettings));
+		}
+	}, [feeSettings]);
+
+	// Update tempFeeSettings when feeSettings changes
+	useEffect(() => {
+		setTempFeeSettings(feeSettings);
+	}, [feeSettings]);
 
 	// Watch form values - all fields are now reactive
 	const productTitle = watch('name') || '';
 	const slug = watch('slug') || '';
-	const galleryImages = watch('gallery_images') || [];
+	const galleryImagesRaw = watch('gallery_images');
+	// Ensure galleryImages is always an array - defensive programming
+	// Use useMemo to ensure reactivity when gallery_images changes
+	const galleryImages: any[] = useMemo(() => {
+		console.log('galleryImages useMemo triggered, galleryImagesRaw:', galleryImagesRaw);
+		if (!galleryImagesRaw) {
+			console.log('galleryImagesRaw is falsy, returning empty array');
+			return [];
+		}
+		if (!Array.isArray(galleryImagesRaw)) {
+			console.log('galleryImagesRaw is not an array:', typeof galleryImagesRaw);
+			return [];
+		}
+		const filtered = galleryImagesRaw.filter((img: any) => {
+			const hasUrl = img && img.url && typeof img.url === 'string' && img.url.length > 0;
+			if (!hasUrl) {
+				console.log('Filtered out image:', img);
+			}
+			return hasUrl;
+		});
+		console.log('galleryImages computed:', filtered.length, 'images out of', galleryImagesRaw.length);
+		if (filtered.length > 0) {
+			console.log('First filtered image:', filtered[0]);
+		}
+		return filtered;
+	}, [galleryImagesRaw]);
 	const description = watch('description') || '';
 	const seoTitle = watch('meta_title') || '';
 	const metaDescription = watch('meta_description') || '';
@@ -119,6 +199,9 @@ function MultiKonnectListingCreation() {
 	const deliverySlots = watch('delivery_slots') || '12-3pm';
 	const readyInMinutes = watch('ready_in_minutes') || 45;
 	const enablePickup = watch('enable_pickup') || false;
+	// Vendor-set shipping charges
+	const shippingChargeRegular = watch('shipping_charge_regular') || 0;
+	const shippingChargeSameDay = watch('shipping_charge_same_day') || 0;
 	const kycTier = watch('kyc_tier') || 'Tier 0 - Email verified';
 	const safeSellingLimit = watch('safe_selling_limit') || '£5,000 / day';
 	const payoutLock = watch('payout_lock') || '48h post-delivery';
@@ -180,11 +263,15 @@ function MultiKonnectListingCreation() {
 
 		// Mock recent listings data (in production, fetch from API)
 		// This simulates price data for similar products in the city
-		const generateMockPrices = (base: number, count: number = 20): number[] => {
+		// Optimized: reduced count and use deterministic variation to prevent blocking
+		const generateMockPrices = (base: number, count: number = 10): number[] => {
+			if (base <= 0) return [];
 			const prices: number[] = [];
+			// Use deterministic variation based on base price to avoid Math.random() blocking
+			const seed = Math.floor(base) % 1000;
 			for (let i = 0; i < count; i++) {
-				// Generate prices within ±15% of base price
-				const variation = (Math.random() - 0.5) * 0.3; // -15% to +15%
+				// Generate prices within ±15% of base price using seeded variation
+				const variation = ((seed + i) % 30 - 15) / 100; // -15% to +15%
 				const price = base * (1 + variation);
 				prices.push(Math.round(price));
 			}
@@ -205,19 +292,19 @@ function MultiKonnectListingCreation() {
 		const p75 = calculatePercentile(recentPrices, 75);
 		const median = calculatePercentile(recentPrices, 50);
 
-		// Calculate fees
-		// Commission: typically 2.5% of sale price
-		const commissionRate = 0.025;
-		const commission = basePrice * commissionRate;
+		// Calculate fees using admin-configurable settings
+		const commission = basePrice * feeSettings.commissionRate;
 		
-		// Delivery fee: based on delivery radius and same-day
+		// Shipping charge: set by vendor/seller (not admin)
 		const hasSameDay = variants.some(v => v.sameDay) || false;
-		const deliveryFee = hasSameDay ? 5 : 3; // Same-day delivery costs more
+		const shippingCharge = hasSameDay 
+			? (parseFloat(shippingChargeSameDay.toString()) || 0)
+			: (parseFloat(shippingChargeRegular.toString()) || 0);
 		
-		// Promotional fees (if any promotions are enabled)
-		const promoFee = 0; // Can be calculated based on active promotions
+		// Promotional fees (if any promotions are enabled) - admin set
+		const promoFee = feeSettings.promoFee;
 		
-		const totalFees = commission + deliveryFee + promoFee;
+		const totalFees = commission + shippingCharge + promoFee;
 		const netPrice = basePrice - totalFees;
 
 		return {
@@ -226,14 +313,14 @@ function MultiKonnectListingCreation() {
 			median,
 			fees: {
 				commission,
-				delivery: deliveryFee,
+				shipping: shippingCharge,
 				promos: promoFee,
 				total: totalFees,
 			},
 			net: netPrice,
 			basePrice,
 		};
-	}, [storePostcode, variants, priceTaxExcl]);
+	}, [storePostcode, variants, priceTaxExcl, feeSettings, shippingChargeRegular, shippingChargeSameDay]);
 
 	// Format currency
 	const formatCurrency = (amount: number): string => {
@@ -263,9 +350,11 @@ function MultiKonnectListingCreation() {
 		if (mpidMatched) score += 10;
 		
 		// Media (25 points)
-		if (galleryImages.length >= 1) score += 10;
-		if (galleryImages.length >= 4) score += 5;
-		if (galleryImages.length >= 8) score += 10;
+		if (Array.isArray(galleryImages)) {
+			if (galleryImages.length >= 1) score += 10;
+			if (galleryImages.length >= 4) score += 5;
+			if (galleryImages.length >= 8) score += 10;
+		}
 		
 		// Variants (20 points)
 		if (variants.length > 0) score += 10;
@@ -310,10 +399,10 @@ function MultiKonnectListingCreation() {
 		const items = [];
 		
 		// Media checklist
-		if (galleryImages.length < 8) {
+		if (!Array.isArray(galleryImages) || galleryImages.length < 8) {
 			items.push({
 				id: 1,
-				text: `Add at least 8 photos including box contents (${galleryImages.length}/8)`,
+				text: `Add at least 8 photos including box contents (${Array.isArray(galleryImages) ? galleryImages.length : 0}/8)`,
 				completed: false,
 			});
 		} else {
@@ -324,25 +413,20 @@ function MultiKonnectListingCreation() {
 			});
 		}
 		
-		// Variant images checklist - check if per-color images are added
-		const hasColorImages = colorOptions.length > 0 && colorOptions.every(color => colorImages[color]);
-		if (variants.length > 0 && colorOptions.length > 0 && !hasColorImages) {
-			const imagesAdded = colorOptions.filter(color => colorImages[color]).length;
-			items.push({
-				id: 2,
-				text: `Add per-color images (${imagesAdded}/${colorOptions.length} colors)`,
-				completed: false,
-			});
-		} else if (hasColorImages) {
-			items.push({
-				id: 2,
-				text: 'Per-color images added',
-				completed: true,
-			});
-		}
-		
 		// Same-day configuration
-		if (!storePostcode || !deliverySlots) {
+		// Check if both store_postcode and delivery_slots are properly set
+		const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
+		const hasDeliverySlots = deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '';
+		
+		console.log('Same-day slots validation:', {
+			storePostcode,
+			deliverySlots,
+			hasStorePostcode,
+			hasDeliverySlots,
+			completed: hasStorePostcode && hasDeliverySlots
+		});
+		
+		if (!hasStorePostcode || !hasDeliverySlots) {
 			items.push({
 				id: 3,
 				text: 'Same-day slots configured',
@@ -410,106 +494,163 @@ function MultiKonnectListingCreation() {
 		return items;
 	}, [galleryImages.length, variants, storePostcode, deliverySlots, seoTitle, description, colorOptions, colorImages]);
 
-	const steps: ListingStep[] = [
-		{ id: 1, title: 'Identity', description: 'MPID, title', completed: false },
-		{ id: 2, title: 'Media', description: 'upload, BG remove', completed: false },
-		{ id: 3, title: 'Variants', description: 'matrix, per-variant photos', completed: false },
-		{ id: 4, title: 'Pricing & intel', description: 'range, fees', completed: false },
-		{ id: 5, title: 'Same-day & stores', description: 'radius, slots', completed: false },
-		{ id: 6, title: 'Copy & SEO', description: 'AI title/bullets', completed: false },
-		{ id: 7, title: 'QC & policies', description: 'IMEI, returns', completed: false },
-		{ id: 8, title: 'Offers', description: 'Shield, concierge', completed: false },
-		{ id: 9, title: 'Trust & Compliance', description: 'KYC, fraud checks', completed: false },
-		{ id: 10, title: 'Preview & checks', description: 'score, validate', completed: false },
-	];
+	// Calculate step completion status dynamically
+	const getStepCompletion = useCallback((stepId: number): boolean => {
+		switch (stepId) {
+			case 1: // Identity
+				return !!(productTitle && productTitle.length >= 5 && watch('main_category'));
+			case 2: // Media
+				return Array.isArray(galleryImages) && galleryImages.length >= 6;
+			case 3: // Variants
+				return variants.length > 0 && variants.every(v => v.price && v.stock);
+			case 4: // Pricing & intel
+				return !!(priceTaxExcl || variants.some(v => v.price));
+			case 5: // Same-day & stores
+				const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
+				const hasDeliverySlots = deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '';
+				console.log('Step 5 completion check:', { storePostcode, deliverySlots, hasStorePostcode, hasDeliverySlots });
+				return !!(hasStorePostcode && hasDeliverySlots);
+			case 6: // Copy & SEO
+				return !!(seoTitle && description && description.length >= 50);
+			case 7: // QC & policies
+				return !!(condition && returns);
+			case 8: // Offers
+				return true; // Optional step
+			case 9: // Trust & Compliance
+				return !!(kycTier && safeSellingLimit);
+			case 10: // Preview & checks
+				return true; // Always accessible
+			default:
+				return false;
+		}
+	}, [productTitle, galleryImages.length, variants, priceTaxExcl, storePostcode, deliverySlots, seoTitle, description, condition, returns, kycTier, safeSellingLimit, watch]);
 
-	// Initialize from existing product data
+	const steps: ListingStep[] = useMemo(() => [
+		{ id: 1, title: 'Identity', description: 'MPID, title', completed: getStepCompletion(1) },
+		{ id: 2, title: 'Media', description: 'upload, BG remove', completed: getStepCompletion(2) },
+		{ id: 3, title: 'Variants', description: 'matrix, per-variant photos', completed: getStepCompletion(3) },
+		{ id: 4, title: 'Pricing & intel', description: 'range, fees', completed: getStepCompletion(4) },
+		{ id: 5, title: 'Same-day & stores', description: 'radius, slots', completed: getStepCompletion(5) },
+		{ id: 6, title: 'Copy & SEO', description: 'AI title/bullets', completed: getStepCompletion(6) },
+		{ id: 7, title: 'QC & policies', description: 'IMEI, returns', completed: getStepCompletion(7) },
+		{ id: 8, title: 'Offers', description: 'Shield, concierge', completed: getStepCompletion(8) },
+		{ id: 9, title: 'Trust & Compliance', description: 'KYC, fraud checks', completed: getStepCompletion(9) },
+		{ id: 10, title: 'Preview & checks', description: 'score, validate', completed: getStepCompletion(10) },
+	], [getStepCompletion]);
+
+	// Initialize from existing product data - fixed to prevent re-running
+	// Split into two useEffects: one for variants (runs once), one for extraFields (runs once)
 	useEffect(() => {
-		if (isInitialized) return;
+		if (hasInitializedRef.current || isInitialized) return;
+		if (!productVariants || productVariants.length === 0) return;
+		
+		// Create a key to compare
+		const productVariantsKey = JSON.stringify(productVariants);
+		
+		// Only process if data has actually changed and hasn't been processed yet
+		if (productVariantsKey === prevProductVariantsRef.current) return;
+		
+		prevProductVariantsRef.current = productVariantsKey;
 		
 		// Load existing variants and extract storage/color options
-		if (productVariants && productVariants.length > 0) {
-			const existingVariants: Variant[] = [];
-			const storages = new Set<string>();
-			const colors = new Set<string>();
+		const existingVariants: Variant[] = [];
+		const storages = new Set<string>();
+		const colors = new Set<string>();
+		
+		const loadedColorImages: Record<string, string> = {};
+		
+		productVariants.forEach((variant: any) => {
+			// Extract attributes from variant
+			const attributes = variant.attributes || [];
+			let storage = '';
+			let color = '';
 			
-			const loadedColorImages: Record<string, string> = {};
-			
-			productVariants.forEach((variant: any) => {
-				// Extract attributes from variant
-				const attributes = variant.attributes || [];
-				let storage = '';
-				let color = '';
-				
-				attributes.forEach((attr: any) => {
-					if (attr.attribute_name === 'Storage' || attr.attribute_name === 'storage') {
-						storage = attr.attribute_value || '';
-						if (storage) storages.add(storage);
-					}
-					if (attr.attribute_name === 'Color' || attr.attribute_name === 'color') {
-						color = Array.isArray(attr.attribute_value) 
-							? attr.attribute_value[0] 
-							: attr.attribute_value || '';
-						if (color) colors.add(color);
-					}
-				});
-				
-				const variantData: any = {
-					id: variant.id?.toString(),
-					storage: storage || variant.name?.split(' - ')[0] || '',
-					color: color || variant.name?.split(' - ')[1] || '',
-					price: variant.price_tax_excl?.toString() || variant.price?.toString() || '',
-					compareAt: variant.compared_price?.toString() || '',
-					stock: variant.quantity?.toString() || variant.qty?.toString() || '',
-					sameDay: variant.same_day || false,
-				};
-				
-				// Add variant image if it exists
-				if (variant.image) {
-					variantData.image = variant.image;
-					// Store as color image if not already set
-					if (color && !loadedColorImages[color]) {
-						loadedColorImages[color] = variant.image;
-					}
+			attributes.forEach((attr: any) => {
+				if (attr.attribute_name === 'Storage' || attr.attribute_name === 'storage') {
+					storage = attr.attribute_value || '';
+					if (storage) storages.add(storage);
 				}
-				
-				existingVariants.push(variantData);
+				if (attr.attribute_name === 'Color' || attr.attribute_name === 'color') {
+					color = Array.isArray(attr.attribute_value) 
+						? attr.attribute_value[0] 
+						: attr.attribute_value || '';
+					if (color) colors.add(color);
+				}
 			});
 			
-			setVariants(existingVariants);
-			setStorageOptions(Array.from(storages));
-			setColorOptions(Array.from(colors));
-			if (Object.keys(loadedColorImages).length > 0) {
-				setColorImages(loadedColorImages);
+			const variantData: any = {
+				id: variant.id?.toString(),
+				storage: storage || variant.name?.split(' - ')[0] || '',
+				color: color || variant.name?.split(' - ')[1] || '',
+				price: variant.price_tax_excl?.toString() || variant.price?.toString() || '',
+				compareAt: variant.compared_price?.toString() || '',
+				stock: variant.quantity?.toString() || variant.qty?.toString() || '',
+				sameDay: variant.same_day || false,
+			};
+			
+			// Add variant image if it exists
+			if (variant.image) {
+				variantData.image = variant.image;
+				// Store as color image if not already set
+				if (color && !loadedColorImages[color]) {
+					loadedColorImages[color] = variant.image;
+				}
+			}
+			
+			existingVariants.push(variantData);
+		});
+		
+		setVariants(existingVariants);
+		setStorageOptions(Array.from(storages));
+		setColorOptions(Array.from(colors));
+		if (Object.keys(loadedColorImages).length > 0) {
+			setColorImages(loadedColorImages);
+		}
+		
+		hasInitializedRef.current = true;
+		setIsInitialized(true);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [productVariants]); // Only watch productVariants, not extraFields
+	
+	// Initialize offers from extraFields - separate useEffect to avoid loops
+	useEffect(() => {
+		if (hasInitializedRef.current && isInitialized) {
+			// Only load offers once after initialization
+			if (prevExtraFieldsRef.current !== '') return; // Already processed
+			
+			const extraFieldsKey = JSON.stringify(extraFields || {});
+			if (extraFieldsKey === '{}') return; // No data to process
+			
+			prevExtraFieldsRef.current = extraFieldsKey;
+			
+			// Load offers from extraFields
+			if (extraFields) {
+				setOffers({
+					accessoryShield: extraFields.accessoryShield || false,
+					setupAtDoorstep: extraFields.setupAtDoorstep || false,
+					priceDropProtection: extraFields.priceDropProtection || false,
+					tradeInAssist: extraFields.tradeInAssist || false,
+				});
+			}
+			
+			// Check for MPID match in extraFields
+			if (extraFields?.mpidMatched) {
+				setMpidMatched(true);
+				setMatchedProduct(extraFields.matchedProduct || null);
 			}
 		}
-		
-		// Load offers from extraFields
-		if (extraFields) {
-			setOffers({
-				accessoryShield: extraFields.accessoryShield || false,
-				setupAtDoorstep: extraFields.setupAtDoorstep || false,
-				priceDropProtection: extraFields.priceDropProtection || false,
-				tradeInAssist: extraFields.tradeInAssist || false,
-			});
-		}
-		
-		// Check for MPID match in extraFields
-		if (extraFields.mpidMatched) {
-			setMpidMatched(true);
-			setMatchedProduct(extraFields.matchedProduct || null);
-		}
-		
-		setIsInitialized(true);
-	}, [productVariants, extraFields, isInitialized]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [isInitialized]); // Only run when isInitialized becomes true
 
-	// Auto-generate slug from title
+	// Auto-generate slug from title - fixed infinite loop by removing setValue from dependencies
 	useEffect(() => {
-		if (productTitle && !slug) {
+		if (productTitle && !slug && productTitle !== prevProductTitleRef.current) {
+			prevProductTitleRef.current = productTitle;
 			const autoSlug = slugify(productTitle);
 			setValue('slug', autoSlug, { shouldDirty: false });
 		}
-	}, [productTitle, slug, setValue]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [productTitle, slug]); // Removed setValue to prevent infinite loop
 
 	// MPID search handler - save to extraFields
 	const handleMpidSearch = (value: string) => {
@@ -541,36 +682,145 @@ function MultiKonnectListingCreation() {
 		}
 	};
 
-	// Image upload handler
+	// Image upload handler - optimized to prevent multiple calls and fix stale closure
 	const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const files = event.target.files;
-		if (files) {
-			const imagePromises = Array.from(files).map((file) => {
-				return new Promise((resolve) => {
+		
+		console.log('handleImageUpload called, files:', files, 'files.length:', files?.length);
+		
+		if (!files || files.length === 0) {
+			console.log('No files selected');
+			return;
+		}
+		
+		// Prevent multiple simultaneous uploads
+		if (isUploadingImage) {
+			console.log('Already uploading, ignoring');
+			event.target.value = '';
+			return;
+		}
+		
+		setIsUploadingImage(true);
+		
+		// Store files array before resetting input
+		const filesArray = Array.from(files);
+		console.log('Files array:', filesArray.length, 'files');
+		
+		// Reset input to allow same file to be selected again (after storing files)
+		event.target.value = '';
+		
+		try {
+			// Get current gallery images from form to avoid stale closure
+			const currentGalleryImagesRaw = watch('gallery_images');
+			// Ensure it's always an array
+			const currentGalleryImages = Array.isArray(currentGalleryImagesRaw) ? currentGalleryImagesRaw : [];
+			const isFirstImage = currentGalleryImages.length === 0;
+			
+			console.log('Current gallery images:', currentGalleryImages.length);
+			
+			const imagePromises = filesArray.map((file, index) => {
+				console.log(`Processing file ${index + 1}/${filesArray.length}:`, file.name, 'Type:', file.type, 'Size:', file.size);
+				
+				return new Promise<{ url: string; is_featured: boolean }>((resolve, reject) => {
+					// Validate file type
+					if (!file.type.startsWith('image/')) {
+						console.error(`File ${file.name} is not an image, type: ${file.type}`);
+						reject(new Error(`File ${file.name} is not an image`));
+						return;
+					}
+					
+					// Validate file size (max 10MB)
+					if (file.size > 10 * 1024 * 1024) {
+						console.error(`File ${file.name} is too large: ${file.size} bytes`);
+						reject(new Error(`File ${file.name} is too large (max 10MB)`));
+						return;
+					}
+					
 					const reader = new FileReader();
 					reader.onload = () => {
+						const result = reader.result;
+						if (!result || typeof result !== 'string') {
+							console.error('FileReader result is not a string:', typeof result);
+							reject(new Error('Failed to read image file'));
+							return;
+						}
+						
+						console.log(`File ${file.name} read successfully, data URL length:`, result.length);
+						
 						const base64Image = {
-							url: `data:${file.type};base64,${btoa(reader.result as string)}`,
-							is_featured: galleryImages.length === 0,
+							url: result, // readAsDataURL already returns data URL
+							is_featured: isFirstImage && index === 0, // Only first image of first batch is featured
 						};
 						resolve(base64Image);
 					};
-					reader.readAsBinaryString(file);
+					reader.onerror = (error) => {
+						console.error(`FileReader error for ${file.name}:`, error);
+						reject(new Error(`Failed to read file: ${file.name}`));
+					};
+					reader.readAsDataURL(file);
 				});
 			});
 
-			const newImages = await Promise.all(imagePromises);
-			const updatedImages = [...galleryImages, ...newImages];
-			setValue('gallery_images', updatedImages, { shouldDirty: true, shouldValidate: true });
+			const results = await Promise.allSettled(imagePromises);
+			
+			// Filter successful results
+			const newImages = results
+				.filter((result): result is PromiseFulfilledResult<{ url: string; is_featured: boolean }> => result.status === 'fulfilled')
+				.map(result => result.value);
+			
+			// Log rejected results
+			const rejected = results.filter(result => result.status === 'rejected');
+			if (rejected.length > 0) {
+				console.warn('Some images failed to upload:', rejected.map(r => r.status === 'rejected' ? r.reason : ''));
+				rejected.forEach((r, idx) => {
+					if (r.status === 'rejected') {
+						console.error(`Image ${idx + 1} failed:`, r.reason);
+					}
+				});
+			}
+			
+			console.log('Successfully processed images:', newImages.length, 'out of', filesArray.length);
+			console.log('New images structure:', newImages);
+			
+			if (newImages.length === 0) {
+				alert('No images were successfully uploaded. Please check the console for errors.');
+				setIsUploadingImage(false);
+				return;
+			}
+			
+			// Get latest gallery images directly from watch (not functional update)
+			// Re-read to get the most current value after async operations
+			const latestGalleryImagesRaw = watch('gallery_images');
+			const latestImages = Array.isArray(latestGalleryImagesRaw) ? latestGalleryImagesRaw : [];
+			const updatedImages = [...latestImages, ...newImages];
+			
+			// Ensure all images have valid url strings
+			const validImages = updatedImages.filter((img: any) => img && img.url && typeof img.url === 'string' && img.url.length > 0);
+			
+			console.log('Previous images:', latestImages.length, 'New:', newImages.length, 'Total:', validImages.length);
+			console.log('Updated images:', validImages);
+			
+			// Set the value directly (not using functional update)
+			setValue('gallery_images', validImages, { shouldDirty: true, shouldValidate: true });
+			
+		} catch (error) {
+			console.error('Error uploading images:', error);
+			const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
+			alert(errorMessage);
+		} finally {
+			setIsUploadingImage(false);
 		}
 	};
 
 	const handleImageRemove = (index: number) => {
+		// Ensure galleryImages is an array before filtering
+		if (!Array.isArray(galleryImages)) return;
 		const updatedImages = galleryImages.filter((_, i) => i !== index);
 		setValue('gallery_images', updatedImages, { shouldDirty: true, shouldValidate: true });
 	};
 
 	const handleImageClick = (index: number) => {
+		if (!Array.isArray(galleryImages)) return;
 		const updatedImages = galleryImages.map((img, i) => ({
 			...img,
 			is_featured: i === index ? !img.is_featured : false,
@@ -607,7 +857,7 @@ function MultiKonnectListingCreation() {
 
 	// Remove background handler
 	const handleRemoveBackground = async (imageIndex: number = 0) => {
-		if (galleryImages.length === 0) {
+		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
 		}
@@ -617,6 +867,12 @@ function MultiKonnectListingCreation() {
 		setImageProcessingDialogOpen(true);
 
 		try {
+			if (!galleryImages[imageIndex] || !galleryImages[imageIndex].url) {
+				alert('Image not found');
+				setImageProcessingDialogOpen(false);
+				setProcessingImageIndex(null);
+				return;
+			}
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				// Simple background removal using edge detection
@@ -658,7 +914,7 @@ function MultiKonnectListingCreation() {
 
 	// Auto-crop & center handler
 	const handleAutoCropAndCenter = async (imageIndex: number = 0) => {
-		if (galleryImages.length === 0) {
+		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
 		}
@@ -668,6 +924,12 @@ function MultiKonnectListingCreation() {
 		setImageProcessingDialogOpen(true);
 
 		try {
+			if (!galleryImages[imageIndex] || !galleryImages[imageIndex].url) {
+				alert('Image not found');
+				setImageProcessingDialogOpen(false);
+				setProcessingImageIndex(null);
+				return;
+			}
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -746,7 +1008,7 @@ function MultiKonnectListingCreation() {
 
 	// Create 360° spin handler
 	const handleCreate360Spin = async (imageIndex: number = 0) => {
-		if (galleryImages.length === 0) {
+		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
 		}
@@ -756,6 +1018,12 @@ function MultiKonnectListingCreation() {
 		setImageProcessingDialogOpen(true);
 
 		try {
+			if (!galleryImages[imageIndex] || !galleryImages[imageIndex].url) {
+				alert('Image not found');
+				setImageProcessingDialogOpen(false);
+				setProcessingImageIndex(null);
+				return;
+			}
 			const imageUrl = galleryImages[imageIndex].url;
 			const spinImages: any[] = [];
 			const frames = 36; // 36 frames for smooth 360° rotation
@@ -784,6 +1052,11 @@ function MultiKonnectListingCreation() {
 			}
 
 			// Add spin images to gallery
+			if (!Array.isArray(galleryImages)) {
+				setImageProcessingDialogOpen(false);
+				setProcessingImageIndex(null);
+				return;
+			}
 			const updatedImages = [...galleryImages.slice(0, imageIndex), ...spinImages, ...galleryImages.slice(imageIndex + 1)];
 			setValue('gallery_images', updatedImages, { shouldDirty: true });
 			setImageProcessingMessage('360° spin created successfully!');
@@ -801,7 +1074,7 @@ function MultiKonnectListingCreation() {
 
 	// Watermark handler
 	const handleWatermark = async (imageIndex: number = 0) => {
-		if (galleryImages.length === 0) {
+		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
 		}
@@ -811,6 +1084,12 @@ function MultiKonnectListingCreation() {
 		setImageProcessingDialogOpen(true);
 
 		try {
+			if (!galleryImages[imageIndex] || !galleryImages[imageIndex].url) {
+				alert('Image not found');
+				setImageProcessingDialogOpen(false);
+				setProcessingImageIndex(null);
+				return;
+			}
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				// Add watermark text
@@ -849,7 +1128,7 @@ function MultiKonnectListingCreation() {
 
 	// AI Auto-enhance handler
 	const handleAIAutoEnhance = async (imageIndex: number = 0) => {
-		if (galleryImages.length === 0) {
+		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
 		}
@@ -859,6 +1138,12 @@ function MultiKonnectListingCreation() {
 		setImageProcessingDialogOpen(true);
 
 		try {
+			if (!galleryImages[imageIndex] || !galleryImages[imageIndex].url) {
+				alert('Image not found');
+				setImageProcessingDialogOpen(false);
+				setProcessingImageIndex(null);
+				return;
+			}
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -980,7 +1265,7 @@ function MultiKonnectListingCreation() {
 
 	const generateVariants = () => {
 		if (storageOptions.length === 0 || colorOptions.length === 0) {
-			alert('Please add at least one storage and one color option');
+			alert(`Please add at least one ${attribute1Name.toLowerCase()} and one ${attribute2Name.toLowerCase()} option`);
 			return;
 		}
 		const newVariants: Variant[] = [];
@@ -1011,25 +1296,72 @@ function MultiKonnectListingCreation() {
 	};
 
 	// Save variants to form when they change - convert to product_variants format
+	// Fixed infinite loop by using useRef to track previous values and removing setValue from deps
 	useEffect(() => {
-		if (variants.length > 0 && isInitialized) {
+		// Always ensure product_variants exists in form (even before initialization)
+		const currentProductVariants = watch('product_variants');
+		if (!Array.isArray(currentProductVariants)) {
+			console.log('Initializing product_variants to empty array');
+			setValue('product_variants', [], { shouldDirty: false });
+		}
+		
+		if (!isInitialized) {
+			return;
+		}
+		
+		// Always save variants to form, even if empty (backend might require the field to exist)
+		if (variants.length === 0) {
+			console.log('Saving empty variants array to form');
+			setValue('product_variants', [], { shouldDirty: true });
+			return;
+		}
+		
+		console.log('Saving variants to form:', variants.length, 'variants');
+		
+		// Create a string representation to compare (prevents unnecessary updates)
+		const variantsKey = JSON.stringify(variants.map(v => ({ 
+			storage: v.storage, 
+			color: v.color, 
+			price: v.price, 
+			stock: v.stock,
+			image: (v as any).image 
+		})));
+		const colorImagesKey = JSON.stringify(colorImages);
+		const currentSlug = slug || '';
+		
+		// Only update if variants, colorImages, or slug actually changed
+		if (variantsKey !== prevVariantsRef.current || colorImagesKey !== prevColorImagesRef.current || currentSlug !== prevSlugRef.current) {
+			prevVariantsRef.current = variantsKey;
+			prevColorImagesRef.current = colorImagesKey;
+			prevSlugRef.current = currentSlug;
+			
 			// Convert variants to product_variants format for API
 			const productVariantsData = variants.map((variant, index) => {
 				const variantName = `${variant.storage} - ${variant.color}`;
 				const variantPrice = parseFloat(variant.price) || 0;
 				const variantStock = parseInt(variant.stock) || 0;
+				const variantSku = `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-');
+				
+				// Generate uid and uids (backend requires these fields)
+				const variantUid = variant.id ? `variant-${variant.id}` : `variant-${Date.now()}-${index}`;
+				const variantUids = variantUid;
+				
 				const variantData: any = {
 					id: variant.id || undefined,
-					name: variantName,
-					sku: `${slug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-'),
-					price: variantPrice, // Backend expects 'price' field
-					price_tax_excl: variantPrice, // Also include for compatibility
+					name: variantName, // Required field
+					sku: variantSku, // Required field
+					uid: variantUid, // Required field (backend fillable)
+					uids: variantUids, // Required field (backend fillable)
+					price: variantPrice, // Backend expects 'price' field (model fillable)
+					price_tax_excl: variantPrice, // Database column (if exists)
+					price_tax_incl: variantPrice, // Database column (if exists)
 					compared_price: parseFloat(variant.compareAt) || 0,
-					quantity: variantStock,
-					qty: variantStock,
+					quantity: variantStock, // Database column (if exists)
+					qty: variantStock, // Backend expects 'qty' field (model fillable)
 					manage_stock: true, // Required field - always true for variants
 					in_stock: variantStock > 0,
-					is_active: true,
+					is_active: true, // Required field
+					is_default: false,
 					position: index + 1,
 					attributes: [
 						{ attribute_name: 'Storage', attribute_value: variant.storage },
@@ -1048,9 +1380,11 @@ function MultiKonnectListingCreation() {
 				return variantData;
 			});
 			
+			console.log('Setting product_variants in form:', productVariantsData.length, 'variants');
 			setValue('product_variants', productVariantsData, { shouldDirty: true });
 		}
-	}, [variants, isInitialized, slug, setValue, colorImages]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [variants, isInitialized, slug, colorImages]); // Removed setValue to prevent infinite loop
 
 	const handleVariantChange = (index: number, field: keyof Variant, value: any) => {
 		const updated = [...variants];
@@ -1119,32 +1453,56 @@ function MultiKonnectListingCreation() {
 		setColorImageDialogOpen(true);
 	};
 
-	const handleColorImageUpload = (files: FileList | null) => {
+	// Color image upload handler - optimized to prevent multiple calls and infinite loops
+	const handleColorImageUpload = useCallback((files: FileList | null) => {
 		if (!files || files.length === 0 || !selectedColorForImage) return;
 		
+		// Prevent multiple simultaneous uploads
+		if (isUploadingColorImage) return;
+		
+		setIsUploadingColorImage(true);
 		const file = files[0];
+		const colorName = selectedColorForImage; // Capture value to avoid stale closure
 		const reader = new FileReader();
 		
 		reader.onloadend = () => {
 			const imageUrl = reader.result as string;
-			setColorImages({
-				...colorImages,
-				[selectedColorForImage]: imageUrl,
+			setColorImages((prev) => {
+				// Only update if the image actually changed
+				if (prev[colorName] === imageUrl) {
+					return prev;
+				}
+				return {
+					...prev,
+					[colorName]: imageUrl,
+				};
 			});
 			// Also update all variants with this color to use this image
-			const updated = variants.map(v => {
-				if (v.color === selectedColorForImage) {
-					return { ...v, image: imageUrl };
+			setVariants((prev) => {
+				const hasChanges = prev.some(v => v.color === colorName && (v as any).image !== imageUrl);
+				if (!hasChanges) {
+					return prev; // No changes needed
 				}
-				return v;
+				return prev.map(v => {
+					if (v.color === colorName) {
+						return { ...v, image: imageUrl };
+					}
+					return v;
+				});
 			});
-			setVariants(updated);
 			setColorImageDialogOpen(false);
 			setSelectedColorForImage(null);
+			setIsUploadingColorImage(false);
+		};
+		
+		reader.onerror = () => {
+			console.error('Error reading color image file');
+			alert('Failed to upload image. Please try again.');
+			setIsUploadingColorImage(false);
 		};
 		
 		reader.readAsDataURL(file);
-	};
+	}, [selectedColorForImage, isUploadingColorImage]);
 
 	const handleRemoveColorImage = (color: string) => {
 		const updated = { ...colorImages };
@@ -1187,20 +1545,30 @@ function MultiKonnectListingCreation() {
 		setValue('description', desc, { shouldDirty: true });
 	};
 	
-	// Save offers to extraFields
+	// Save offers to extraFields - fixed infinite loop by using functional update
 	useEffect(() => {
-		if (isInitialized) {
-			setValue('extraFields', {
-				...extraFields,
-				accessoryShield: offers.accessoryShield,
-				setupAtDoorstep: offers.setupAtDoorstep,
-				priceDropProtection: offers.priceDropProtection,
-				tradeInAssist: offers.tradeInAssist,
-			}, { shouldDirty: true });
-		}
-	}, [offers, isInitialized, extraFields, setValue]);
+		if (!isInitialized) return;
+		
+		// Create a key to compare offers
+		const offersKey = JSON.stringify(offers);
+		
+		// Only update if offers actually changed
+		if (offersKey === prevOffersRef.current) return;
+		
+		prevOffersRef.current = offersKey;
+		
+		// Use functional update to get current value without triggering re-renders
+		setValue('extraFields', (prev: any) => ({
+			...prev,
+			accessoryShield: offers.accessoryShield,
+			setupAtDoorstep: offers.setupAtDoorstep,
+			priceDropProtection: offers.priceDropProtection,
+			tradeInAssist: offers.tradeInAssist,
+		}), { shouldDirty: true });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [offers, isInitialized]); // Removed setValue from dependencies
 
-	const handleStepClick = (stepId: number) => {
+	const handleStepClick = useCallback((stepId: number) => {
 		setCurrentStep(stepId);
 		const sectionMap: { [key: number]: string } = {
 			1: 'identity',
@@ -1216,22 +1584,258 @@ function MultiKonnectListingCreation() {
 		};
 		const sectionId = sectionMap[stepId];
 		if (sectionId) {
-			setTimeout(() => {
-				const element = document.getElementById(sectionId);
-				if (element) {
-					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-				}
-			}, 100);
+			// Use ref if available, otherwise fallback to getElementById
+			const element = sectionRefs.current[stepId] || document.getElementById(sectionId);
+			if (element) {
+				const headerOffset = 60; // Header height
+				const elementPosition = element.getBoundingClientRect().top;
+				const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+				
+				window.scrollTo({
+					top: offsetPosition,
+					behavior: 'smooth'
+				});
+			}
 		}
-	};
+	}, []);
+
+	// Intersection Observer to update current step based on scroll position
+	useEffect(() => {
+		const observerOptions = {
+			root: null,
+			rootMargin: '-20% 0px -60% 0px',
+			threshold: 0
+		};
+
+		observerRef.current = new IntersectionObserver((entries) => {
+			entries.forEach((entry) => {
+				if (entry.isIntersecting) {
+					const stepId = parseInt(entry.target.getAttribute('data-step-id') || '1');
+					setCurrentStep(stepId);
+				}
+			});
+		}, observerOptions);
+
+		// Observe all sections
+		Object.values(sectionRefs.current).forEach((ref) => {
+			if (ref && observerRef.current) {
+				observerRef.current.observe(ref);
+			}
+		});
+
+		return () => {
+			if (observerRef.current) {
+				observerRef.current.disconnect();
+			}
+		};
+	}, []);
+
+	// Set refs for sections
+	const setSectionRef = useCallback((stepId: number, element: HTMLElement | null) => {
+		if (element) {
+			sectionRefs.current[stepId] = element;
+			if (observerRef.current) {
+				observerRef.current.observe(element);
+			}
+		}
+	}, []);
+
+	// Keyboard navigation
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Ctrl/Cmd + Arrow keys for navigation
+			if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown') {
+				e.preventDefault();
+				if (currentStep < 10) {
+					handleStepClick(currentStep + 1);
+				}
+			} else if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp') {
+				e.preventDefault();
+				if (currentStep > 1) {
+					handleStepClick(currentStep - 1);
+				}
+			}
+		};
+
+		window.addEventListener('keydown', handleKeyDown);
+		return () => window.removeEventListener('keydown', handleKeyDown);
+	}, [currentStep, handleStepClick]);
+
+	// Auto-save functionality (debounced) - optimized to prevent excessive calls
+	useEffect(() => {
+		// Skip auto-save if not initialized or if uploading images
+		if (!isInitialized || isUploadingImage || isUploadingColorImage) {
+			return;
+		}
+
+		const autoSaveTimer = setTimeout(() => {
+			// Trigger form validation and save state
+			// This would typically call an API to save draft
+			console.log('Auto-saving form state...');
+		}, 3000); // Increased to 3 seconds to reduce frequency
+
+		return () => clearTimeout(autoSaveTimer);
+	}, [productTitle, slug, description, isInitialized, isUploadingImage, isUploadingColorImage]);
+	// Removed galleryImages and variants from dependencies to reduce re-runs
 
 	const handlePublishClick = () => {
-		const addButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
-		if (addButton) {
-			addButton.click();
+		// Ensure variants are saved to form before publishing
+		// This prevents race condition where publish happens before useEffect saves variants
+		if (variants.length > 0) {
+			const currentSlug = slug || '';
+			const productVariantsData = variants.map((variant, index) => {
+				const variantName = `${variant.storage} - ${variant.color}`;
+				const variantPrice = parseFloat(variant.price) || 0;
+				const variantStock = parseInt(variant.stock) || 0;
+				const variantData: any = {
+					id: variant.id || undefined,
+					name: variantName,
+					sku: `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-'),
+					price: variantPrice,
+					price_tax_excl: variantPrice,
+					compared_price: parseFloat(variant.compareAt) || 0,
+					quantity: variantStock,
+					qty: variantStock,
+					manage_stock: true,
+					in_stock: variantStock > 0,
+					is_active: true,
+					position: index + 1,
+					attributes: [
+						{ attribute_name: 'Storage', attribute_value: variant.storage },
+						{ attribute_name: 'Color', attribute_value: variant.color },
+					],
+					same_day: variant.sameDay || false,
+				};
+				
+				if ((variant as any).image) {
+					variantData.image = (variant as any).image;
+				} else if (colorImages[variant.color]) {
+					variantData.image = colorImages[variant.color];
+				}
+				
+				return variantData;
+			});
+			
+			console.log('handlePublishClick: Saving variants to form before publish:', productVariantsData.length, 'variants');
+			setValue('product_variants', productVariantsData, { shouldDirty: true });
+		} else {
+			// Ensure empty array is set if no variants
+			console.log('handlePublishClick: Setting empty variants array');
+			setValue('product_variants', [], { shouldDirty: true });
+		}
+		
+		// Set active status to 1 (published) before submitting
+		setValue('active', 1, { shouldDirty: true });
+		
+		// Trigger validation to ensure form is valid before submitting
+		trigger().then((isValid) => {
+			console.log('handlePublishClick: Form validation result:', isValid);
+			
+			// Small delay to ensure setValue and validation complete before clicking submit button
+			setTimeout(() => {
+				// Try to find create button first (for new products)
+				let submitButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
+				
+				// If not found, try to find save button (for editing existing products)
+				if (!submitButton) {
+					submitButton = document.querySelector('[data-product-save-button]') as HTMLButtonElement;
+				}
+				
+				if (submitButton) {
+					// Check if button is disabled
+					if (submitButton.disabled) {
+						console.warn('handlePublishClick: Submit button is disabled', {
+							buttonType: submitButton.getAttribute('data-product-create-button') ? 'create' : 'save',
+							productId,
+							isValid,
+							formState: formState
+						});
+					} else {
+						console.log('handlePublishClick: Clicking submit button', {
+							buttonType: submitButton.getAttribute('data-product-create-button') ? 'create' : 'save',
+							productId,
+							isValid
+						});
+						submitButton.click();
+					}
+				} else {
+					console.error('handlePublishClick: Submit button not found', {
+						productId,
+						createButton: document.querySelector('[data-product-create-button]'),
+						saveButton: document.querySelector('[data-product-save-button]')
+					});
+				}
+			}, 150); // Increased delay to ensure setValue completes
+		});
+	};
+
+	const handleSaveDraft = () => {
+		// Ensure variants are saved to form before saving draft
+		if (variants.length > 0) {
+			const currentSlug = slug || '';
+			const productVariantsData = variants.map((variant, index) => {
+				const variantName = `${variant.storage} - ${variant.color}`;
+				const variantPrice = parseFloat(variant.price) || 0;
+				const variantStock = parseInt(variant.stock) || 0;
+				const variantData: any = {
+					id: variant.id || undefined,
+					name: variantName,
+					sku: `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-'),
+					price: variantPrice,
+					price_tax_excl: variantPrice,
+					compared_price: parseFloat(variant.compareAt) || 0,
+					quantity: variantStock,
+					qty: variantStock,
+					manage_stock: true,
+					in_stock: variantStock > 0,
+					is_active: true,
+					position: index + 1,
+					attributes: [
+						{ attribute_name: 'Storage', attribute_value: variant.storage },
+						{ attribute_name: 'Color', attribute_value: variant.color },
+					],
+					same_day: variant.sameDay || false,
+				};
+				
+				if ((variant as any).image) {
+					variantData.image = (variant as any).image;
+				} else if (colorImages[variant.color]) {
+					variantData.image = colorImages[variant.color];
+				}
+				
+				return variantData;
+			});
+			
+			setValue('product_variants', productVariantsData, { shouldDirty: true });
+		} else {
+			setValue('product_variants', [], { shouldDirty: true });
+		}
+		
+		// Set draft status and save
+		setValue('status', 'draft', { shouldDirty: true });
+		
+		// Small delay to ensure setValue completes before clicking create button
+		setTimeout(() => {
+			const addButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
+			if (addButton) {
+				addButton.click();
+			}
+		}, 100);
+	};
+
+	const handlePreviewClick = () => {
+		// Scroll to preview section
+		const previewSection = document.getElementById('preview');
+		if (previewSection) {
+			previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			setCurrentStep(10);
 		}
 	};
 
+	// Watch category values for validation
+	const mainCategory = watch('main_category');
+	const subcategory = watch('subcategory');
+	
 	// Calculate missing required fields
 	const missingFields = useMemo(() => {
 		const missing: Array<{ field: string; section: string; step: number }> = [];
@@ -1240,10 +1844,23 @@ function MultiKonnectListingCreation() {
 		if (!productTitle || productTitle.length < 5) {
 			missing.push({ field: 'Product Name (min 5 characters)', section: 'Product Identity', step: 1 });
 		}
-		if (!watch('main_category')) {
+		
+		// Check main_category - must be an object with an id property
+		const hasValidMainCategory = mainCategory && 
+			typeof mainCategory === 'object' && 
+			mainCategory.id !== null && 
+			mainCategory.id !== undefined && 
+			mainCategory.id !== '';
+		if (!hasValidMainCategory) {
 			missing.push({ field: 'Main Category', section: 'Product Identity', step: 1 });
 		}
-		if (!watch('subcategory') || watch('subcategory')?.length === 0) {
+		
+		// Check subcategory - must be an array with at least one item that has an id
+		const hasValidSubcategory = subcategory && 
+			Array.isArray(subcategory) && 
+			subcategory.length > 0 && 
+			subcategory.some((cat: any) => cat && cat.id !== null && cat.id !== undefined && cat.id !== '');
+		if (!hasValidSubcategory) {
 			missing.push({ field: 'At least one Subcategory', section: 'Product Identity', step: 1 });
 		}
 		
@@ -1278,7 +1895,7 @@ function MultiKonnectListingCreation() {
 		}
 		
 		return missing;
-	}, [productTitle, description, galleryImages, variants, watch]);
+	}, [productTitle, description, galleryImages, variants, mainCategory, subcategory]);
 
 	const handleRunValidation = () => {
 		// Trigger form validation
@@ -1343,7 +1960,11 @@ function MultiKonnectListingCreation() {
 		if (product.meta_title) setValue('meta_title', product.meta_title, { shouldDirty: true });
 		if (product.meta_description) setValue('meta_description', product.meta_description, { shouldDirty: true });
 		if (product.price_tax_excl) setValue('price_tax_excl', product.price_tax_excl, { shouldDirty: true });
-		if (product.gallery_images) setValue('gallery_images', product.gallery_images, { shouldDirty: true });
+		if (product.gallery_images) {
+			// Ensure gallery_images is an array before setting
+			const galleryImages = Array.isArray(product.gallery_images) ? product.gallery_images : [];
+			setValue('gallery_images', galleryImages, { shouldDirty: true });
+		}
 		if (product.product_variants) {
 			const pastVariants = product.product_variants.map((v: any) => ({
 				id: v.id?.toString(),
@@ -1396,71 +2017,107 @@ function MultiKonnectListingCreation() {
 	};
 
 	return (
-		<div className="flex flex-col h-screen bg-[#f6f7fb] overflow-hidden relative" style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif' }}>
+		<div className="flex flex-col h-screen bg-[#f9fafb] overflow-hidden relative" style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif' }}>
 			{/* Hidden ProductHeader for form submission */}
 			<div className="absolute opacity-0 pointer-events-none -z-10">
 				<ProductHeader />
 			</div>
 			
-			{/* Top Navigation Bar */}
-			<header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0 sticky top-0 z-50">
+			{/* Top Navigation Bar - Dark Navy Header */}
+			<header 
+				className="px-6 py-4 flex items-center justify-between flex-shrink-0 sticky top-0 z-50" 
+				style={{ 
+					backgroundColor: '#0f172a',
+					height: '60px',
+					boxShadow: 'none',
+					borderBottom: 'none'
+				}}
+			>
 				<div className="flex items-center space-x-3">
-					<Typography variant="h6" className="font-bold text-gray-900" sx={{ fontSize: '15px', fontWeight: 700 }}>
-						MultiKonnect
-					</Typography>
-					<Chip 
-						label="Create Listing"
-						size="small"
-						sx={{
-							fontSize: '12px',
-							border: '1px solid #e5e7eb',
-							padding: '2px 8px',
-							borderRadius: '999px',
-							color: '#6b7280',
-							backgroundColor: '#f9fafb',
-							height: '20px',
+					{/* Orange Circle Logo */}
+					<div 
+						className="rounded-full flex-shrink-0"
+						style={{ 
+							backgroundColor: '#ff6536',
+							width: '8px',
+							height: '8px',
+							borderRadius: '50%',
+							marginRight: '8px'
 						}}
 					/>
+					{/* MultiKonnect Text */}
+					<Typography 
+						variant="h6" 
+						sx={{ 
+							fontSize: '16px', 
+							fontWeight: 700,
+							color: '#ffffff',
+							letterSpacing: '0.01em',
+							lineHeight: 1.2,
+							marginRight: '12px'
+						}}
+					>
+						MultiKonnect
+					</Typography>
+					{/* Create Listing Button */}
+					<Button
+						variant="text"
+						size="small"
+						sx={{
+							color: '#ffffff',
+							textTransform: 'none',
+							fontSize: '14px',
+							padding: '6px 16px',
+							minHeight: '32px',
+							fontWeight: 500,
+							borderRadius: '8px',
+							backgroundColor: 'transparent',
+							'&:hover': {
+								backgroundColor: 'rgba(255, 255, 255, 0.1)',
+							},
+						}}
+					>
+						Create Listing
+					</Button>
 				</div>
 				<div className="flex items-center space-x-2">
 					<Button 
-						variant="outlined" 
+						variant="text" 
 						size="small"
 						sx={{
-							borderColor: '#e5e7eb',
-							color: '#374151',
+							color: '#ffffff',
 							textTransform: 'none',
-							fontSize: '13px',
-							padding: '10px 14px',
-							borderRadius: '12px',
-							minHeight: '44px',
+							fontSize: '14px',
+							padding: '8px 16px',
+							minHeight: '36px',
 							fontWeight: 500,
+							borderRadius: '8px',
+							backgroundColor: 'transparent',
 							'&:hover': {
-								borderColor: '#d1d5db',
-								backgroundColor: '#f9fafb',
+								backgroundColor: 'rgba(255, 255, 255, 0.1)',
 							},
 						}}
-						onClick={() => handlePublishClick()}
+						onClick={handleSaveDraft}
 					>
 						Save draft
 					</Button>
 					<Button 
-						variant="outlined" 
+						variant="text" 
 						size="small"
 						sx={{
-							borderColor: '#e5e7eb',
-							color: '#374151',
+							color: '#ffffff',
 							textTransform: 'none',
-							fontSize: '13px',
-							padding: '10px 14px',
-							borderRadius: '12px',
-							minHeight: '44px',
+							fontSize: '14px',
+							padding: '8px 16px',
+							minHeight: '36px',
 							fontWeight: 500,
+							borderRadius: '8px',
+							backgroundColor: 'transparent',
 							'&:hover': {
-								borderColor: '#d1d5db',
-								backgroundColor: '#f9fafb',
+								backgroundColor: 'rgba(255, 255, 255, 0.1)',
 							},
 						}}
+						onClick={handlePreviewClick}
 					>
 						Preview
 					</Button>
@@ -1471,15 +2128,15 @@ function MultiKonnectListingCreation() {
 							backgroundColor: '#ff6536',
 							color: '#fff',
 							textTransform: 'none',
-							fontSize: '13px',
-							padding: '10px 14px',
+							fontSize: '14px',
+							padding: '8px 20px',
 							fontWeight: 600,
-							borderRadius: '12px',
-							minHeight: '44px',
-							boxShadow: '0 2px 8px rgba(255, 101, 54, 0.2)',
+							borderRadius: '8px',
+							minHeight: '36px',
+							boxShadow: 'none',
 							'&:hover': { 
 								backgroundColor: '#e55a2b',
-								boxShadow: '0 4px 12px rgba(255, 101, 54, 0.3)',
+								boxShadow: 'none',
 							},
 						}}
 						onClick={handlePublishClick}
@@ -1489,14 +2146,22 @@ function MultiKonnectListingCreation() {
 				</div>
 			</header>
 
-			<div className="flex flex-1 overflow-hidden min-h-0">
-				{/* Left Sidebar - Listing Steps */}
-				<aside className="w-[260px] bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0 sticky top-[52px]" style={{ alignSelf: 'start' }}>
-					<div className="p-4">
-						<Typography variant="h6" className="font-semibold mb-3 text-gray-900" sx={{ fontSize: '15px', fontWeight: 600 }}>
-							Create Listing
-						</Typography>
-						<div className="space-y-0.5">
+			<div className="flex flex-1 overflow-hidden min-h-0 justify-center">
+				<div className="flex w-full max-w-[1600px]">
+				{/* Left Sidebar - Listing Steps - Light Grey */}
+				<aside 
+					className="w-[280px] border-r overflow-y-auto flex-shrink-0 sticky" 
+					style={{ 
+						alignSelf: 'start', 
+						backgroundColor: '#f8f9fa',
+						borderColor: '#e5e7eb',
+						borderRightWidth: '1px',
+						top: '60px',
+						height: 'calc(100vh - 60px)'
+					}}
+				>
+					<div className="p-5">
+						<div className="space-y-1">
 							{steps.map((step) => (
 								<a
 									key={step.id}
@@ -1505,42 +2170,60 @@ function MultiKonnectListingCreation() {
 										e.preventDefault();
 										handleStepClick(step.id);
 									}}
-									className={`flex justify-between items-center p-2.5 rounded-[10px] cursor-pointer transition-all no-underline ${
-										currentStep === step.id
-											? 'bg-[#eef2ff]'
-											: 'hover:bg-gray-50'
-									}`}
+									className="flex items-start cursor-pointer transition-all no-underline"
 									style={{
 										color: 'inherit',
 										textDecoration: 'none',
+										padding: '12px 14px',
+										borderRadius: '8px',
+										backgroundColor: currentStep === step.id ? '#eff6ff' : 'transparent',
+										marginBottom: '2px',
 									}}
 								>
-									<div className="flex items-start space-x-2 flex-1 min-w-0">
-										<span 
-											className={`font-semibold text-sm flex-shrink-0 ${
-												currentStep === step.id ? 'text-[#3b82f6]' : 'text-gray-600'
-											}`}
-										>
-											{step.id}.
-										</span>
-										<div className="flex-1 min-w-0">
+									<span 
+										style={{
+											fontSize: '14px',
+											fontWeight: 600,
+											color: currentStep === step.id ? '#2563eb' : '#6b7280',
+											marginRight: '10px',
+											minWidth: '22px',
+											lineHeight: '1.4'
+										}}
+									>
+										{step.id}.
+									</span>
+									<div style={{ flex: 1, minWidth: 0 }}>
+										<div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
 											<Typography
-												variant="body2"
-												className={`font-medium ${
-													currentStep === step.id ? 'text-[#3b82f6]' : 'text-gray-900'
-												}`}
-												sx={{ fontSize: '13px', fontWeight: 500 }}
+												sx={{ 
+													fontSize: '13px', 
+													fontWeight: 500,
+													color: currentStep === step.id ? '#2563eb' : '#111827',
+													lineHeight: '1.4',
+												}}
 											>
 												{step.title}
 											</Typography>
-											<Typography 
-												variant="caption" 
-												className="text-gray-500"
-												sx={{ fontSize: '11px', display: 'block', marginTop: '1px', color: '#6b7280' }}
-											>
-												{step.description}
-											</Typography>
+											{step.completed && (
+												<CheckCircleIcon 
+													sx={{ 
+														fontSize: '16px', 
+														color: '#10b981',
+														marginLeft: 'auto'
+													}} 
+												/>
+											)}
 										</div>
+										<Typography 
+											sx={{ 
+												fontSize: '11px', 
+												display: 'block', 
+												color: '#6b7280',
+												lineHeight: '1.3'
+											}}
+										>
+											{step.description}
+										</Typography>
 									</div>
 								</a>
 							))}
@@ -1549,16 +2232,26 @@ function MultiKonnectListingCreation() {
 				</aside>
 
 				{/* Main Content Area */}
-				<main className="flex-1 overflow-y-auto p-6 min-w-0 bg-[#f6f7fb]">
-					<div className="max-w-[1180px] mx-auto space-y-4">
+				<main 
+					className="flex-1 overflow-y-auto min-w-0 flex justify-center" 
+					style={{ 
+						backgroundColor: '#ffffff',
+						padding: '32px 0'
+					}}
+				>
+					<div className="w-full max-w-[1200px] px-8 space-y-6">
 						{/* Product Identity Section - Step 1 */}
 						<section 
-							className="p-4 bg-white rounded-2xl border border-gray-200" 
+							ref={(el) => setSectionRef(1, el)}
+							className="p-6 rounded-xl border" 
 							id="identity"
+							data-step-id="1"
 							style={{
-								borderRadius: '16px',
+								borderRadius: '12px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 14px 40px rgba(2,8,23,.06)',
+								backgroundColor: '#ffffff',
+								boxShadow: 'none',
+								scrollMarginTop: '80px',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
@@ -1916,12 +2609,16 @@ function MultiKonnectListingCreation() {
 
 						{/* Media Section - Step 2 */}
 						<section 
-							className="p-4 bg-white rounded-2xl border border-gray-200" 
+							ref={(el) => setSectionRef(2, el)}
+							className="p-6 rounded-xl border" 
 							id="media"
+							data-step-id="2"
 							style={{
-								borderRadius: '16px',
+								borderRadius: '12px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 14px 40px rgba(2,8,23,.06)',
+								backgroundColor: '#ffffff',
+								boxShadow: 'none',
+								scrollMarginTop: '80px',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
@@ -1931,313 +2628,300 @@ function MultiKonnectListingCreation() {
 								Upload 6-12 images. Include front/back, box contents, ports. Per-variant photos supported.
 							</Typography>
 
-							{/* Large Image Upload Area - Single box as shown in image */}
-							{/* Main Image Upload Area */}
-							<div className="mb-4">
-								{galleryImages.length > 0 ? (
-									<div className="relative w-full h-[400px] border border-gray-300 rounded-xl overflow-hidden bg-white">
-										<img
-											src={galleryImages[0].url}
-											alt="Product"
-											className="w-full h-full object-contain"
-										/>
-										<button
-											type="button"
-											onClick={(e) => {
-												e.preventDefault();
-												e.stopPropagation();
-												handleImageRemove(0);
-											}}
-											className="absolute top-2 right-2 bg-white rounded-full p-1.5 shadow-lg hover:bg-gray-100 transition-colors"
+							{/* Image Upload Slots */}
+							<div className="flex gap-3 mb-4" style={{ flexWrap: 'wrap' }}>
+								{(() => {
+									// Use the memoized galleryImages for reactivity
+									const imagesArray = Array.isArray(galleryImages) ? galleryImages : [];
+									
+									// Show at least 6 slots, or more if there are more images
+									// Maximum of 12 slots as per instructions (6-12 images)
+									const totalSlots = Math.max(6, Math.min(12, imagesArray.length + 1));
+									
+									return Array.from({ length: totalSlots }, (_, index) => {
+										// Debug log for first slot
+										if (index === 0) {
+											console.log('Media section render - galleryImages:', imagesArray);
+											console.log('Media section render - galleryImagesRaw:', galleryImagesRaw);
+											console.log('Media section render - imagesArray length:', imagesArray.length);
+											console.log('Media section render - totalSlots:', totalSlots);
+											if (imagesArray.length > 0) {
+												console.log('Media section render - first image:', imagesArray[0]);
+											}
+										}
+										
+										const hasImage = imagesArray.length > index && 
+											imagesArray[index] && 
+											imagesArray[index].url &&
+											typeof imagesArray[index].url === 'string' &&
+											imagesArray[index].url.length > 0;
+										
+										const isFirstSlot = index === 0;
+										const currentImage = hasImage ? imagesArray[index] : null;
+										
+										if (index === 0) {
+											console.log('Media section render - hasImage for index 0:', hasImage, 'currentImage:', currentImage);
+										}
+									
+									return (
+										<label
+											key={`media-slot-${index}-${currentImage?.url || 'empty'}`}
+											htmlFor={`image-upload-${index}`}
 											style={{
-												width: '32px',
-												height: '32px',
+												width: '150px',
+												height: '150px',
+												border: '2px dashed #d1d5db',
+												borderRadius: '12px',
 												display: 'flex',
 												alignItems: 'center',
 												justifyContent: 'center',
+												cursor: 'pointer',
+												backgroundColor: '#f9fafb',
+												transition: 'all 0.2s',
+												overflow: 'hidden',
+											}}
+											onMouseEnter={(e) => {
+												e.currentTarget.style.borderColor = '#9ca3af';
+												e.currentTarget.style.backgroundColor = '#f3f4f6';
+											}}
+											onMouseLeave={(e) => {
+												e.currentTarget.style.borderColor = '#d1d5db';
+												e.currentTarget.style.backgroundColor = '#f9fafb';
 											}}
 										>
-											<FuseSvgIcon size={16} className="text-gray-600">
-												heroicons-outline:x-mark
-											</FuseSvgIcon>
-										</button>
-										{galleryImages[0].is_featured && (
-											<div className="absolute top-2 left-2 bg-yellow-400 rounded-full p-1.5 shadow-lg">
-												<FuseSvgIcon className="text-white" size={16}>
-													heroicons-solid:star
-												</FuseSvgIcon>
-											</div>
-										)}
-									</div>
-								) : (
-									<label
-										className="block w-full h-[400px] border border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-white text-gray-500 hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-colors"
-										style={{
-											borderRadius: '12px',
-										}}
-									>
-										<input
-											type="file"
-											accept="image/*"
-											multiple
-											className="hidden"
-											onChange={handleImageUpload}
-										/>
-										<div className="text-center">
-											<FuseSvgIcon className="text-gray-400 mb-2" size={48}>
-												heroicons-outline:photo
-											</FuseSvgIcon>
-											<Typography variant="body2" sx={{ fontSize: '14px', color: '#6b7280' }}>
-												Click to upload or drag and drop
-											</Typography>
-										</div>
-									</label>
-								)}
+											{hasImage && currentImage ? (
+												<div style={{ position: 'relative', width: '100%', height: '100%' }}>
+													<img
+														src={currentImage.url}
+														alt="Uploaded"
+														style={{
+															width: '100%',
+															height: '100%',
+															objectFit: 'cover',
+															borderRadius: '10px',
+														}}
+														onError={(e) => {
+															console.error('Image load error:', e);
+														}}
+													/>
+													<button
+														onClick={(e) => {
+															e.preventDefault();
+															e.stopPropagation();
+															handleImageRemove(index);
+														}}
+														style={{
+															position: 'absolute',
+															top: '4px',
+															right: '4px',
+															background: 'rgba(0, 0, 0, 0.6)',
+															color: 'white',
+															border: 'none',
+															borderRadius: '50%',
+															width: '24px',
+															height: '24px',
+															cursor: 'pointer',
+															display: 'flex',
+															alignItems: 'center',
+															justifyContent: 'center',
+															fontSize: '16px',
+															zIndex: 10,
+														}}
+													>
+														×
+													</button>
+												</div>
+											) : isUploadingImage && index === 0 ? (
+												<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+													<CircularProgress size={24} sx={{ color: '#9ca3af' }} />
+													<span style={{ color: '#9ca3af', fontSize: '12px' }}>Uploading...</span>
+												</div>
+											) : (
+												<span style={{ color: '#9ca3af', fontSize: isFirstSlot ? '14px' : '24px', fontWeight: isFirstSlot ? 500 : 300 }}>
+													{isFirstSlot ? 'Upload' : '+'}
+												</span>
+											)}
+											<input
+												id={`image-upload-${index}`}
+												type="file"
+												accept="image/*"
+												multiple
+												disabled={isUploadingImage}
+												style={{ display: 'none' }}
+												onChange={handleImageUpload}
+											/>
+										</label>
+									);
+									});
+								})()}
 							</div>
 
-							{/* Additional Images Grid */}
-							{galleryImages.length > 0 && (
-								<div className="mb-4">
-									<Typography variant="body2" className="font-medium mb-2 text-gray-700" sx={{ fontSize: '14px', marginBottom: '8px' }}>
-										Additional Images ({galleryImages.length - 1} of 11)
-									</Typography>
-									<div className="grid grid-cols-6 gap-2.5">
-										{/* Show existing additional images */}
-										{galleryImages.slice(1).map((image, index) => (
-											<div
-												key={`image-${index + 1}`}
-												className="relative h-[120px] border border-gray-300 rounded-xl overflow-hidden bg-gray-50 group cursor-pointer"
-												style={{
-													borderRadius: '12px',
-												}}
-												onClick={() => handleImageClick(index + 1)}
-											>
-												<img
-													src={image.url}
-													alt={`Product ${index + 2}`}
-													className="w-full h-full object-cover"
-												/>
-												{image.is_featured && (
-													<div className="absolute top-1 right-1 bg-yellow-400 rounded-full p-1 shadow-md">
-														<FuseSvgIcon className="text-white" size={14}>
-															heroicons-solid:star
-														</FuseSvgIcon>
-													</div>
-												)}
-												<button
-													type="button"
-													onClick={(e) => {
-														e.stopPropagation();
-														handleImageRemove(index + 1);
-													}}
-													className="absolute top-1 left-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
-													style={{
-														width: '24px',
-														height: '24px',
-														display: 'flex',
-														alignItems: 'center',
-														justifyContent: 'center',
-													}}
-												>
-													<FuseSvgIcon size={12}>
-														heroicons-outline:x-mark
-													</FuseSvgIcon>
-												</button>
-											</div>
-										))}
-										
-										{/* Add more images button */}
-										{galleryImages.length < 12 && (
-											<label
-												className="h-[120px] border border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 text-gray-500 hover:border-gray-400 hover:bg-gray-100 cursor-pointer transition-colors"
-												style={{
-													borderRadius: '12px',
-												}}
-											>
-												<input
-													type="file"
-													accept="image/*"
-													multiple
-													className="hidden"
-													onChange={handleImageUpload}
-												/>
-												<FuseSvgIcon className="text-gray-400" size={24}>
-													heroicons-outline:plus
-												</FuseSvgIcon>
-											</label>
-										)}
-										
-										{/* Empty placeholders to fill grid */}
-										{Array.from({ length: Math.max(0, 5 - (galleryImages.length - 1)) }).map((_, idx) => (
-											galleryImages.length < 12 && (
-												<label
-													key={`placeholder-${idx}`}
-													className="h-[120px] border border-dashed border-gray-300 rounded-xl flex items-center justify-center bg-gray-50 text-gray-500 hover:border-gray-400 hover:bg-gray-100 cursor-pointer transition-colors"
-													style={{
-														borderRadius: '12px',
-													}}
-												>
-													<input
-														type="file"
-														accept="image/*"
-														multiple
-														className="hidden"
-														onChange={handleImageUpload}
-													/>
-													<span className="text-2xl font-light">+</span>
-												</label>
-											)
-										))}
-									</div>
-									<Typography variant="caption" className="text-gray-500 mt-2" sx={{ fontSize: '12px', color: '#6b7280', display: 'block' }}>
-										Click on an image to set it as featured. Upload up to 12 images total.
-									</Typography>
-								</div>
-							)}
-
-							{/* Image Editing Buttons */}
-							{galleryImages.length > 0 && (
-								<div className="flex flex-wrap gap-2 mb-3">
-									<Button 
-										variant="outlined" 
+							{/* Action Buttons */}
+							<div className="flex flex-col gap-3 mb-4">
+								{/* First row of buttons */}
+								<div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
+									<Button
+										variant="outlined"
 										size="small"
-										onClick={() => handleRemoveBackground(0)}
-										disabled={processingImageIndex !== null}
-										startIcon={processingImageIndex === 0 ? <CircularProgress size={16} /> : <FuseSvgIcon size={16}>heroicons-outline:scissors</FuseSvgIcon>}
+										onClick={() => {
+											if (galleryImages && galleryImages.length > 0) {
+												handleRemoveBackground(0);
+											} else {
+												alert('Please upload an image first');
+											}
+										}}
 										sx={{
 											borderColor: '#e5e7eb',
 											color: '#374151',
 											textTransform: 'none',
-											fontSize: '12px',
-											padding: '10px 14px',
-											borderRadius: '12px',
-											minHeight: '44px',
+											fontSize: '13px',
+											padding: '8px 16px',
+											borderRadius: '8px',
+											minHeight: '40px',
+											backgroundColor: '#ffffff',
 											'&:hover': {
 												borderColor: '#d1d5db',
 												backgroundColor: '#f9fafb',
-											},
-											'&:disabled': {
-												opacity: 0.6,
 											},
 										}}
 									>
 										Remove background
 									</Button>
-									<Button 
-										variant="outlined" 
+									<Button
+										variant="outlined"
 										size="small"
-										onClick={() => handleAutoCropAndCenter(0)}
-										disabled={processingImageIndex !== null}
-										startIcon={processingImageIndex === 0 ? <CircularProgress size={16} /> : <FuseSvgIcon size={16}>heroicons-outline:crop</FuseSvgIcon>}
+										onClick={() => {
+											if (galleryImages && galleryImages.length > 0) {
+												handleAutoCropAndCenter(0);
+											} else {
+												alert('Please upload an image first');
+											}
+										}}
 										sx={{
 											borderColor: '#e5e7eb',
 											color: '#374151',
 											textTransform: 'none',
-											fontSize: '12px',
-											padding: '10px 14px',
-											borderRadius: '12px',
-											minHeight: '44px',
+											fontSize: '13px',
+											padding: '8px 16px',
+											borderRadius: '8px',
+											minHeight: '40px',
+											backgroundColor: '#ffffff',
 											'&:hover': {
 												borderColor: '#d1d5db',
 												backgroundColor: '#f9fafb',
-											},
-											'&:disabled': {
-												opacity: 0.6,
 											},
 										}}
 									>
 										Auto-crop & center
 									</Button>
-									<Button 
-										variant="outlined" 
+									<Button
+										variant="outlined"
 										size="small"
-										onClick={() => handleCreate360Spin(0)}
-										disabled={processingImageIndex !== null}
-										startIcon={processingImageIndex === 0 ? <CircularProgress size={16} /> : <FuseSvgIcon size={16}>heroicons-outline:arrow-path</FuseSvgIcon>}
+										onClick={() => {
+											if (galleryImages && galleryImages.length > 0) {
+												handleCreate360Spin(0);
+											} else {
+												alert('Please upload an image first');
+											}
+										}}
 										sx={{
 											borderColor: '#e5e7eb',
 											color: '#374151',
 											textTransform: 'none',
-											fontSize: '12px',
-											padding: '10px 14px',
-											borderRadius: '12px',
-											minHeight: '44px',
+											fontSize: '13px',
+											padding: '8px 16px',
+											borderRadius: '8px',
+											minHeight: '40px',
+											backgroundColor: '#ffffff',
 											'&:hover': {
 												borderColor: '#d1d5db',
 												backgroundColor: '#f9fafb',
-											},
-											'&:disabled': {
-												opacity: 0.6,
 											},
 										}}
 									>
 										Create 360° spin
 									</Button>
-									<Button 
-										variant="outlined" 
+									<Button
+										variant="outlined"
 										size="small"
-										onClick={() => handleWatermark(0)}
-										disabled={processingImageIndex !== null}
-										startIcon={processingImageIndex === 0 ? <CircularProgress size={16} /> : <FuseSvgIcon size={16}>heroicons-outline:document-text</FuseSvgIcon>}
+										onClick={() => {
+											if (galleryImages && galleryImages.length > 0) {
+												handleWatermark(0);
+											} else {
+												alert('Please upload an image first');
+											}
+										}}
 										sx={{
 											borderColor: '#e5e7eb',
 											color: '#374151',
 											textTransform: 'none',
-											fontSize: '12px',
-											padding: '10px 14px',
-											borderRadius: '12px',
-											minHeight: '44px',
+											fontSize: '13px',
+											padding: '8px 16px',
+											borderRadius: '8px',
+											minHeight: '40px',
+											backgroundColor: '#ffffff',
 											'&:hover': {
 												borderColor: '#d1d5db',
 												backgroundColor: '#f9fafb',
-											},
-											'&:disabled': {
-												opacity: 0.6,
 											},
 										}}
 									>
 										Watermark
 									</Button>
-									<Button 
-										variant="outlined" 
+								</div>
+
+								{/* Second row - AI Auto-enhance */}
+								<div className="flex gap-3">
+									<Button
+										variant="outlined"
 										size="small"
-										onClick={() => handleAIAutoEnhance(0)}
-										disabled={processingImageIndex !== null}
-										startIcon={processingImageIndex === 0 ? <CircularProgress size={16} /> : <FuseSvgIcon size={16}>heroicons-outline:sparkles</FuseSvgIcon>}
+										onClick={() => {
+											if (galleryImages && galleryImages.length > 0) {
+												handleAIAutoEnhance(0);
+											} else {
+												alert('Please upload an image first');
+											}
+										}}
 										sx={{
 											borderColor: '#e5e7eb',
 											color: '#374151',
 											textTransform: 'none',
-											fontSize: '12px',
-											padding: '10px 14px',
-											borderRadius: '12px',
-											minHeight: '44px',
+											fontSize: '13px',
+											padding: '8px 16px',
+											borderRadius: '8px',
+											minHeight: '40px',
+											backgroundColor: '#ffffff',
 											'&:hover': {
 												borderColor: '#d1d5db',
 												backgroundColor: '#f9fafb',
-											},
-											'&:disabled': {
-												opacity: 0.6,
 											},
 										}}
 									>
 										AI Auto-enhance
 									</Button>
 								</div>
-							)}
-							<Typography variant="body2" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
-								Tip: Add a photo of serial/IMEI (mask last digits). AI will auto-shadow and white balance.
-							</Typography>
+							</div>
+
+							{/* Tip Section */}
+							<div style={{ marginTop: '12px' }}>
+								<Typography variant="body2" sx={{ fontSize: '13px', color: '#6b7280' }}>
+									<span style={{ fontWeight: 600 }}>Tip:</span> Add a photo of serial/IMEI (mask last digits). AI will auto-shadow and white balance.
+								</Typography>
+							</div>
 						</section>
 
 						{/* Variants Section - Step 3 */}
 						<Paper 
-							className="p-4" 
+							ref={(el) => setSectionRef(3, el as HTMLElement)}
+							className="p-6" 
 							id="variants"
+							data-step-id="3"
 							sx={{
-								borderRadius: '16px',
+								borderRadius: '12px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								backgroundColor: '#ffffff',
+								boxShadow: 'none',
+								scrollMarginTop: '80px',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
@@ -2298,80 +2982,6 @@ function MultiKonnectListingCreation() {
 											/>
 										))}
 									</div>
-									{/* Per-Color Images Section */}
-									<div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-										<Typography variant="subtitle2" className="mb-2" sx={{ fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '8px' }}>
-											Per-Color Images (Optional)
-										</Typography>
-										<Typography variant="caption" className="mb-3" sx={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '8px' }}>
-											Add images for each color. These will be used for all variants with that color.
-										</Typography>
-										<div className="grid grid-cols-3 gap-3">
-											{colorOptions.map((color, idx) => (
-												<div key={idx} className="flex flex-col items-center">
-													<Typography variant="caption" sx={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px', fontWeight: 500 }}>
-														{color}
-													</Typography>
-													{colorImages[color] ? (
-														<div className="relative w-full aspect-square rounded-lg overflow-hidden border-2 border-gray-300">
-															<img
-																src={colorImages[color]}
-																alt={color}
-																className="w-full h-full object-cover"
-															/>
-															<IconButton
-																size="small"
-																onClick={() => handleRemoveColorImage(color)}
-																sx={{
-																	position: 'absolute',
-																	top: 4,
-																	right: 4,
-																	backgroundColor: 'rgba(255, 255, 255, 0.9)',
-																	padding: '4px',
-																	'&:hover': {
-																		backgroundColor: 'rgba(255, 255, 255, 1)',
-																	},
-																}}
-															>
-																<FuseSvgIcon size={14} sx={{ color: '#ef4444' }}>heroicons-outline:x-mark</FuseSvgIcon>
-															</IconButton>
-															<IconButton
-																size="small"
-																onClick={() => handleAddColorImage(color)}
-																sx={{
-																	position: 'absolute',
-																	bottom: 4,
-																	right: 4,
-																	backgroundColor: 'rgba(255, 255, 255, 0.9)',
-																	padding: '4px',
-																	'&:hover': {
-																		backgroundColor: 'rgba(255, 255, 255, 1)',
-																	},
-																}}
-															>
-																<FuseSvgIcon size={14} sx={{ color: '#374151' }}>heroicons-outline:pencil</FuseSvgIcon>
-															</IconButton>
-														</div>
-													) : (
-														<label className="w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center bg-white cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors">
-															<input
-																type="file"
-																accept="image/*"
-																style={{ display: 'none' }}
-																onChange={(e) => {
-																	if (e.target.files && e.target.files.length > 0) {
-																		setSelectedColorForImage(color);
-																		handleColorImageUpload(e.target.files);
-																	}
-																}}
-															/>
-															<FuseSvgIcon size={24} sx={{ color: '#9ca3af' }}>heroicons-outline:photo</FuseSvgIcon>
-														</label>
-													)}
-												</div>
-											))}
-										</div>
-									</div>
 								</div>
 							)}
 
@@ -2393,7 +3003,7 @@ function MultiKonnectListingCreation() {
 										},
 									}}
 								>
-									Add Storage
+									Add {attribute1Name}
 								</Button>
 								<Button 
 									variant="outlined" 
@@ -2412,7 +3022,7 @@ function MultiKonnectListingCreation() {
 										},
 									}}
 								>
-									Add Color
+									Add {attribute2Name}
 								</Button>
 								{variants.length > 0 && (
 									<>
@@ -2480,8 +3090,8 @@ function MultiKonnectListingCreation() {
 								<table className="w-full border-collapse" style={{ fontSize: '13px' }}>
 									<thead>
 										<tr className="bg-gray-100">
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Storage</th>
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Color</th>
+											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>{attribute1Name}</th>
+											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>{attribute2Name}</th>
 											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Price (£)</th>
 											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Compare-at</th>
 											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Stock</th>
@@ -2493,7 +3103,7 @@ function MultiKonnectListingCreation() {
 										{variants.length === 0 ? (
 											<tr>
 												<td colSpan={7} className="border border-gray-300 px-4 py-8 text-center text-gray-400" style={{ fontSize: '13px' }}>
-													No variants added yet. Add Storage and Color options to generate variant matrix.
+													No variants added yet. Add {attribute1Name} and {attribute2Name} options to generate variant matrix.
 												</td>
 											</tr>
 										) : (
@@ -2640,12 +3250,15 @@ function MultiKonnectListingCreation() {
 
 						{/* Pricing & Intel Section - Step 4 */}
 						<Paper 
+							ref={(el) => setSectionRef(4, el as HTMLElement)}
 							className="p-3" 
 							id="pricing"
+							data-step-id="4"
 							sx={{
 								borderRadius: '16px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								boxShadow: 'none',
+								scrollMarginTop: '80px',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-2 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
@@ -2690,15 +3303,45 @@ function MultiKonnectListingCreation() {
 									}}
 								>
 									<div className="flex justify-between items-start mb-1">
-										<div>
-											<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
-												Fee preview
-											</Typography>
+										<div style={{ flex: 1 }}>
+											<div className="flex items-center justify-between mb-1">
+												<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
+													Fee preview
+												</Typography>
+												<IconButton 
+													size="small" 
+													onClick={() => {
+														setTempFeeSettings(feeSettings);
+														setFeeSettingsDialogOpen(true);
+													}}
+													sx={{ padding: '4px', marginLeft: '8px' }}
+													title="Configure fees"
+												>
+													<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:cog-6-tooth</FuseSvgIcon>
+												</IconButton>
+											</div>
 											<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
-												Commission + delivery + promos
+												Commission + shipping + promos
 											</Typography>
+											{/* Fee Breakdown */}
+											<div className="mt-2 space-y-1" style={{ fontSize: '11px', color: '#6b7280' }}>
+												<div className="flex justify-between">
+													<span>Commission ({(feeSettings.commissionRate * 100).toFixed(1)}%):</span>
+													<span>{formatCurrency(pricingIntelligence.fees.commission)}</span>
+												</div>
+												<div className="flex justify-between">
+													<span>Shipping (vendor):</span>
+													<span>{formatCurrency(pricingIntelligence.fees.shipping)}</span>
+												</div>
+												{pricingIntelligence.fees.promos > 0 && (
+													<div className="flex justify-between">
+														<span>Promos:</span>
+														<span>{formatCurrency(pricingIntelligence.fees.promos)}</span>
+													</div>
+												)}
+											</div>
 										</div>
-										<div style={{ textAlign: 'right' }}>
+										<div style={{ textAlign: 'right', marginLeft: '16px' }}>
 											<Typography variant="body2" className="mb-1" sx={{ fontSize: '13px' }}>
 												Fees: {formatCurrency(pricingIntelligence.fees.total)}
 											</Typography>
@@ -2718,12 +3361,15 @@ function MultiKonnectListingCreation() {
 
 						{/* Same-day & Stores Section - Step 5 */}
 						<Paper 
+							ref={(el) => setSectionRef(5, el as HTMLElement)}
 							className="p-4" 
 							id="delivery"
+							data-step-id="5"
 							sx={{
 								borderRadius: '16px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								boxShadow: 'none',
+								scrollMarginTop: '80px',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
@@ -2791,6 +3437,65 @@ function MultiKonnectListingCreation() {
 									)}
 								/>
 							</div>
+							
+							{/* Shipping Charges - Set by Vendor */}
+							<Typography variant="subtitle2" sx={{ fontSize: '14px', fontWeight: 600, marginTop: '16px', marginBottom: '8px' }}>
+								Shipping Charges
+							</Typography>
+							<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '12px' }}>
+								Set your shipping charges for this product. These will be added to the product price.
+							</Typography>
+							<div className="grid grid-cols-2 gap-3">
+								<Controller
+									name="shipping_charge_regular"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											label="Regular Delivery Charge (£)"
+											type="number"
+											value={shippingChargeRegular}
+											fullWidth
+											size="small"
+											InputProps={{
+												startAdornment: <InputAdornment position="start">£</InputAdornment>,
+											}}
+											sx={{
+												'& .MuiOutlinedInput-root': {
+													borderRadius: '12px',
+													fontSize: '14px',
+												},
+											}}
+											helperText="Standard delivery"
+										/>
+									)}
+								/>
+								<Controller
+									name="shipping_charge_same_day"
+									control={control}
+									render={({ field }) => (
+										<TextField
+											{...field}
+											label="Same-Day Delivery Charge (£)"
+											type="number"
+											value={shippingChargeSameDay}
+											fullWidth
+											size="small"
+											InputProps={{
+												startAdornment: <InputAdornment position="start">£</InputAdornment>,
+											}}
+											sx={{
+												'& .MuiOutlinedInput-root': {
+													borderRadius: '12px',
+													fontSize: '14px',
+												},
+											}}
+											helperText="Same-day delivery"
+										/>
+									)}
+								/>
+							</div>
+							
 							<Controller
 								name="enable_pickup"
 								control={control}
@@ -2798,7 +3503,7 @@ function MultiKonnectListingCreation() {
 									<FormControlLabel
 										control={<Checkbox {...field} checked={enablePickup} size="small" />}
 										label="Enable pickup"
-										sx={{ marginTop: '8px' }}
+										sx={{ marginTop: '16px' }}
 									/>
 								)}
 							/>
@@ -2809,249 +3514,238 @@ function MultiKonnectListingCreation() {
 
 						{/* Copy & SEO Section - Step 6 */}
 						<Paper 
-							className="p-4" 
+							ref={(el) => setSectionRef(6, el as HTMLElement)}
+							className="p-6" 
 							id="copy"
+							data-step-id="6"
 							sx={{
-								borderRadius: '16px',
+								borderRadius: '12px',
+								scrollMarginTop: '80px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								backgroundColor: '#ffffff',
+								boxShadow: 'none',
 							}}
 						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+							<Typography 
+								variant="h6" 
+								className="font-semibold mb-4 text-gray-900" 
+								sx={{ 
+									fontSize: '18px', 
+									fontWeight: 600, 
+									marginBottom: '16px',
+									color: '#111827'
+								}}
+							>
 								Copy & SEO (AI-assisted)
 							</Typography>
-							<div className="flex flex-wrap gap-2 mb-3">
-								<Button 
-									variant="outlined" 
-									size="small"
+							
+							{/* AI Action Buttons */}
+							<div className="flex flex-wrap gap-3 mb-6">
+								<Button
+									variant="outlined"
+									size="medium"
 									onClick={handleSuggestTitle}
 									sx={{
-										borderColor: '#e5e7eb',
+										borderColor: '#d1d5db',
 										color: '#374151',
 										textTransform: 'none',
-										fontSize: '12px',
-										padding: '6px 12px',
-										borderRadius: '10px',
+										fontSize: '14px',
+										fontWeight: 500,
+										padding: '10px 20px',
+										borderRadius: '8px',
+										minHeight: '42px',
+										borderWidth: '1.5px',
 										'&:hover': {
-											borderColor: '#d1d5db',
+											borderColor: '#9ca3af',
 											backgroundColor: '#f9fafb',
+											borderWidth: '1.5px',
 										},
 									}}
 								>
 									Suggest title
 								</Button>
-								<Button 
-									variant="outlined" 
-									size="small"
+								<Button
+									variant="outlined"
+									size="medium"
 									onClick={handleGenerateBullets}
 									sx={{
-										borderColor: '#e5e7eb',
+										borderColor: '#d1d5db',
 										color: '#374151',
 										textTransform: 'none',
-										fontSize: '12px',
-										padding: '6px 12px',
-										borderRadius: '10px',
+										fontSize: '14px',
+										fontWeight: 500,
+										padding: '10px 20px',
+										borderRadius: '8px',
+										minHeight: '42px',
+										borderWidth: '1.5px',
 										'&:hover': {
-											borderColor: '#d1d5db',
+											borderColor: '#9ca3af',
 											backgroundColor: '#f9fafb',
+											borderWidth: '1.5px',
 										},
 									}}
 								>
 									Generate 6 bullets
 								</Button>
-								<Button 
-									variant="outlined" 
-									size="small"
+								<Button
+									variant="outlined"
+									size="medium"
 									onClick={handleWriteDescription}
 									sx={{
-										borderColor: '#e5e7eb',
+										borderColor: '#d1d5db',
 										color: '#374151',
 										textTransform: 'none',
-										fontSize: '12px',
-										padding: '6px 12px',
-										borderRadius: '10px',
+										fontSize: '14px',
+										fontWeight: 500,
+										padding: '10px 20px',
+										borderRadius: '8px',
+										minHeight: '42px',
+										borderWidth: '1.5px',
 										'&:hover': {
-											borderColor: '#d1d5db',
+											borderColor: '#9ca3af',
 											backgroundColor: '#f9fafb',
+											borderWidth: '1.5px',
 										},
 									}}
 								>
 									Write description
 								</Button>
-								<Select 
-									defaultValue="Neutral" 
-									size="small" 
-									sx={{ 
-										minWidth: 200,
-										borderRadius: '10px',
-										fontSize: '12px',
-									}}
-								>
-									<MenuItem value="Neutral">Tone: Neutral</MenuItem>
-									<MenuItem value="Premium">Premium</MenuItem>
-									<MenuItem value="Conversational">Conversational</MenuItem>
-								</Select>
 							</div>
-							<div className="mb-4">
+
+							{/* Tone Dropdown */}
+							<div className="mb-6">
+								<FormControl fullWidth size="medium">
+									<InputLabel id="tone-select-label" sx={{ fontSize: '14px' }}>Tone</InputLabel>
+									<Select 
+										labelId="tone-select-label"
+										label="Tone"
+										value={seoTone}
+										onChange={(e) => setSeoTone(e.target.value)}
+										sx={{
+											borderRadius: '8px',
+											fontSize: '14px',
+											'& .MuiOutlinedInput-notchedOutline': {
+												borderColor: '#d1d5db',
+											},
+											'&:hover .MuiOutlinedInput-notchedOutline': {
+												borderColor: '#9ca3af',
+											},
+										}}
+									>
+										<MenuItem value="Neutral" sx={{ fontSize: '14px' }}>Neutral</MenuItem>
+										<MenuItem value="Professional" sx={{ fontSize: '14px' }}>Professional</MenuItem>
+										<MenuItem value="Casual" sx={{ fontSize: '14px' }}>Casual</MenuItem>
+										<MenuItem value="Friendly" sx={{ fontSize: '14px' }}>Friendly</MenuItem>
+										<MenuItem value="Formal" sx={{ fontSize: '14px' }}>Formal</MenuItem>
+									</Select>
+								</FormControl>
+							</div>
+
+							{/* SEO Title Field - Independent */}
+							<div className="mb-6">
 								<Controller
 									name="meta_title"
 									control={control}
 									render={({ field }) => {
-										const charCount = (field.value || '').length;
+										const currentValue = field.value || '';
 										return (
-											<Box sx={{ position: 'relative', width: '100%' }}>
-												<TextField
-													value={field.value || ''}
-													onChange={(e) => {
-														e.stopPropagation();
-														field.onChange(e);
-													}}
-													onBlur={field.onBlur}
-													name={field.name}
-													inputRef={field.ref}
-													fullWidth
-													label="SEO title (≤ 70 chars)"
-													placeholder="iPhone 16 Pro Max 256GB — QC-Verified, Same-Day Delivery"
-													size="small"
-													inputProps={{
-														maxLength: 70,
-														style: { paddingRight: '60px' },
-													}}
-													sx={{
-														'& .MuiOutlinedInput-root': {
-															borderRadius: '12px',
-															fontSize: '14px',
-															minHeight: '40px',
-															maxHeight: '40px',
-															'& fieldset': {
-																borderColor: '#e5e7eb',
-															},
-															'&:hover fieldset': {
-																borderColor: '#d1d5db',
-															},
-															'&.Mui-focused fieldset': {
-																borderColor: '#ff6536',
-																borderWidth: '2px',
-															},
+											<TextField
+												{...field}
+												fullWidth
+												label="SEO title (≤ 70 chars)"
+												placeholder="iPhone 16 Pro Max 256GB — QC-Verified, Same-Day Delivery"
+												size="medium"
+												error={!!errors.meta_title}
+												helperText={`${currentValue.length}/70 ${errors?.meta_title?.message ? ' - ' + errors.meta_title.message : ''}`}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '8px',
+														fontSize: '14px',
+														'& .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#d1d5db',
 														},
-														'& .MuiInputBase-input': {
-															padding: '8px 14px 8px 14px',
-															color: '#111827',
-															fontSize: '14px',
-															width: '100%',
-															boxSizing: 'border-box',
-															'&::placeholder': {
-																color: '#9ca3af',
-																opacity: 1,
-															},
+														'&:hover .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#9ca3af',
 														},
-														'& .MuiInputLabel-root': {
-															color: '#6b7280',
-															fontSize: '14px',
-															'&.Mui-focused': {
-																color: '#ff6536',
-															},
+														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#3b82f6',
+															borderWidth: '2px',
 														},
-													}}
-												/>
-												<Box
-													sx={{
-														position: 'absolute',
-														right: '14px',
-														top: '50%',
-														transform: 'translateY(-50%)',
-														fontSize: '11px',
+													},
+													'& .MuiInputBase-input': {
+														padding: '12px 14px',
+														color: '#111827',
+													},
+													'& .MuiInputLabel-root': {
+														fontSize: '14px',
 														color: '#6b7280',
-														pointerEvents: 'none',
-														zIndex: 2,
-														backgroundColor: 'white',
-														paddingLeft: '4px',
-													}}
-												>
-													{charCount}/70
-												</Box>
-											</Box>
+													},
+													'& .MuiFormHelperText-root': {
+														fontSize: '12px',
+														marginTop: '4px',
+													},
+												}}
+											/>
 										);
 									}}
 								/>
 							</div>
-							<div className="mb-4">
+
+							{/* Meta Description Field - Independent */}
+							<div className="mb-6">
 								<Controller
 									name="meta_description"
 									control={control}
 									render={({ field }) => {
-										const charCount = (field.value || '').length;
+										const currentValue = field.value || '';
 										return (
-											<Box sx={{ position: 'relative', width: '100%' }}>
-												<TextField
-													{...field}
-													fullWidth
-													label="Meta description (≤ 160 chars)"
-													placeholder="Fast same-day delivery, 1-year AccessoryShield, verified device with invoice."
-													size="small"
-													inputProps={{
-														maxLength: 160,
-														style: { paddingRight: '70px' },
-													}}
-													sx={{
-														'& .MuiOutlinedInput-root': {
-															borderRadius: '12px',
-															fontSize: '14px',
-															minHeight: '40px',
-															maxHeight: '40px',
-															'& fieldset': {
-																borderColor: '#e5e7eb',
-															},
-															'&:hover fieldset': {
-																borderColor: '#d1d5db',
-															},
-															'&.Mui-focused fieldset': {
-																borderColor: '#ff6536',
-																borderWidth: '2px',
-															},
+											<TextField
+												{...field}
+												fullWidth
+												label="Meta description (≤ 160 chars)"
+												placeholder="Fast same-day delivery, 1-year AccessoryShield, verified device with invoice."
+												multiline
+												rows={2}
+												size="medium"
+												error={!!errors.meta_description}
+												helperText={`${currentValue.length}/160 ${errors?.meta_description?.message ? ' - ' + errors.meta_description.message : ''}`}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '8px',
+														fontSize: '14px',
+														'& .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#d1d5db',
 														},
-														'& .MuiInputBase-input': {
-															padding: '8px 14px 8px 14px',
-															color: '#111827',
-															fontSize: '14px',
-															width: '100%',
-															boxSizing: 'border-box',
-															'&::placeholder': {
-																color: '#9ca3af',
-																opacity: 1,
-															},
+														'&:hover .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#9ca3af',
 														},
-														'& .MuiInputLabel-root': {
-															color: '#6b7280',
-															fontSize: '14px',
-															'&.Mui-focused': {
-																color: '#ff6536',
-															},
+														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#3b82f6',
+															borderWidth: '2px',
 														},
-													}}
-												/>
-												<Box
-													sx={{
-														position: 'absolute',
-														right: '14px',
-														top: '50%',
-														transform: 'translateY(-50%)',
-														fontSize: '11px',
+													},
+													'& .MuiInputBase-input': {
+														padding: '12px 14px',
+														color: '#111827',
+														lineHeight: '1.5',
+													},
+													'& .MuiInputLabel-root': {
+														fontSize: '14px',
 														color: '#6b7280',
-														pointerEvents: 'none',
-														zIndex: 2,
-														backgroundColor: 'white',
-														paddingLeft: '4px',
-													}}
-												>
-													{charCount}/160
-												</Box>
-											</Box>
+													},
+													'& .MuiFormHelperText-root': {
+														fontSize: '12px',
+														marginTop: '4px',
+													},
+												}}
+											/>
 										);
 									}}
 								/>
 							</div>
-							<div className="mb-3">
+
+							{/* Description Field - Independent */}
+							<div className="mb-4">
 								<Controller
 									name="description"
 									control={control}
@@ -3059,43 +3753,80 @@ function MultiKonnectListingCreation() {
 										<TextField
 											{...field}
 											fullWidth
+											label="Description"
+											placeholder="Add what's in the box, condition notes, and warranty details..."
 											multiline
 											minRows={5}
-											maxRows={10}
-											label="Description"
-											placeholder="Add what's in the box, condition notes, and warranty details…"
-											size="small"
+											maxRows={12}
+											size="medium"
+											error={!!errors.description}
+											helperText={errors?.description?.message as string}
 											sx={{
 												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
+													borderRadius: '8px',
 													fontSize: '14px',
-													minHeight: '120px',
+													'& .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#d1d5db',
+													},
+													'&:hover .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#9ca3af',
+													},
+													'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#3b82f6',
+														borderWidth: '2px',
+													},
 													'& textarea': {
 														overflow: 'auto !important',
 														resize: 'vertical',
-														minHeight: '100px !important',
-														padding: '12px 14px !important',
-														lineHeight: '1.5',
+														minHeight: '120px !important',
+														fontFamily: 'inherit',
 													},
+												},
+												'& .MuiInputBase-input': {
+													padding: '12px 14px',
+													color: '#111827',
+													lineHeight: '1.5',
+												},
+												'& .MuiInputLabel-root': {
+													fontSize: '14px',
+													color: '#6b7280',
+												},
+												'& .MuiFormHelperText-root': {
+													fontSize: '12px',
+													marginTop: '4px',
 												},
 											}}
 										/>
 									)}
 								/>
 							</div>
-							<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '8px' }}>
+
+							<Typography 
+								variant="caption" 
+								className="text-gray-500" 
+								sx={{ 
+									fontSize: '12px', 
+									color: '#6b7280', 
+									display: 'block', 
+									marginTop: '12px',
+									lineHeight: '1.5'
+								}}
+							>
 								Structured schema will include brand/model/MPN from MPID automatically.
 							</Typography>
 						</Paper>
 
 						{/* QC & Policies Section - Step 7 */}
 						<Paper 
+							ref={(el) => setSectionRef(7, el as HTMLElement)}
 							className="p-4" 
 							id="policies"
+							data-step-id="7"
 							sx={{
 								borderRadius: '16px',
+								scrollMarginTop: '80px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								boxShadow: 'none',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
@@ -3262,12 +3993,15 @@ function MultiKonnectListingCreation() {
 
 						{/* Offers Section - Step 8 */}
 						<Paper 
+							ref={(el) => setSectionRef(8, el as HTMLElement)}
 							className="p-4" 
 							id="offers"
+							data-step-id="8"
 							sx={{
 								borderRadius: '16px',
+								scrollMarginTop: '80px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								boxShadow: 'none',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
@@ -3323,12 +4057,15 @@ function MultiKonnectListingCreation() {
 
 						{/* Trust & Compliance Section - Step 9 */}
 						<Paper 
+							ref={(el) => setSectionRef(9, el as HTMLElement)}
 							className="p-4" 
 							id="trust"
+							data-step-id="9"
 							sx={{
 								borderRadius: '16px',
+								scrollMarginTop: '80px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								boxShadow: 'none',
 							}}
 						>
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
@@ -3421,12 +4158,15 @@ function MultiKonnectListingCreation() {
 
 						{/* Preview Section - Step 10 */}
 						<Paper 
+							ref={(el) => setSectionRef(10, el as HTMLElement)}
 							className="p-0" 
 							id="preview"
+							data-step-id="10"
 							sx={{
 								borderRadius: '16px',
+								scrollMarginTop: '80px',
 								border: '1px solid #e5e7eb',
-								boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+								boxShadow: 'none',
 								overflow: 'hidden',
 							}}
 						>
@@ -3483,15 +4223,25 @@ function MultiKonnectListingCreation() {
 											borderRadius: '14px',
 										}}
 									>
-										{galleryImages.length > 0 ? (
+										{Array.isArray(galleryImages) && galleryImages.length > 0 ? (
 											<>
 												{/* Main Featured Image - show featured image or first image */}
 												<img
-													src={(galleryImages.find(img => img.is_featured) || galleryImages[0])?.url}
+													src={(() => {
+														// Double-check that galleryImages is an array
+														const images = Array.isArray(galleryImages) ? galleryImages : [];
+														if (images.length === 0) return '';
+														const featured = images.find((img: any) => img && img.is_featured);
+														const first = images.find((img: any) => img && img.url);
+														return (featured || first)?.url || '';
+													})()}
 													alt={productTitle || 'Product'}
 													className="w-full h-full object-contain"
 													style={{
 														objectFit: 'contain',
+													}}
+													onError={(e) => {
+														console.error('Image load error:', e);
 													}}
 												/>
 												{/* Image Counter Badge */}
@@ -3501,10 +4251,12 @@ function MultiKonnectListingCreation() {
 													</div>
 												)}
 												{/* Thumbnail Navigation */}
-												{galleryImages.length > 1 && (
+												{Array.isArray(galleryImages) && galleryImages.length > 1 && (
 													<div className="absolute bottom-2 left-2 right-2 flex gap-2 overflow-x-auto pb-1">
-														{galleryImages.slice(0, 5).map((img, idx) => {
-															const isFeatured = img.is_featured || (idx === 0 && !galleryImages.some(i => i.is_featured));
+														{galleryImages.filter((img: any) => img && img.url).slice(0, 5).map((img: any, idx: number) => {
+															// Double-check that galleryImages is an array before using .some()
+															const images = Array.isArray(galleryImages) ? galleryImages : [];
+															const isFeatured = img.is_featured || (idx === 0 && !images.some((i: any) => i && i.is_featured));
 															return (
 																<div
 																	key={idx}
@@ -3514,6 +4266,7 @@ function MultiKonnectListingCreation() {
 																	}}
 																	onClick={() => {
 																		// Switch featured image
+																		if (!Array.isArray(galleryImages)) return;
 																		const updated = galleryImages.map((img, i) => ({
 																			...img,
 																			is_featured: i === idx,
@@ -3521,11 +4274,16 @@ function MultiKonnectListingCreation() {
 																		setValue('gallery_images', updated, { shouldDirty: true });
 																	}}
 																>
-																	<img
-																		src={img.url}
-																		alt={`Thumbnail ${idx + 1}`}
-																		className="w-full h-full object-cover"
-																	/>
+																	{img && img.url && (
+																		<img
+																			src={img.url}
+																			alt={`Thumbnail ${idx + 1}`}
+																			className="w-full h-full object-cover"
+																			onError={(e) => {
+																				console.error('Thumbnail load error:', e);
+																			}}
+																		/>
+																	)}
 																</div>
 															);
 														})}
@@ -3836,7 +4594,7 @@ function MultiKonnectListingCreation() {
 							<Button 
 								variant="outlined" 
 								fullWidth
-								onClick={() => handlePublishClick()}
+								onClick={handleSaveDraft}
 								sx={{
 									borderColor: '#e5e7eb',
 									color: '#374151',
@@ -3856,6 +4614,7 @@ function MultiKonnectListingCreation() {
 							<Button 
 								variant="outlined" 
 								fullWidth
+								onClick={handlePreviewClick}
 								sx={{
 									borderColor: '#e5e7eb',
 									color: '#374151',
@@ -3893,23 +4652,50 @@ function MultiKonnectListingCreation() {
 						</div>
 					</div>
 				</aside>
+				</div>
 			</div>
 
-			{/* Bottom Bar */}
-			<div className="bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0" style={{ backdropFilter: 'blur(8px)', backgroundColor: '#ffffffeb' }}>
+			{/* Bottom Bar - Light Grey */}
+			<div 
+				className="border-t px-6 py-3 flex items-center justify-between flex-shrink-0 sticky bottom-0 z-40" 
+				style={{ 
+					backgroundColor: '#f3f4f6',
+					borderTopColor: '#e5e7eb',
+					height: '56px'
+				}}
+			>
 				<div className="flex items-center space-x-2">
 					{mpidMatched && (
 						<Chip 
 							label="MPID matched" 
 							size="small"
 							sx={{
-								backgroundColor: '#f3f4f6',
+								backgroundColor: '#ffffff',
 								border: '1px solid #e5e7eb',
 								fontSize: '12px',
-								height: '24px',
+								height: '28px',
 								fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
 								color: '#374151',
-								padding: '2px 8px',
+								padding: '4px 12px',
+								borderRadius: '16px',
+								fontWeight: 500,
+							}}
+						/>
+					)}
+					{variants.length > 0 && (
+						<Chip 
+							label="Per-variant images" 
+							size="small"
+							sx={{
+								backgroundColor: '#ffffff',
+								border: '1px solid #e5e7eb',
+								fontSize: '12px',
+								height: '28px',
+								fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+								color: '#374151',
+								padding: '4px 12px',
+								borderRadius: '16px',
+								fontWeight: 500,
 							}}
 						/>
 					)}
@@ -3918,13 +4704,15 @@ function MultiKonnectListingCreation() {
 							label="Same‑day enabled" 
 							size="small"
 							sx={{
-								backgroundColor: '#f3f4f6',
+								backgroundColor: '#ffffff',
 								border: '1px solid #e5e7eb',
 								fontSize: '12px',
-								height: '24px',
+								height: '28px',
 								fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
 								color: '#374151',
-								padding: '2px 8px',
+								padding: '4px 12px',
+								borderRadius: '16px',
+								fontWeight: 500,
 							}}
 						/>
 					)}
@@ -3933,15 +4721,17 @@ function MultiKonnectListingCreation() {
 					<Button 
 						variant="outlined" 
 						size="small"
-						onClick={() => handlePublishClick()}
+						onClick={handleSaveDraft}
 						sx={{
 							borderColor: '#e5e7eb',
 							color: '#374151',
 							textTransform: 'none',
-							fontSize: '12px',
-							padding: '6px 14px',
-							borderRadius: '10px',
+							fontSize: '13px',
+							padding: '8px 16px',
+							borderRadius: '8px',
 							minHeight: '36px',
+							fontWeight: 500,
+							backgroundColor: '#ffffff',
 							'&:hover': {
 								borderColor: '#d1d5db',
 								backgroundColor: '#f9fafb',
@@ -3953,14 +4743,17 @@ function MultiKonnectListingCreation() {
 					<Button 
 						variant="outlined" 
 						size="small"
+						onClick={handlePreviewClick}
 						sx={{
 							borderColor: '#e5e7eb',
 							color: '#374151',
 							textTransform: 'none',
-							fontSize: '12px',
-							padding: '6px 14px',
-							borderRadius: '10px',
+							fontSize: '13px',
+							padding: '8px 16px',
+							borderRadius: '8px',
 							minHeight: '36px',
+							fontWeight: 500,
+							backgroundColor: '#ffffff',
 							'&:hover': {
 								borderColor: '#d1d5db',
 								backgroundColor: '#f9fafb',
@@ -3976,12 +4769,16 @@ function MultiKonnectListingCreation() {
 							backgroundColor: '#ff6536',
 							color: '#fff',
 							textTransform: 'none',
-							fontSize: '12px',
-							padding: '6px 16px',
+							fontSize: '13px',
+							padding: '8px 20px',
 							fontWeight: 600,
-							borderRadius: '10px',
+							borderRadius: '8px',
 							minHeight: '36px',
-							'&:hover': { backgroundColor: '#e55a2b' },
+							boxShadow: 'none',
+							'&:hover': { 
+								backgroundColor: '#e55a2b',
+								boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+							},
 						}}
 						onClick={handlePublishClick}
 					>
@@ -4152,15 +4949,30 @@ function MultiKonnectListingCreation() {
 				</DialogActions>
 			</Dialog>
 
-			{/* Add Storage Dialog */}
+			{/* Add Storage Dialog - Dynamic */}
 			<Dialog open={addStorageDialogOpen} onClose={() => { setAddStorageDialogOpen(false); setNewStorageInput(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>
-				<DialogTitle>Add Storage Option</DialogTitle>
+				<DialogTitle>
+					<div className="flex items-center justify-between">
+						<span>Add {attribute1Name} Option</span>
+						<IconButton 
+							size="small" 
+							onClick={() => {
+								setEditingAttribute('attribute1');
+								setNewAttributeName(attribute1Name);
+								setShowAttributeNameDialog(true);
+							}}
+							sx={{ padding: '4px' }}
+						>
+							<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:pencil</FuseSvgIcon>
+						</IconButton>
+					</div>
+				</DialogTitle>
 				<DialogContent>
 					<TextField
 						autoFocus
 						fullWidth
-						label="Storage (e.g., 256GB, 512GB)"
-						placeholder="Enter storage option"
+						label={`${attribute1Name} (e.g., 256GB, 512GB, Small, Large)`}
+						placeholder={`Enter ${attribute1Name.toLowerCase()} option`}
 						value={newStorageInput}
 						onChange={(e) => setNewStorageInput(e.target.value)}
 						onKeyPress={(e) => {
@@ -4191,15 +5003,30 @@ function MultiKonnectListingCreation() {
 				</DialogActions>
 			</Dialog>
 
-			{/* Add Color Dialog */}
+			{/* Add Color Dialog - Dynamic */}
 			<Dialog open={addColorDialogOpen} onClose={() => { setAddColorDialogOpen(false); setNewColorInput(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>
-				<DialogTitle>Add Color Option</DialogTitle>
+				<DialogTitle>
+					<div className="flex items-center justify-between">
+						<span>Add {attribute2Name} Option</span>
+						<IconButton 
+							size="small" 
+							onClick={() => {
+								setEditingAttribute('attribute2');
+								setNewAttributeName(attribute2Name);
+								setShowAttributeNameDialog(true);
+							}}
+							sx={{ padding: '4px' }}
+						>
+							<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:pencil</FuseSvgIcon>
+						</IconButton>
+					</div>
+				</DialogTitle>
 				<DialogContent>
 					<TextField
 						autoFocus
 						fullWidth
-						label="Color (e.g., Blue, Black, White)"
-						placeholder="Enter color option"
+						label={`${attribute2Name} (e.g., Black, White, Blue, Small, Medium)`}
+						placeholder={`Enter ${attribute2Name.toLowerCase()} option`}
 						value={newColorInput}
 						onChange={(e) => setNewColorInput(e.target.value)}
 						onKeyPress={(e) => {
@@ -4313,6 +5140,75 @@ function MultiKonnectListingCreation() {
 						</>
 					)}
 				</DialogContent>
+			</Dialog>
+
+			{/* Fee Settings Dialog - Admin Configuration */}
+			<Dialog 
+				open={feeSettingsDialogOpen} 
+				onClose={() => setFeeSettingsDialogOpen(false)} 
+				PaperProps={{ sx: { borderRadius: '16px' } }} 
+				maxWidth="sm" 
+				fullWidth
+			>
+				<DialogTitle>Configure Fee Settings</DialogTitle>
+				<DialogContent>
+					<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
+						Set the fee rates that will be applied to all product listings. These settings are saved locally and will be used for fee calculations.
+					</Typography>
+					<Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
+						Note: Shipping charges are set by vendors/sellers in the delivery section, not here.
+					</Typography>
+					
+					<TextField
+						fullWidth
+						label="Commission Rate (%)"
+						type="number"
+						value={(tempFeeSettings.commissionRate * 100).toFixed(2)}
+						onChange={(e) => {
+							const value = parseFloat(e.target.value) || 0;
+							setTempFeeSettings({
+								...tempFeeSettings,
+								commissionRate: value / 100
+							});
+						}}
+						InputProps={{
+							endAdornment: <InputAdornment position="end">%</InputAdornment>,
+						}}
+						sx={{ marginBottom: 2 }}
+						helperText="Percentage of sale price (e.g., 2.5 for 2.5%)"
+					/>
+					
+					
+					<TextField
+						fullWidth
+						label="Promotional Fee (£)"
+						type="number"
+						value={tempFeeSettings.promoFee}
+						onChange={(e) => {
+							setTempFeeSettings({
+								...tempFeeSettings,
+								promoFee: parseFloat(e.target.value) || 0
+							});
+						}}
+						InputProps={{
+							startAdornment: <InputAdornment position="start">£</InputAdornment>,
+						}}
+						sx={{ marginBottom: 2 }}
+						helperText="Additional fee for promotional listings (optional)"
+					/>
+				</DialogContent>
+				<DialogActions>
+					<Button onClick={() => setFeeSettingsDialogOpen(false)}>Cancel</Button>
+					<Button 
+						onClick={() => {
+							setFeeSettings(tempFeeSettings);
+							setFeeSettingsDialogOpen(false);
+						}} 
+						variant="contained"
+					>
+						Save Settings
+					</Button>
+				</DialogActions>
 			</Dialog>
 		</div>
 	);

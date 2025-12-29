@@ -20,7 +20,7 @@ function VendorsHeader() {
             >
                 <div>
                     <PageBreadcrumb className="mb-2" />
-                    <Typography className="text-4xl font-extrabold leading-none tracking-tight">Vendors</Typography>
+                    <Typography className="text-4xl font-extrabold leading-none tracking-tight">Sellers</Typography>
                 </div>
             </motion.span>
 

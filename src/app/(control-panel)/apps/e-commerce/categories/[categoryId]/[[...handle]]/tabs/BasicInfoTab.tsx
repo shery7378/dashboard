@@ -143,18 +143,26 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 				)}
 			/>
 
-			{/* Slug Display Below Name */}
-			{slug && (
-				<Typography variant="body2" className="mb-4 text-gray-600">
-					Slug: <span className="font-mono text-sm">{slug}</span>
-				</Typography>
-			)}
-
-			{/* Hidden Slug Field */}
+			{/* Editable Slug Field */}
 			<Controller
 				name="slug"
 				control={control}
-				render={({ field }) => <input type="hidden" {...field} />}
+				render={({ field }) => (
+					<TextField
+						{...field}
+						className="mt-2 mb-4"
+						label="Slug"
+						id="slug"
+						variant="outlined"
+						fullWidth
+						helperText="URL-friendly identifier (auto-generated from name, but can be edited)"
+						error={!!errors.slug}
+						onChange={(e) => {
+							field.onChange(e);
+							trigger(); // Trigger validation
+						}}
+					/>
+				)}
 			/>
 
 			{/* Description Field */}

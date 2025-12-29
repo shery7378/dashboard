@@ -22,11 +22,12 @@ function GithubIssuesWidget() {
 	const [tabValue, setTabValue] = useState(0);
 	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
 	const widget = widgets?.githubIssues as GithubIssuesDataType;
-	const overview = widget?.overview;
-	const series = widget?.series;
-	const ranges = widget?.ranges;
-	const labels = widget?.labels;
-	const currentRange = Object.keys(ranges || {})[tabValue];
+	const overview = widget?.overview || {};
+	const series = widget?.series || {};
+	const ranges = widget?.ranges || {};
+	const labels = widget?.labels || [];
+	const rangeKeys = Object.keys(ranges);
+	const currentRange = rangeKeys[tabValue] || rangeKeys[0] || 'TW';
 
 	const chartOptions: ApexOptions = {
 		chart: {
@@ -121,14 +122,14 @@ function GithubIssuesWidget() {
 		<Paper className="flex flex-col flex-auto p-6 shadow-sm rounded-xl overflow-hidden">
 			<div className="flex flex-col sm:flex-row items-start justify-between">
 				<Typography className="text-xl font-medium tracking-tight leading-6 truncate">
-					Github Issues Summary
+					Orders Summary
 				</Typography>
 				<div className="mt-3 sm:mt-0">
 					<FuseTabs
 						value={tabValue}
 						onChange={(_ev, value: number) => setTabValue(value)}
 					>
-						{Object.entries(ranges).map(([key, label], index) => (
+						{Object.entries(ranges || {}).map(([key, label], index) => (
 							<FuseTab
 								key={key}
 								value={index}
@@ -144,13 +145,13 @@ function GithubIssuesWidget() {
 						className="font-medium"
 						color="text.secondary"
 					>
-						New vs. Closed
+						New Orders vs. Completed
 					</Typography>
 					<div className="flex flex-col flex-auto">
 						<ReactApexChart
 							className="flex-auto w-full"
 							options={chartOptions}
-							series={_.cloneDeep(series[currentRange])}
+							series={_.cloneDeep(series[currentRange] || [])}
 							height={320}
 						/>
 					</div>
@@ -165,15 +166,15 @@ function GithubIssuesWidget() {
 					<div className="flex-auto grid grid-cols-4 gap-4 mt-6">
 						<div className="col-span-2 flex flex-col items-center justify-center py-8 px-1 rounded-xl bg-indigo-50 text-indigo-800">
 							<Typography className="text-5xl sm:text-7xl font-semibold leading-none tracking-tight">
-								{overview[currentRange]['new-issues']}
+								{overview[currentRange]?.['new-issues'] ?? 0}
 							</Typography>
-							<Typography className="mt-1 text-sm sm:text-lg font-medium">New Issues</Typography>
+							<Typography className="mt-1 text-sm sm:text-lg font-medium">New Orders</Typography>
 						</div>
 						<div className="col-span-2 flex flex-col items-center justify-center py-8 px-1 rounded-xl bg-green-50 text-green-800">
 							<Typography className="text-5xl sm:text-7xl font-semibold leading-none tracking-tight">
-								{overview[currentRange]['closed-issues']}
+								{overview[currentRange]?.['closed-issues'] ?? 0}
 							</Typography>
-							<Typography className="mt-1 text-sm sm:text-lg font-medium">Closed</Typography>
+							<Typography className="mt-1 text-sm sm:text-lg font-medium">Completed</Typography>
 						</div>
 						<Box
 							sx={[
@@ -189,7 +190,7 @@ function GithubIssuesWidget() {
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
 							<Typography className="text-5xl font-semibold leading-none tracking-tight">
-								{overview[currentRange].fixed}
+								{overview[currentRange]?.fixed ?? 0}
 							</Typography>
 							<Typography className="mt-1 text-sm font-medium text-center">Fixed</Typography>
 						</Box>
@@ -207,7 +208,7 @@ function GithubIssuesWidget() {
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
 							<Typography className="text-5xl font-semibold leading-none tracking-tight">
-								{overview[currentRange]['wont-fix']}
+								{overview[currentRange]?.['wont-fix'] ?? 0}
 							</Typography>
 							<Typography className="mt-1 text-sm font-medium text-center">Won't Fix</Typography>
 						</Box>
@@ -225,7 +226,7 @@ function GithubIssuesWidget() {
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
 							<Typography className="text-5xl font-semibold leading-none tracking-tight">
-								{overview[currentRange]['re-opened']}
+								{overview[currentRange]?.['re-opened'] ?? 0}
 							</Typography>
 							<Typography className="mt-1 text-sm font-medium text-center">Re-opened</Typography>
 						</Box>
@@ -243,7 +244,7 @@ function GithubIssuesWidget() {
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
 							<Typography className="text-5xl font-semibold leading-none tracking-tight">
-								{overview[currentRange]['needs-triage']}
+								{overview[currentRange]?.['needs-triage'] ?? 0}
 							</Typography>
 							<Typography className="mt-1 text-sm font-medium text-center">Needs Triage</Typography>
 						</Box>

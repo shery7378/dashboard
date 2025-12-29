@@ -31,6 +31,71 @@ export function sanitizeProduct(data: PartialDeep<EcommerceProduct>): EcommerceP
         is_featured: img.id === featuredId,
     }));
 
+    // Transform categories array into main_category and subcategory format
+    let mainCategory = data.main_category ?? null;
+    let subcategories = data.subcategories ?? [];
+    
+    // Debug: Log category data
+    console.log('sanitizeProduct - Category data:', {
+        hasMainCategory: !!data.main_category,
+        hasSubcategories: !!data.subcategories,
+        hasCategories: !!data.categories,
+        categoriesLength: Array.isArray(data.categories) ? data.categories.length : 0,
+        categories: data.categories
+    });
+    
+    // If main_category is not provided but categories array exists, transform it
+    if (!mainCategory && data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
+        // Find main category (parent_id === null or undefined)
+        const mainCat = data.categories.find((cat: any) => {
+            const parentId = cat.parent_id ?? cat.parentId;
+            return !parentId || parentId === null || parentId === '';
+        });
+        
+        if (mainCat) {
+            mainCategory = {
+                id: mainCat.id ?? mainCat.category_id,
+                name: mainCat.name ?? '',
+                children: mainCat.children ?? []
+            };
+        }
+        
+        // Find subcategories (parent_id !== null, or children of main category)
+        subcategories = data.categories
+            .filter((cat: any) => {
+                const parentId = cat.parent_id ?? cat.parentId;
+                return parentId && parentId !== null && parentId !== '';
+            })
+            .map((cat: any) => ({
+                id: cat.id ?? cat.category_id,
+                name: cat.name ?? ''
+            }));
+        
+        // If no subcategories found but main category has children, use those
+        if (subcategories.length === 0 && mainCategory?.children && Array.isArray(mainCategory.children)) {
+            subcategories = mainCategory.children.map((child: any) => ({
+                id: child.id ?? child.category_id,
+                name: child.name ?? ''
+            }));
+        }
+        
+        console.log('sanitizeProduct - Transformed categories:', {
+            mainCategory,
+            subcategories
+        });
+    }
+    
+    // If main_category exists but subcategories don't, try to get from main_category.children
+    if (mainCategory && (!subcategories || subcategories.length === 0)) {
+        const mainCatObj = mainCategory as any;
+        if (mainCatObj.children && Array.isArray(mainCatObj.children)) {
+            subcategories = mainCatObj.children.map((child: any) => ({
+                id: child.id ?? child.category_id,
+                name: child.name ?? ''
+            }));
+        }
+    }
+
     return {
         id: data.id ?? '',
         attributes: [],
@@ -42,8 +107,8 @@ export function sanitizeProduct(data: PartialDeep<EcommerceProduct>): EcommerceP
         categories: data.categories ?? [],
         product_attributes: data.product_attributes ?? [],
         product_variants: data.product_variants ?? [],
-        main_category: data.main_category ?? null,
-        subcategory: data.subcategories ?? [],
+        main_category: mainCategory,
+        subcategory: subcategories,
         tags: data.tags ?? [],
         price: data.price ?? 0,
         price_tax_excl: data.price_tax_excl ?? 0,

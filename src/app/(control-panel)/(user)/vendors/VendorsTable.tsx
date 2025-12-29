@@ -68,7 +68,7 @@ function VendorsTable() {
                     <Avatar
                         variant="rounded"
                         src={img}
-                        alt={row.original.user?.name || 'Vendor'}
+                        alt={row.original.user?.name || 'Seller'}
                         sx={{ width: 40, height: 40 }}
                     />
                 );
@@ -76,7 +76,7 @@ function VendorsTable() {
         },
         {
             accessorKey: 'user.name',
-            header: 'Vendor Name',
+            header: 'Seller Name',
             Cell: ({ row }) => (
                 <Typography
                     component={Link}
@@ -98,7 +98,7 @@ function VendorsTable() {
             accessorKey: 'user.roles',
             header: 'Role',
             Cell: ({ row }) => (
-                <>{row.original.user?.roles?.join(', ') || 'Vendor'}</>
+                <>{row.original.user?.roles?.join(', ') || 'Seller'}</>
             ),
         },
         {
@@ -141,10 +141,10 @@ function VendorsTable() {
     useEffect(() => {
         if (!isMountedRef.current) return;
         if (profilesRes) {
-            console.log('Fetched Vendor Profiles:', profilesRes);
+            console.log('Fetched Seller Profiles:', profilesRes);
         }
         if (error) {
-            console.error('Failed to load Vendor Profiles:', error);
+            console.error('Failed to load Seller Profiles:', error);
         }
     }, [profilesRes, error, isMountedRef]);
 
@@ -160,8 +160,8 @@ function VendorsTable() {
             if (succeeded > 0) {
                 const message =
                     succeeded === 1
-                        ? 'Vendor deleted successfully'
-                        : `${succeeded} vendors deleted successfully`;
+                        ? 'Seller deleted successfully'
+                        : `${succeeded} sellers deleted successfully`;
                 enqueueSnackbar(message, { variant: 'success' });
                 setSuccessMessage(message);
                 setSuccessDialogOpen(true);
@@ -189,7 +189,7 @@ function VendorsTable() {
     };
 
     if (isLoading) return <FuseLoading />;
-    if (error) return <Typography color="error">Failed to load Vendors</Typography>;
+    if (error) return <Typography color="error">Failed to load Sellers</Typography>;
 
     return (
         <Paper

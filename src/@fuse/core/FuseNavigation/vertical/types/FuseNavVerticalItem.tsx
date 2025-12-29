@@ -22,7 +22,7 @@ const Root = styled(ListItemButton)<ListItemButtonStyleProps>(({ theme, ...props
 	paddingLeft: props.itempadding > 80 ? 80 : props.itempadding,
 	paddingTop: 10,
 	paddingBottom: 10,
-	color: `rgba(${theme.vars.palette.text.primaryChannel} / 0.7)`,
+	color: `rgba(${theme.vars.palette.text.primaryChannel} / 0.85)`,
 	cursor: 'pointer',
 	textDecoration: 'none!important',
 	'&:hover': {
@@ -92,7 +92,7 @@ function FuseNavVerticalItem(props: FuseNavItemComponentProps) {
 					primary={item.title}
 					secondary={item.subtitle}
 					classes={{
-						primary: 'text-md font-medium fuse-list-item-text-primary truncate',
+						primary: 'text-base font-semibold fuse-list-item-text-primary truncate',
 						secondary: 'text-sm font-medium fuse-list-item-text-secondary leading-[1.5] truncate'
 					}}
 				/>

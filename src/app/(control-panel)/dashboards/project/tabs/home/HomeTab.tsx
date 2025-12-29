@@ -3,9 +3,10 @@ import SummaryWidget from './widgets/SummaryWidget';
 import OverdueWidget from './widgets/OverdueWidget';
 import IssuesWidget from './widgets/IssuesWidget';
 import FeaturesWidget from './widgets/FeaturesWidget';
-import GithubIssuesWidget from './widgets/GithubIssuesWidget';
+import StoreSalesWidget from './widgets/StoreSalesWidget';
 import TaskDistributionWidget from './widgets/TaskDistributionWidget';
 import ScheduleWidget from './widgets/ScheduleWidget';
+import OrdersTableForHome from '@/app/(control-panel)/apps/e-commerce/orders/OrdersTableForHome';
 
 /**
  * The HomeTab component.
@@ -47,7 +48,13 @@ function HomeTab() {
 				variants={item}
 				className="sm:col-span-2 md:col-span-4"
 			>
-				<GithubIssuesWidget />
+				<StoreSalesWidget />
+			</motion.div>
+			<motion.div
+				variants={item}
+				className="sm:col-span-2 md:col-span-4"
+			>
+				<OrdersTableForHome />
 			</motion.div>
 			<motion.div
 				variants={item}

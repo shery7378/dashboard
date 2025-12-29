@@ -18,13 +18,14 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
 function TaskDistributionWidget() {
 	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
 	const widget = widgets?.taskDistribution as TaskDistributionDataType;
-	const overview = widget?.overview;
-	const series = widget?.series;
-	const labels = widget?.labels;
-	const ranges = widget?.ranges;
+	const overview = widget?.overview || {};
+	const series = widget?.series || {};
+	const labels = widget?.labels || [];
+	const ranges = widget?.ranges || {};
 
 	const [tabValue, setTabValue] = useState(0);
-	const currentRange = Object.keys(ranges || {})[tabValue];
+	const rangeKeys = Object.keys(ranges);
+	const currentRange = rangeKeys[tabValue] || rangeKeys[0] || 'TW';
 	const [awaitRender, setAwaitRender] = useState(true);
 	const theme = useTheme();
 
@@ -113,7 +114,7 @@ function TaskDistributionWidget() {
 						value={tabValue}
 						onChange={(ev, value: number) => setTabValue(value)}
 					>
-						{Object.entries(ranges).map(([key, label], index) => (
+						{Object.entries(ranges || {}).map(([key, label], index) => (
 							<FuseTab
 								key={key}
 								value={index}
@@ -127,7 +128,7 @@ function TaskDistributionWidget() {
 				<ReactApexChart
 					className="flex-auto w-full"
 					options={chartOptions}
-					series={series[currentRange]}
+					series={series[currentRange] || []}
 					type={chartOptions?.chart?.type}
 				/>
 			</div>
@@ -146,13 +147,13 @@ function TaskDistributionWidget() {
 			>
 				<div className="flex flex-col items-center justify-center p-6 sm:p-8">
 					<div className="text-5xl font-semibold leading-none tracking-tighter">
-						{overview[currentRange].new}
+						{overview[currentRange]?.new ?? 0}
 					</div>
 					<Typography className="mt-1 text-center text-secondary">New tasks</Typography>
 				</div>
 				<div className="flex flex-col items-center justify-center p-1.5 sm:p-2">
 					<div className="text-5xl font-semibold leading-none tracking-tighter">
-						{overview[currentRange].completed}
+						{overview[currentRange]?.completed ?? 0}
 					</div>
 					<Typography className="mt-1 text-center text-secondary">Completed tasks</Typography>
 				</div>
