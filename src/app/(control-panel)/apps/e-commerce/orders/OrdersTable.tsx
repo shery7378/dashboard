@@ -39,6 +39,11 @@ function OrdersTable() {
 				Cell: ({ row }) => row.original.user?.name ?? '—'
 			},
 			{
+				accessorKey: 'seller.name',
+				header: 'Seller',
+				Cell: ({ row }) => row.original.seller?.name ?? row.original.store?.name ?? '—'
+			},
+			{
 				accessorKey: 'price',
 				header: 'Total',
 				size: 64,
