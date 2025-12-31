@@ -21,7 +21,7 @@ const ProjectDashboardApi = api
 				GetProjectDashboardWidgetsApiResponse,
 				GetProjectDashboardWidgetsApiArg
 			>({
-				query: () => ({ url: `/api/mock/project-dashboard/widgets` }),
+				query: () => ({ url: `/api/vendor-dashboard/widgets` }),
 				providesTags: ['project_dashboard_widgets']
 			}),
 			getProjectDashboardProjects: build.query<
