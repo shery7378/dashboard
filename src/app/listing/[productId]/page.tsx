@@ -7,8 +7,8 @@ import { z } from 'zod';
 import { FormProvider } from 'react-hook-form';
 import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
-import MultiKonnectListingCreation from '../../app/(control-panel)/apps/e-commerce/products/[productId]/[[...handle]]/MultiKonnectListingCreation';
-import ProductModel from '../../app/(control-panel)/apps/e-commerce/products/models/ProductModel';
+import MultiKonnectListingCreation from '../../(control-panel)/apps/e-commerce/products/[productId]/[[...handle]]/MultiKonnectListingCreation';
+import ProductModel from '../../(control-panel)/apps/e-commerce/products/models/ProductModel';
 import AuthGuard from '@auth/AuthGuard';
 import authRoles from '@auth/authRoles';
 
