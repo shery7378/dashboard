@@ -90,6 +90,10 @@ const config = {
         token.email = user.email;
         token.role = user.role; // Use role (array) from authorize
         token.accessToken = user.accessToken;
+        // Store accessAuthToken from the authorize function
+        if (user.accessAuthToken) {
+          token.accessAuthToken = user.accessAuthToken;
+        }
       }
 
       if (trigger === 'update') {
@@ -230,7 +234,17 @@ const config = {
             }
           } catch (error) {
             // Log error but don't fail - use default data
-            console.warn('Error fetching user from database, using defaults:', error);
+            // Only log detailed error info in development to reduce noise
+            if (process.env.NODE_ENV === 'development') {
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              const isFetchError = errorMessage.includes('FetchApiError');
+              if (isFetchError) {
+                // FetchApiError is already logged in apiFetchLaravel, so just log a brief message
+                console.warn('Server Error fetching user from database, using defaults:', errorMessage);
+              } else {
+                console.warn('Error fetching user from database, using defaults:', error);
+              }
+            }
           }
         }
 

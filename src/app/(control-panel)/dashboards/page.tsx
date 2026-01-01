@@ -17,10 +17,10 @@ export default async function DashboardsPage() {
         redirect('/dashboards/project');
     } else if (role === 'vendor') {
         // Sellers can buy from suppliers (wholesale catalog access)
-        redirect('/dashboards/vendor');
+        redirect('/dashboards/seller');
     } else if (role === 'supplier') {
         // Suppliers use the same dashboard as sellers
-        redirect('/dashboards/vendor');
+        redirect('/dashboards/seller');
     } else {
         redirect('/sign-in');
     }

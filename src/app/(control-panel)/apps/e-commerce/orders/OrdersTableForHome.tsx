@@ -7,11 +7,21 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Button from '@mui/material/Button';
 import Link from '@fuse/core/Link';
 import FuseLoading from '@fuse/core/FuseLoading';
+import { useSession } from 'next-auth/react';
 import { EcommerceOrder, useDeleteECommerceOrdersMutation, useGetECommerceOrdersQuery } from '../apis/ECommerceOrdersApi';
 import OrdersStatus from './OrdersStatus';
 
 function OrdersTableForHome() {
-	const { data: orders, isLoading, error } = useGetECommerceOrdersQuery();
+	const { data: session, status: sessionStatus } = useSession();
+	
+	// Skip query if session is loading or token is not available
+	const hasToken = session?.accessAuthToken || 
+	                 session?.accessToken || 
+	                 (typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token') : null);
+	
+	const { data: orders, isLoading, error } = useGetECommerceOrdersQuery(undefined, {
+		skip: sessionStatus === 'loading' || !hasToken
+	});
 	const [removeOrders] = useDeleteECommerceOrdersMutation();
 
 	const columns = useMemo<MRT_ColumnDef<EcommerceOrder>[]>(
@@ -24,7 +34,7 @@ function OrdersTableForHome() {
 					<Typography
 						component={Link}
 						// to={`/apps/e-commerce/orders/${row.original.id}`}
-						to={`/dashboards/vendor/#OrdersTable`}  // Link to OrdersTable section in dashboard
+						to={`/dashboards/seller/#OrdersTable`}  // Link to OrdersTable section in dashboard
 						role="button"
 					>
 						<u>{row.original.order_number}</u>
@@ -93,12 +103,28 @@ function OrdersTableForHome() {
 		[]
 	);
 
+	if (sessionStatus === 'loading') {
+		return <FuseLoading />;
+	}
+
+	if (!hasToken) {
+		return (
+			<Paper className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full p-4" elevation={0}>
+				<Typography color="error">Authentication required. Please log in again.</Typography>
+			</Paper>
+		);
+	}
+
 	if (isLoading) {
 		return <FuseLoading />;
 	}
 
 	if (error) {
-		return <Typography color="error">Failed to load orders</Typography>;
+		return (
+			<Paper className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full p-4" elevation={0}>
+				<Typography color="error">Failed to load orders. Please refresh the page or log in again.</Typography>
+			</Paper>
+		);
 	}
 
 	return (

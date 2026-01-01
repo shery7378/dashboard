@@ -87,15 +87,17 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			)}
 
 			{!isStripeConnected && (
-				<Alert severity="warning" sx={{ mb: 2 }}>
-					{t('connect_stripe_account')}
+				<Alert severity="info" sx={{ mb: 2 }}>
+					<Typography variant="body2" component="span">
+						Connect your Stripe Connect account to receive payouts. Our platform handles all customer payments - you only need to connect for receiving your earnings.
+					</Typography>
 					<Button
 						size="small"
 						variant="contained"
 						onClick={() => setShowStripeEmailModal(true)}
-						sx={{ ml: 2 }}
+						sx={{ ml: 2, mt: 1 }}
 					>
-						{t('connect_stripe')}
+						Set Up Stripe Connect Account
 					</Button>
 				</Alert>
 			)}
@@ -112,7 +114,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 				fullWidth
 			>
 				<DialogTitle>
-					{t('connect_stripe_account')}
+					Connect Stripe Connect Account for Payouts
 					<IconButton
 						aria-label="close"
 						onClick={() => {
@@ -130,13 +132,21 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 					</IconButton>
 				</DialogTitle>
 				<DialogContent>
-					<Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-						Enter the email address associated with your Stripe account. If you don't have one, we'll help you create it.
-					</Typography>
+					<Alert severity="info" sx={{ mb: 2 }}>
+						<Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
+							How Stripe Connect Works:
+						</Typography>
+						<Typography variant="body2" component="div">
+							• Our platform handles all customer payments<br/>
+							• You connect a Stripe Connect account to receive your payouts<br/>
+							• This is for receiving earnings, not processing payments<br/>
+							• Enter your email to set up your connected account
+						</Typography>
+					</Alert>
 					<TextField
 						autoFocus
 						margin="dense"
-						label="Stripe Account Email"
+						label="Email Address for Stripe Connect Account"
 						type="email"
 						fullWidth
 						variant="outlined"
@@ -147,7 +157,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 						}}
 						placeholder="your-email@example.com"
 						error={!!stripeError}
-						helperText={stripeError}
+						helperText={stripeError || "We'll create a Stripe Connect account for you to receive payouts"}
 						disabled={stripeLoading}
 					/>
 				</DialogContent>
@@ -200,7 +210,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 						variant="contained"
 						disabled={stripeLoading || !stripeEmail.trim()}
 					>
-						{stripeLoading ? 'Processing...' : 'Connect'}
+						{stripeLoading ? 'Processing...' : 'Set Up Stripe Connect'}
 					</Button>
 				</DialogActions>
 			</Dialog>

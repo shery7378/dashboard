@@ -10,7 +10,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Link from '@fuse/core/Link';
 import Button from '@mui/material/Button';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { Alert } from '@mui/material';
 import signinErrors from './signinErrors';
 // import { useSnackbar } from 'notistack';
@@ -67,6 +67,13 @@ async function onSubmit(formData: FormType) {
 	});
 
 	if (!result?.error) {
+		// After successful sign-in, get the session to retrieve the token and store it in localStorage as fallback
+		const session = await getSession();
+		if (session?.accessAuthToken && typeof window !== 'undefined') {
+			localStorage.setItem('auth_token', session.accessAuthToken);
+			localStorage.setItem('token', session.accessAuthToken);
+		}
+		
 		// enqueueSnackbar('Successfully signed in!', { variant: 'success' }); // ✅ success toast
 		window.location.href = '/dashboards';
 	} else {

@@ -73,6 +73,7 @@ function ProductHeader() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
+  const [isDraftSave, setIsDraftSave] = useState(false);
 
   const { name, gallery_images } = watch() as EcommerceProduct;
 
@@ -520,33 +521,64 @@ function ProductHeader() {
       return;
     }
     
-    // Validate form before submitting
-    methods.trigger().then((isFormValid) => {
-      if (!isFormValid) {
-        const errors = methods.formState.errors;
-        console.error('Form validation errors:', errors);
-        
-        // Check for store_id error specifically
-        if (errors.store_id) {
-          enqueueSnackbar(
-            errors.store_id.message || 'Store is required. You must have a store before creating products.',
-            { variant: 'error', autoHideDuration: 6000 }
-          );
+    // Check if this is a draft save - drafts have relaxed validation
+    const isDraft = values.status === 'draft';
+    setIsDraftSave(isDraft); // Track if this is a draft save
+    
+    // For drafts, only validate essential fields: name and category
+    if (isDraft) {
+      if (!values.name || values.name.length < 5) {
+        enqueueSnackbar('Product name is required (minimum 5 characters)', { variant: 'error' });
+        return;
+      }
+      if (!values.main_category || !values.main_category.id) {
+        enqueueSnackbar('Main category is required', { variant: 'error' });
+        return;
+      }
+      if (!values.subcategory || !Array.isArray(values.subcategory) || values.subcategory.length === 0) {
+        enqueueSnackbar('At least one subcategory is required', { variant: 'error' });
+        return;
+      }
+      // Skip other validations for drafts - allow saving without images/description
+    } else {
+      // Full validation for published products
+      methods.trigger().then((isFormValid) => {
+        if (!isFormValid) {
+          const errors = methods.formState.errors;
+          console.error('Form validation errors:', errors);
+          
+          // Check for store_id error specifically
+          if (errors.store_id) {
+            enqueueSnackbar(
+              errors.store_id.message || 'Store is required. You must have a store before creating products.',
+              { variant: 'error', autoHideDuration: 6000 }
+            );
+            return;
+          }
+          
+          // Show first validation error
+          const firstError = Object.values(errors)[0];
+          if (firstError) {
+            enqueueSnackbar(
+              firstError.message || t('please_fill_all_required_fields'),
+              { variant: 'error' }
+            );
+          } else {
+            enqueueSnackbar(t('please_fill_all_required_fields'), { variant: 'error' });
+          }
           return;
         }
         
-        // Show first validation error
-        const firstError = Object.values(errors)[0];
-        if (firstError) {
-          enqueueSnackbar(
-            firstError.message || t('please_fill_all_required_fields'),
-            { variant: 'error' }
-          );
-        } else {
-          enqueueSnackbar(t('please_fill_all_required_fields'), { variant: 'error' });
-        }
-        return;
-      }
+        proceedWithSave(values);
+      });
+      return;
+    }
+    
+    // For drafts, proceed directly without full validation
+    proceedWithSave(values);
+  }
+  
+  function proceedWithSave(values: EcommerceProduct) {
 
       const transformedData = transformFormValues(values);
       console.log('Sending product data to API:', transformedData);
@@ -628,7 +660,6 @@ function ProductHeader() {
             enqueueSnackbar(errorMessage, { variant: 'error', autoHideDuration: 6000 });
           }
         });
-    });
   }
 
   /** ✅ Remove confirm handler */
@@ -654,6 +685,19 @@ function ProductHeader() {
   /** ✅ Success dialog close (redirect after action) */
   function handleCloseDialog() {
     setSuccessDialogOpen(false);
+    
+    // For draft saves, redirect to products page
+    if (isDraftSave) {
+      console.log('Draft saved, redirecting to products page');
+      setIsDraftSave(false); // Reset draft flag
+      // Redirect to products list page
+      setTimeout(() => {
+        navigate('/apps/e-commerce/products');
+      }, 500); // Small delay to show success message
+      return;
+    }
+    
+    // For published products, navigate normally
     if (createdProductId) {
       console.log('Navigating to product:', createdProductId);
       

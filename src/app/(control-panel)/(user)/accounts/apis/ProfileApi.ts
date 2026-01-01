@@ -92,6 +92,14 @@ const ProfileLaravelApi = api
                 }),
                 invalidatesTags: ['Profiles', 'Profile'],
             }),
+
+            // Reset password for a user (admin action)
+            resetUserPassword: build.mutation<ResetUserPasswordApiResponse, ResetUserPasswordApiArg>({
+                query: (userId) => ({
+                    url: `/api/users/${userId}/reset-password`,
+                    method: 'POST',
+                }),
+            }),
         }),
         overrideExisting: false,
     });
@@ -163,6 +171,13 @@ export type UpdatePasswordApiArg = {
     new_password_confirmation: string;
 };
 
+export type ResetUserPasswordApiResponse = {
+    status: number;
+    message: string;
+    data: null;
+};
+export type ResetUserPasswordApiArg = string;
+
 export type Profile = {
     id: string;
     user_id: string;
@@ -210,6 +225,7 @@ export const {
     useDeleteProfileMutation,
     useUpdatePasswordMutation,
     useCreateUserMutation,
+    useResetUserPasswordMutation,
 } = ProfileLaravelApi;
 
 // Optional: for Redux integration

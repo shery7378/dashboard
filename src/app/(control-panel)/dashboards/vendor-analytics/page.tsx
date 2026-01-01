@@ -1,3 +1,5 @@
-import VendorAnalyticsApp from './vendorAnalyticsApp';
+import { redirect } from 'next/navigation';
 
-export default VendorAnalyticsApp;
+export default function VendorAnalyticsRedirect() {
+    redirect('/dashboards/seller-analytics');
+}

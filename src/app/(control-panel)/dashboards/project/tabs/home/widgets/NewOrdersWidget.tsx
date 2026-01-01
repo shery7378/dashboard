@@ -8,20 +8,18 @@ import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi
 import WidgetDataType from './types/WidgetDataType';
 
 /**
- * The SummaryWidget widget.
- * Shows Pending Orders in simple card style.
+ * The NewOrdersWidget widget.
+ * Shows New Orders (orders created today) in simple card style.
  */
-function SummaryWidget() {
+function NewOrdersWidget() {
 	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
-	const widget = widgets?.summary as WidgetDataType;
-	const data = widget?.data;
-	const title = widget?.title;
+	const widget = widgets?.newOrders as WidgetDataType;
 
 	if (isLoading) {
 		return <FuseLoading />;
 	}
 
-	if (!widget || !data) {
+	if (!widget || !widget.data) {
 		// Return a placeholder if widget data is not available
 		return (
 			<Paper className="flex flex-col flex-auto shadow-sm rounded-xl overflow-hidden">
@@ -30,31 +28,30 @@ function SummaryWidget() {
 						className="px-3 text-lg font-semibold tracking-tight leading-6 truncate"
 						color="text.primary"
 					>
-						Pending Orders
+						New Orders
 					</Typography>
 					<IconButton aria-label="more">
 						<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 					</IconButton>
 				</div>
 				<div className="text-center mt-4">
-					<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-orange-500">
+					<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-blue-500">
 						0
 					</Typography>
-					<Typography className="text-base font-semibold text-orange-600 mt-2">Pending Orders</Typography>
+					<Typography className="text-base font-semibold text-blue-600 mt-2">New Orders</Typography>
 				</div>
 				<Typography
 					className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
 					color="text.secondary"
 				>
-					<span className="truncate">Total Pending:</span>
+					<span className="truncate">Today:</span>
 					<b>0</b>
 				</Typography>
 			</Paper>
 		);
 	}
 
-	// Use 'DT' (Today) as default range for display
-	const currentRange = 'DT';
+	const { data, title } = widget || {};
 
 	return (
 		<Paper className="flex flex-col flex-auto shadow-sm rounded-xl overflow-hidden">
@@ -63,27 +60,28 @@ function SummaryWidget() {
 					className="px-3 text-lg font-semibold tracking-tight leading-6 truncate"
 					color="text.primary"
 				>
-					{title || 'Pending Orders'}
+					{title || 'New Orders'}
 				</Typography>
 				<IconButton aria-label="more">
 					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
 			</div>
 			<div className="text-center mt-4">
-				<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-orange-500">
-					{data?.count?.[currentRange] ?? 0}
+				<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-blue-500">
+					{String(data?.count ?? 0)}
 				</Typography>
-				<Typography className="text-base font-semibold text-orange-600 mt-2">{data?.name ?? 'Pending Orders'}</Typography>
+				<Typography className="text-base font-semibold text-blue-600 mt-2">{data?.name ?? 'New Orders'}</Typography>
 			</div>
 			<Typography
 				className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
 				color="text.secondary"
 			>
-				<span className="truncate">{data?.extra?.name ?? 'Total Pending'}:</span>
-				<b>{data?.extra?.count?.[currentRange] ?? 0}</b>
+				<span className="truncate">{data?.extra?.name ?? 'Today'}:</span>
+				<b>{String(data?.extra?.count ?? 0)}</b>
 			</Typography>
 		</Paper>
 	);
 }
 
-export default memo(SummaryWidget);
+export default memo(NewOrdersWidget);
+

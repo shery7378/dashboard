@@ -1,3 +1,5 @@
-import ProjectDashboardApp from './ProjectDashboardApp';
+import { redirect } from 'next/navigation';
 
-export default ProjectDashboardApp;
+export default function VendorDashboardRedirect() {
+    redirect('/dashboards/seller');
+}

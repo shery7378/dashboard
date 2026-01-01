@@ -14,6 +14,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import ProductHeader from './ProductHeader';
+import ImportProductModal from '../../ImportProductModal';
 import Autocomplete from '@mui/material/Autocomplete';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
@@ -23,7 +24,7 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Chip from '@mui/material/Chip';
 import { useGetECommerceCategoriesQuery } from '../../../apis/CategoriesLaravelApi';
-import { useGetECommerceProductsQuery } from '../../../apis/ProductsLaravelApi';
+import { useGetECommerceProductsQuery, useGetOtherVendorsProductsQuery } from '../../../apis/ProductsLaravelApi';
 import { slugify } from '../../models/ProductModel';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -336,9 +337,12 @@ function MultiKonnectListingCreation() {
 	const { data: pastProductsData, isLoading: loadingPastProducts } = useGetECommerceProductsQuery({ page: 1, perPage: 50 });
 	const pastProducts = pastProductsData?.data || [];
 	
-	// Fetch other vendors' products
-	const { data: otherVendorsData, isLoading: loadingOtherVendors } = useGetECommerceProductsQuery({ page: 1, perPage: 50 });
-	const otherVendorsProducts = otherVendorsData?.data || [];
+	// Fetch other vendors' products (excludes current vendor's products)
+	const { data: otherVendorsData, isLoading: loadingOtherVendors } = useGetOtherVendorsProductsQuery({ 
+		page: 1, 
+		perPage: 50 
+	});
+	const otherVendorsProducts = otherVendorsData?.products?.data || otherVendorsData?.data || [];
 
 	// Calculate listing score - fully dynamic
 	const listingScore = useMemo(() => {
@@ -1200,9 +1204,29 @@ function MultiKonnectListingCreation() {
 			setStorageOptions(updated);
 			setNewStorageInput('');
 			setAddStorageDialogOpen(false);
-			// Regenerate variants if colors exist
+			// Regenerate ALL variants if colors exist (not just add new ones)
 			if (colorOptions.length > 0) {
-				generateVariantsFromOptions(updated, colorOptions);
+				// Generate complete variant matrix
+				const newVariants: Variant[] = [];
+				updated.forEach(storage => {
+					colorOptions.forEach(color => {
+						// Preserve existing variant data if it exists
+						const existing = variants.find(v => v.storage === storage && v.color === color);
+						if (existing) {
+							newVariants.push(existing);
+						} else {
+							newVariants.push({
+								storage,
+								color,
+								price: '',
+								compareAt: '',
+								stock: '',
+								sameDay: false,
+							});
+						}
+					});
+				});
+				setVariants(newVariants);
 			}
 		}
 	};
@@ -1225,9 +1249,29 @@ function MultiKonnectListingCreation() {
 			setColorOptions(updated);
 			setNewColorInput('');
 			setAddColorDialogOpen(false);
-			// Regenerate variants if storage exists
+			// Regenerate ALL variants if storage exists (not just add new ones)
 			if (storageOptions.length > 0) {
-				generateVariantsFromOptions(storageOptions, updated);
+				// Generate complete variant matrix
+				const newVariants: Variant[] = [];
+				storageOptions.forEach(storage => {
+					updated.forEach(color => {
+						// Preserve existing variant data if it exists
+						const existing = variants.find(v => v.storage === storage && v.color === color);
+						if (existing) {
+							newVariants.push(existing);
+						} else {
+							newVariants.push({
+								storage,
+								color,
+								price: '',
+								compareAt: '',
+								stock: '',
+								sameDay: false,
+							});
+						}
+					});
+				});
+				setVariants(newVariants);
 			}
 		}
 	};
@@ -1386,12 +1430,14 @@ function MultiKonnectListingCreation() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [variants, isInitialized, slug, colorImages]); // Removed setValue to prevent infinite loop
 
-	const handleVariantChange = (index: number, field: keyof Variant, value: any) => {
-		const updated = [...variants];
-		updated[index] = { ...updated[index], [field]: value };
-		setVariants(updated);
+	const handleVariantChange = useCallback((index: number, field: keyof Variant, value: any) => {
+		setVariants(prevVariants => {
+			const updated = [...prevVariants];
+			updated[index] = { ...updated[index], [field]: value };
+			return updated;
+		});
 		// The useEffect above will handle saving to form
-	};
+	}, []);
 
 	const handleApplyPriceToAll = () => {
 		setApplyPriceDialogOpen(true);
@@ -1521,28 +1567,97 @@ function MultiKonnectListingCreation() {
 	};
 
 	// AI helpers
-	const handleSuggestTitle = () => {
-		if (productTitle) {
-			const suggested = `${productTitle} — QC-Verified, Same-Day Delivery`;
-			setValue('meta_title', suggested);
+	const handleSuggestTitle = async () => {
+		if (!productTitle || productTitle.length < 5) {
+			alert('Please enter a product title first (minimum 5 characters)');
+			return;
+		}
+		
+		try {
+			// Generate SEO title based on product title and tone
+			const toneText = seoTone === 'Neutral' ? '' : ` (${seoTone.toLowerCase()} tone)`;
+			const suggested = `${productTitle} — QC-Verified, Same-Day Delivery${toneText}`;
+			
+			// Ensure it's within 70 characters
+			const finalTitle = suggested.length > 70 ? suggested.substring(0, 67) + '...' : suggested;
+			setValue('meta_title', finalTitle, { shouldDirty: true });
+		} catch (error) {
+			console.error('Error generating SEO title:', error);
+			alert('Failed to generate SEO title. Please try again.');
 		}
 	};
 
-	const handleGenerateBullets = () => {
-		const bullets = [
-			'Fast same-day delivery available',
-			'1-year AccessoryShield included',
-			'QC-verified device with invoice',
-			'Professional setup assistance',
-			'7-day price-drop protection',
-			'Trade-in value check available',
-		];
-		setValue('description', bullets.join('\n• '));
+	const handleGenerateBullets = async () => {
+		if (!productTitle || productTitle.length < 5) {
+			alert('Please enter a product title first (minimum 5 characters)');
+			return;
+		}
+		
+		try {
+			// Generate bullet points based on product title and offers
+			const bullets = [
+				'Fast same-day delivery available',
+				'1-year AccessoryShield included',
+				'QC-verified device with invoice',
+				'Professional setup assistance',
+				'7-day price-drop protection',
+				'Trade-in value check available',
+			];
+			
+			// Add offer-specific bullets
+			if (offers.accessoryShield) {
+				bullets[1] = '1-year AccessoryShield warranty included';
+			}
+			if (offers.setupAtDoorstep) {
+				bullets[3] = 'Professional setup assistance at your doorstep';
+			}
+			if (offers.priceDropProtection) {
+				bullets[4] = '7-day price-drop protection guarantee';
+			}
+			if (offers.tradeInAssist) {
+				bullets[5] = 'Free trade-in value check and assistance';
+			}
+			
+			const description = bullets.join('\n• ');
+			setValue('description', description, { shouldDirty: true });
+		} catch (error) {
+			console.error('Error generating bullets:', error);
+			alert('Failed to generate bullet points. Please try again.');
+		}
 	};
 
-	const handleWriteDescription = () => {
-		const desc = `This ${productTitle || 'product'} comes with full manufacturer warranty and original packaging. Includes all accessories, documentation, and SIM tool. Device has been QC-verified and tested. Fast same-day delivery available in select areas.`;
-		setValue('description', desc, { shouldDirty: true });
+	const handleWriteDescription = async () => {
+		if (!productTitle || productTitle.length < 5) {
+			alert('Please enter a product title first (minimum 5 characters)');
+			return;
+		}
+		
+		try {
+			// Generate description based on product title, tone, and offers
+			const toneStyle = seoTone === 'Professional' ? 'professional' : 
+							  seoTone === 'Casual' ? 'casual and friendly' :
+							  seoTone === 'Friendly' ? 'friendly and approachable' :
+							  seoTone === 'Formal' ? 'formal and detailed' : 'clear and informative';
+			
+			let desc = `This ${productTitle} comes with full manufacturer warranty and original packaging. Includes all accessories, documentation, and SIM tool. Device has been QC-verified and tested.`;
+			
+			if (offers.accessoryShield) {
+				desc += ' Includes 1-year AccessoryShield warranty for added protection.';
+			}
+			if (offers.setupAtDoorstep) {
+				desc += ' Professional setup assistance available at your doorstep.';
+			}
+			if (offers.priceDropProtection) {
+				desc += ' 7-day price-drop protection ensures you get the best value.';
+			}
+			
+			desc += ' Fast same-day delivery available in select areas.';
+			
+			setValue('description', desc, { shouldDirty: true });
+		} catch (error) {
+			console.error('Error writing description:', error);
+			alert('Failed to generate description. Please try again.');
+		}
 	};
 	
 	// Save offers to extraFields - fixed infinite loop by using functional update
@@ -1931,18 +2046,58 @@ function MultiKonnectListingCreation() {
 		if (template.description) setValue('description', template.description, { shouldDirty: true });
 		if (template.meta_title) setValue('meta_title', template.meta_title, { shouldDirty: true });
 		if (template.meta_description) setValue('meta_description', template.meta_description, { shouldDirty: true });
+		if (template.meta_keywords) setValue('meta_keywords', template.meta_keywords, { shouldDirty: true });
 		if (template.price_tax_excl) setValue('price_tax_excl', template.price_tax_excl, { shouldDirty: true });
-		if (template.product_variants) {
-			// Load variants
-			const templateVariants = template.product_variants.map((v: any) => ({
-				id: v.id?.toString(),
-				storage: v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '',
-				color: v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '',
-				price: v.price_tax_excl?.toString() || '',
-				compareAt: v.compared_price?.toString() || '',
-				stock: v.quantity?.toString() || '',
-				sameDay: v.same_day || false,
-			}));
+		if (template.price_tax_incl) setValue('price_tax_incl', template.price_tax_incl, { shouldDirty: true });
+		if (template.sku) setValue('sku', template.sku, { shouldDirty: true });
+		
+		// Handle categories
+		if (template.categories && template.categories.length > 0) {
+			const mainCategory = template.categories.find((cat: any) => !cat.parent_id);
+			const subcategories = template.categories.filter((cat: any) => cat.parent_id);
+			if (mainCategory) setValue('main_category_id', mainCategory.id, { shouldDirty: true });
+			if (subcategories.length > 0) {
+				setValue('subcategory_ids', subcategories.map((cat: any) => cat.id), { shouldDirty: true });
+			}
+		}
+		
+		if (template.gallery_images) {
+			const galleryImages = Array.isArray(template.gallery_images) ? template.gallery_images : [];
+			setValue('gallery_images', galleryImages, { shouldDirty: true });
+		}
+		
+		if (template.product_variants && template.product_variants.length > 0) {
+			// Extract unique storage and color options from variants
+			const storageSet = new Set<string>();
+			const colorSet = new Set<string>();
+			
+			const templateVariants = template.product_variants.map((v: any) => {
+				const storage = v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '';
+				const color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
+				
+				if (storage) storageSet.add(storage);
+				if (color) colorSet.add(color);
+				
+				return {
+					id: v.id?.toString(),
+					storage,
+					color,
+					price: v.price_tax_excl?.toString() || v.price?.toString() || '',
+					compareAt: v.compared_price?.toString() || '',
+					stock: v.quantity?.toString() || v.qty?.toString() || '',
+					sameDay: v.same_day || false,
+					image: v.image || (v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value),
+				};
+			});
+			
+			// Update storage and color options
+			if (storageSet.size > 0) {
+				setStorageOptions(Array.from(storageSet));
+			}
+			if (colorSet.size > 0) {
+				setColorOptions(Array.from(colorSet));
+			}
+			
 			setVariants(templateVariants);
 		}
 		setMasterTemplateDialogOpen(false);
@@ -1959,22 +2114,58 @@ function MultiKonnectListingCreation() {
 		if (product.description) setValue('description', product.description, { shouldDirty: true });
 		if (product.meta_title) setValue('meta_title', product.meta_title, { shouldDirty: true });
 		if (product.meta_description) setValue('meta_description', product.meta_description, { shouldDirty: true });
+		if (product.meta_keywords) setValue('meta_keywords', product.meta_keywords, { shouldDirty: true });
 		if (product.price_tax_excl) setValue('price_tax_excl', product.price_tax_excl, { shouldDirty: true });
+		if (product.price_tax_incl) setValue('price_tax_incl', product.price_tax_incl, { shouldDirty: true });
+		if (product.sku) setValue('sku', product.sku, { shouldDirty: true });
+		
+		// Handle categories
+		if (product.categories && product.categories.length > 0) {
+			const mainCategory = product.categories.find((cat: any) => !cat.parent_id);
+			const subcategories = product.categories.filter((cat: any) => cat.parent_id);
+			if (mainCategory) setValue('main_category_id', mainCategory.id, { shouldDirty: true });
+			if (subcategories.length > 0) {
+				setValue('subcategory_ids', subcategories.map((cat: any) => cat.id), { shouldDirty: true });
+			}
+		}
+		
 		if (product.gallery_images) {
 			// Ensure gallery_images is an array before setting
 			const galleryImages = Array.isArray(product.gallery_images) ? product.gallery_images : [];
 			setValue('gallery_images', galleryImages, { shouldDirty: true });
 		}
-		if (product.product_variants) {
-			const pastVariants = product.product_variants.map((v: any) => ({
-				id: v.id?.toString(),
-				storage: v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '',
-				color: v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '',
-				price: v.price_tax_excl?.toString() || '',
-				compareAt: v.compared_price?.toString() || '',
-				stock: v.quantity?.toString() || '',
-				sameDay: v.same_day || false,
-			}));
+		if (product.product_variants && product.product_variants.length > 0) {
+			// Extract unique storage and color options from variants
+			const storageSet = new Set<string>();
+			const colorSet = new Set<string>();
+			
+			const pastVariants = product.product_variants.map((v: any) => {
+				const storage = v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '';
+				const color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
+				
+				if (storage) storageSet.add(storage);
+				if (color) colorSet.add(color);
+				
+				return {
+					id: v.id?.toString(),
+					storage,
+					color,
+					price: v.price_tax_excl?.toString() || v.price?.toString() || '',
+					compareAt: v.compared_price?.toString() || '',
+					stock: v.quantity?.toString() || v.qty?.toString() || '',
+					sameDay: v.same_day || false,
+					image: v.image || (v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value),
+				};
+			});
+			
+			// Update storage and color options
+			if (storageSet.size > 0) {
+				setStorageOptions(Array.from(storageSet));
+			}
+			if (colorSet.size > 0) {
+				setColorOptions(Array.from(colorSet));
+			}
+			
 			setVariants(pastVariants);
 		}
 		setPastListingsDialogOpen(false);
@@ -4905,49 +5096,13 @@ function MultiKonnectListingCreation() {
 				</DialogActions>
 			</Dialog>
 
-			{/* Import from Other Vendor Dialog */}
-			<Dialog open={importVendorDialogOpen} onClose={() => setImportVendorDialogOpen(false)} maxWidth="md" fullWidth>
-				<DialogTitle>Import from Other Vendor</DialogTitle>
-				<DialogContent>
-					<TextField
-						fullWidth
-						label="Search vendor products"
-						placeholder="Search by name, brand, SKU..."
-						value={searchQuery}
-						onChange={(e) => setSearchQuery(e.target.value)}
-						sx={{ marginBottom: 2 }}
-					/>
-					{loadingOtherVendors ? (
-						<Box display="flex" justifyContent="center" p={3}>
-							<CircularProgress />
-						</Box>
-					) : (
-						<List>
-							{otherVendorsProducts
-								.filter((p: any) => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-								.slice(0, 20)
-								.map((product: any) => (
-									<ListItem key={product.id} disablePadding>
-										<ListItemButton onClick={() => handleSelectVendorProduct(product)}>
-											<ListItemText
-												primary={product.name}
-												secondary={`SKU: ${product.sku || 'N/A'} | Price: £${product.price_tax_excl || 0}`}
-											/>
-										</ListItemButton>
-									</ListItem>
-								))}
-							{otherVendorsProducts.length === 0 && (
-								<Typography variant="body2" sx={{ padding: 2, color: '#6b7280', textAlign: 'center' }}>
-									No vendor products available
-								</Typography>
-							)}
-						</List>
-					)}
-				</DialogContent>
-				<DialogActions>
-					<Button onClick={() => setImportVendorDialogOpen(false)}>Cancel</Button>
-				</DialogActions>
-			</Dialog>
+			{/* Import from Other Vendor Modal - Use the dedicated ImportProductModal component */}
+			<ImportProductModal 
+				open={importVendorDialogOpen} 
+				onClose={() => setImportVendorDialogOpen(false)}
+				mode="select"
+				onProductSelect={handleSelectVendorProduct}
+			/>
 
 			{/* Add Storage Dialog - Dynamic */}
 			<Dialog open={addStorageDialogOpen} onClose={() => { setAddStorageDialogOpen(false); setNewStorageInput(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>

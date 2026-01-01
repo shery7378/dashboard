@@ -1,7 +1,7 @@
 const translations = {
 	wallet_payouts: 'Wallet & Payouts',
-	connect_stripe_account: 'Please connect your Stripe account to enable payouts.',
-	connect_stripe: 'Connect Stripe',
+	connect_stripe_account: 'Connect your Stripe Connect account to receive payouts. Our platform handles all customer payments - you only need to connect for receiving your earnings.',
+	connect_stripe: 'Connect Stripe Connect Account',
 	available_balance: 'Available Balance',
 	total_earned: 'Total Earned',
 	total_paid_out: 'Total Paid Out',

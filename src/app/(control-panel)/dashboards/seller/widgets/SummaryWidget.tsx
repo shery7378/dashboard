@@ -11,13 +11,14 @@ import WidgetDataType, { RangeType } from '../../vendor/tabs/home/widgets/types/
 
 /**
  * The Seller SummaryWidget widget.
+ * Shows Pending Orders with time range selector.
  */
 function SummaryWidget() {
 	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
 	const widget = widgets?.summary as WidgetDataType;
 	const data = widget?.data;
-	const ranges = widget?.ranges;
-	const currentRangeDefault = widget?.currentRange;
+	const ranges = widget?.ranges || {};
+	const currentRangeDefault = widget?.currentRange || 'DT';
 
 	const [currentRange, setCurrentRange] = useState<RangeType>(currentRangeDefault as RangeType);
 
@@ -34,7 +35,7 @@ function SummaryWidget() {
 	}
 
 	return (
-		<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
+		<Paper className="flex flex-col flex-auto shadow-sm rounded-xl overflow-hidden">
 			<div className="flex items-center justify-between px-2 pt-2">
 				<Select
 					className=""
@@ -48,39 +49,34 @@ function SummaryWidget() {
 					}}
 					variant="filled"
 				>
-					{ranges?.map((range) => (
-						<MenuItem
-							key={range}
-							value={range}
-						>
-							{range}
-						</MenuItem>
-					))}
+					{Object.entries(ranges || {}).map(([key, label]) => {
+						return (
+							<MenuItem
+								key={key}
+								value={key}
+							>
+								{label}
+							</MenuItem>
+						);
+					})}
 				</Select>
-				<IconButton
-					size="small"
-					className=""
-				>
-					<FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
+				<IconButton aria-label="more">
+					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
 			</div>
-			<div className="flex flex-col flex-auto p-6">
-				<Typography className="text-2xl font-semibold leading-none">
-					Seller Sales
+			<div className="text-center mt-4">
+				<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-orange-500">
+					{data?.count?.[currentRange] ?? 0}
 				</Typography>
-				<Typography
-					className="text-lg font-medium leading-none mt-4"
-					color="text.secondary"
-				>
-					{data?.value || '0'}
-				</Typography>
-				<Typography
-					className="text-sm leading-none mt-4"
-					color="text.secondary"
-				>
-					{data?.change || '0%'} from last period
-				</Typography>
+				<Typography className="text-base font-semibold text-orange-600 dark:text-orange-500 mt-2">{data?.name ?? 'Pending Orders'}</Typography>
 			</div>
+			<Typography
+				className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
+				color="text.secondary"
+			>
+				<span className="truncate">{data?.extra?.name ?? 'Total Pending'}:</span>
+				<b>{data?.extra?.count?.[currentRange] ?? 0}</b>
+			</Typography>
 		</Paper>
 	);
 }

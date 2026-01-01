@@ -20,8 +20,36 @@ function FeaturesWidget() {
 		return <FuseLoading />;
 	}
 
-	if (!widget) {
-		return null;
+	if (!widget || !widget.data) {
+		// Return a placeholder if widget data is not available
+		return (
+			<Paper className="flex flex-col flex-auto shadow-sm rounded-xl overflow-hidden">
+				<div className="flex items-center justify-between px-2 pt-2">
+					<Typography
+						className="px-3 text-lg font-semibold tracking-tight leading-6 truncate"
+						color="text.primary"
+					>
+						Total Amount
+					</Typography>
+					<IconButton aria-label="more">
+						<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
+					</IconButton>
+				</div>
+				<div className="text-center mt-4">
+					<Typography className="text-5xl sm:text-6xl font-bold tracking-tight leading-none text-green-500">
+						£0.00
+					</Typography>
+					<Typography className="text-base font-semibold text-green-600 mt-2">Total Amount</Typography>
+				</div>
+				<Typography
+					className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
+					color="text.secondary"
+				>
+					<span className="truncate">Today's Amount:</span>
+					<b>£0.00</b>
+				</Typography>
+			</Paper>
+		);
 	}
 
 	return (

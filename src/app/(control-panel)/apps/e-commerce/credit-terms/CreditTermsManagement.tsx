@@ -32,7 +32,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import { getSession } from 'next-auth/react';
 
-interface Vendor {
+interface Seller {
     id: number;
     name: string;
     email: string;
@@ -41,7 +41,7 @@ interface Vendor {
 interface CreditTerm {
     id: number;
     vendor_id: number;
-    vendor?: Vendor;
+    vendor?: Seller;
     payment_method: 'instant' | 'credit';
     credit_days: number | null;
     credit_limit: number;
@@ -55,7 +55,7 @@ interface CreditTerm {
 function CreditTermsManagement() {
     const { enqueueSnackbar } = useSnackbar();
     const [creditTerms, setCreditTerms] = useState<CreditTerm[]>([]);
-    const [vendors, setVendors] = useState<Vendor[]>([]);
+    const [vendors, setVendors] = useState<Seller[]>([]);
     const [loading, setLoading] = useState(true);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingTerm, setEditingTerm] = useState<CreditTerm | null>(null);
@@ -96,7 +96,7 @@ function CreditTermsManagement() {
                 setCreditTerms(termsData.data || []);
             }
 
-            // Fetch vendors
+            // Fetch sellers
             try {
                 const vendorsResponse = await fetch(`${API_BASE_URL}/api/credit-terms/vendors`, {
                     headers: {
@@ -107,18 +107,18 @@ function CreditTermsManagement() {
                 });
 
                 const vendorsData = await vendorsResponse.json();
-                console.log('Vendors API Response:', vendorsResponse.status, vendorsData); // Debug
+                console.log('Sellers API Response:', vendorsResponse.status, vendorsData); // Debug
                 
                 if (vendorsResponse.ok && vendorsData?.status === 200) {
                     setVendors(vendorsData.data || []);
-                    console.log('Vendors set:', vendorsData.data); // Debug
+                    console.log('Sellers set:', vendorsData.data); // Debug
                 } else {
-                    console.error('Failed to fetch vendors:', vendorsData);
-                    enqueueSnackbar(vendorsData.message || 'Failed to load vendors', { variant: 'warning' });
+                    console.error('Failed to fetch sellers:', vendorsData);
+                    enqueueSnackbar(vendorsData.message || 'Failed to load sellers', { variant: 'warning' });
                 }
             } catch (err) {
-                console.error('Error fetching vendors:', err);
-                enqueueSnackbar('Error loading vendors', { variant: 'error' });
+                console.error('Error fetching sellers:', err);
+                enqueueSnackbar('Error loading sellers', { variant: 'error' });
             }
 
         } catch (error) {
@@ -220,7 +220,7 @@ function CreditTermsManagement() {
                         Credit Terms Management
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        Manage credit terms for vendors who purchase from your wholesale catalog
+                        Manage credit terms for sellers who purchase from your wholesale catalog
                     </Typography>
                 </Box>
                 <Button
@@ -235,8 +235,8 @@ function CreditTermsManagement() {
             {/* Info Alert */}
             <Alert severity="info">
                 <Typography variant="body2">
-                    <strong>Credit Terms:</strong> Set credit limits and payment terms for vendors. 
-                    When vendors import products from your wholesale catalog, they can choose to pay instantly or use credit.
+                    <strong>Credit Terms:</strong> Set credit limits and payment terms for sellers. 
+                    When sellers import products from your wholesale catalog, they can choose to pay instantly or use credit.
                 </Typography>
             </Alert>
 
@@ -252,7 +252,7 @@ function CreditTermsManagement() {
                                 No credit terms found
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                                Create credit terms for vendors to enable credit payment option
+                                Create credit terms for sellers to enable credit payment option
                             </Typography>
                             <Button
                                 variant="contained"
@@ -267,7 +267,7 @@ function CreditTermsManagement() {
                             <Table>
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>Vendor</TableCell>
+                                        <TableCell>Seller</TableCell>
                                         <TableCell>Payment Method</TableCell>
                                         <TableCell>Credit Days</TableCell>
                                         <TableCell>Credit Limit</TableCell>
@@ -282,7 +282,7 @@ function CreditTermsManagement() {
                                         <TableRow key={term.id}>
                                             <TableCell>
                                                 <Typography fontWeight={600}>
-                                                    {term.vendor?.name || `Vendor #${term.vendor_id}`}
+                                                    {term.vendor?.name || `Seller #${term.vendor_id}`}
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
                                                     {term.vendor?.email}
@@ -347,17 +347,17 @@ function CreditTermsManagement() {
                 <DialogContent>
                     <Box display="flex" flexDirection="column" gap={3} pt={2}>
                         <FormControl fullWidth>
-                            <InputLabel>Vendor</InputLabel>
+                            <InputLabel>Seller</InputLabel>
                             <Select
                                 value={formData.vendor_id}
-                                label="Vendor"
+                                label="Seller"
                                 onChange={(e) => setFormData({ ...formData, vendor_id: e.target.value })}
                                 disabled={!!editingTerm}
                             >
                                 {vendors.length === 0 ? (
                                     <MenuItem disabled>
                                         <Typography variant="body2" color="text.secondary">
-                                            No vendors found. Please ensure vendors exist in the system.
+                                            No sellers found. Please ensure sellers exist in the system.
                                         </Typography>
                                     </MenuItem>
                                 ) : (
@@ -370,7 +370,7 @@ function CreditTermsManagement() {
                             </Select>
                             {vendors.length === 0 && (
                                 <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
-                                    No vendors available. Make sure vendors are registered in the system.
+                                    No sellers available. Make sure sellers are registered in the system.
                                 </Typography>
                             )}
                         </FormControl>
@@ -409,7 +409,7 @@ function CreditTermsManagement() {
                                     type="number"
                                     value={formData.credit_limit}
                                     onChange={(e) => setFormData({ ...formData, credit_limit: parseFloat(e.target.value) || 0 })}
-                                    helperText="Maximum amount vendor can owe"
+                                    helperText="Maximum amount seller can owe"
                                     inputProps={{ min: 0, step: 0.01 }}
                                 />
                             </>

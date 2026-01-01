@@ -34,7 +34,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
 import { getSession } from 'next-auth/react';
 
-interface Vendor {
+interface Seller {
     id: number;
     name: string;
     email: string;
@@ -50,7 +50,7 @@ interface WholesaleOrder {
     id: number;
     order_number: string;
     vendor_id: number;
-    vendor?: Vendor;
+    vendor?: Seller;
     supplier_product_id: number;
     supplier_product?: SupplierProduct;
     vendor_product_id: number;
@@ -284,7 +284,7 @@ function WholesaleOrdersManagement() {
                     Wholesale Orders
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    View and manage orders from vendors
+                    View and manage orders from sellers
                 </Typography>
             </Box>
 
@@ -375,7 +375,7 @@ function WholesaleOrdersManagement() {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Order #</TableCell>
-                                        <TableCell>Vendor</TableCell>
+                                        <TableCell>Seller</TableCell>
                                         <TableCell>Product</TableCell>
                                         <TableCell>Quantity</TableCell>
                                         <TableCell>Total</TableCell>
@@ -471,7 +471,7 @@ function WholesaleOrdersManagement() {
                         <Box display="flex" flexDirection="column" gap={2} pt={2}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
-                                    <Typography variant="subtitle2" color="text.secondary">Vendor</Typography>
+                                    <Typography variant="subtitle2" color="text.secondary">Seller</Typography>
                                     <Typography variant="body1">
                                         {selectedOrder.vendor?.name} ({selectedOrder.vendor?.email})
                                     </Typography>

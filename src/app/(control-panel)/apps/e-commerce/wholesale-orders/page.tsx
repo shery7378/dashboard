@@ -28,7 +28,7 @@ export default function WholesaleOrdersPage() {
         const isAdmin = userRoles.includes('admin');
 
         if (!isSupplier && !isAdmin) {
-            router.push('/dashboards/vendor');
+            router.push('/dashboards/seller');
         }
     }, [session, status, router]);
 

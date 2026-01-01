@@ -37,9 +37,11 @@ import './i18n';
 interface ImportProductModalProps {
   open: boolean;
   onClose: () => void;
+  onProductSelect?: (product: EcommerceProduct) => void; // Optional callback for form population mode
+  mode?: 'import' | 'select'; // 'import' creates new product, 'select' just returns product data
 }
 
-function ImportProductModal({ open, onClose }: ImportProductModalProps) {
+function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }: ImportProductModalProps) {
   const { t } = useTranslation('products');
   const { enqueueSnackbar } = useSnackbar();
   const [page, setPage] = useState(1);
@@ -83,10 +85,41 @@ function ImportProductModal({ open, onClose }: ImportProductModalProps) {
     setPage(1);
   };
 
-  const handleImport = async (productId: string) => {
-    setImportingId(productId);
+  const handleImport = async (productId: string | number | undefined) => {
+    if (!productId) {
+      enqueueSnackbar('Invalid product ID', { 
+        variant: 'error',
+        anchorOrigin: { vertical: 'top', horizontal: 'right' }
+      });
+      return;
+    }
+
+    const idString = String(productId);
+    
+    // If mode is 'select', find the product and call onProductSelect callback
+    if (mode === 'select' && onProductSelect) {
+      const product = products.find((p: EcommerceProduct) => String(p.id) === idString);
+      if (product) {
+        onProductSelect(product);
+        onClose();
+        return;
+      } else {
+        enqueueSnackbar('Product not found', { 
+          variant: 'error',
+          anchorOrigin: { vertical: 'top', horizontal: 'right' }
+        });
+        return;
+      }
+    }
+    
+    // Default mode: import product (create new product)
+    setImportingId(idString);
     try {
-      const result = await importProduct(productId).unwrap();
+      const result = await importProduct({ 
+        productId: idString,
+        paymentMethod: 'instant',
+        quantity: 1
+      }).unwrap();
       enqueueSnackbar(result.message || t('product_imported_successfully'), { 
         variant: 'success',
         anchorOrigin: { vertical: 'top', horizontal: 'right' }
@@ -105,8 +138,10 @@ function ImportProductModal({ open, onClose }: ImportProductModalProps) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Product import error:', {
           error,
+          productId: idString,
           details: error?.data?.details,
           message: error?.data?.message,
+          fullError: error,
         });
       }
     }
@@ -286,10 +321,16 @@ function ImportProductModal({ open, onClose }: ImportProductModalProps) {
             <Grid container spacing={3}>
               <AnimatePresence>
                 {products.map((product: EcommerceProduct, index: number) => {
+                  // Debug: Log product if ID is missing
+                  if (!product.id && process.env.NODE_ENV === 'development') {
+                    console.warn('Product missing ID:', product);
+                  }
+                  
                   const imageUrl = product.featured_image?.url
                     ? `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url}`
                     : '/assets/images/apps/ecommerce/product-image-placeholder.png';
-                  const isImporting = importingId === product.id;
+                  const productId = product.id || product.data?.id || String(index);
+                  const isImporting = importingId === productId;
                   const priceTaxIncl = parseFloat((product.price_tax_incl || product.price || 0).toString());
                   const comparedPrice = parseFloat((product.compared_price || 0).toString());
                   
@@ -297,7 +338,7 @@ function ImportProductModal({ open, onClose }: ImportProductModalProps) {
                   const showStrike = comparedPrice > 0 && comparedPrice > priceTaxIncl;
 
                   return (
-                    <Grid item xs={12} sm={6} md={4} key={product.id}>
+                    <Grid item xs={12} sm={6} md={4} key={productId}>
                       <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -589,11 +630,23 @@ function ImportProductModal({ open, onClose }: ImportProductModalProps) {
                             <Button
                               fullWidth
                               variant="contained"
-                              onClick={() => handleImport(product.id)}
-                              disabled={isImporting || importingId !== null}
+                              onClick={() => {
+                                if (!productId) {
+                                  console.error('Product ID is missing:', product);
+                                  enqueueSnackbar('Product ID is missing. Cannot import.', { 
+                                    variant: 'error',
+                                    anchorOrigin: { vertical: 'top', horizontal: 'right' }
+                                  });
+                                  return;
+                                }
+                                handleImport(productId);
+                              }}
+                              disabled={isImporting || importingId !== null || !productId}
                               startIcon={
                                 isImporting ? (
                                   <CircularProgress size={18} color="inherit" />
+                                ) : mode === 'select' ? (
+                                  <FuseSvgIcon>heroicons-outline:check</FuseSvgIcon>
                                 ) : (
                                   <FuseSvgIcon>heroicons-outline:arrow-down-tray</FuseSvgIcon>
                                 )
@@ -618,7 +671,10 @@ function ImportProductModal({ open, onClose }: ImportProductModalProps) {
                                 transition: 'all 0.3s ease',
                               }}
                             >
-                              {isImporting ? t('importing') : `Import Product`}
+                              {isImporting 
+                                ? (mode === 'select' ? 'Selecting...' : t('importing'))
+                                : (mode === 'select' ? 'Use This Product' : 'Import Product')
+                              }
                             </Button>
                             <Typography 
                               variant="caption" 

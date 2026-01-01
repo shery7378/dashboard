@@ -7,7 +7,7 @@ import useThemeMediaQuery from '@fuse/hooks/useThemeMediaQuery';
 import PageBreadcrumb from 'src/components/PageBreadcrumb';
 
 /**
- * The products header.
+ * The categories header.
  */
 function CategoriesHeader() {
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));

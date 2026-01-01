@@ -10,6 +10,7 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import {
     useGetProfilesByRoleQuery,
     useDeleteProfileMutation,
+    useResetUserPasswordMutation,
     type Profile,
 } from '@/app/(control-panel)/(user)/accounts/apis/ProfileApi';
 
@@ -33,6 +34,7 @@ function VendorsTable() {
     const [successMessage, setSuccessMessage] = useState('');
 
     const [deleteProfile] = useDeleteProfileMutation();
+    const [resetUserPassword, { isLoading: isResettingPassword }] = useResetUserPasswordMutation();
 
     // 🔹 Pagination state
     const [pagination, setPagination] = useState({
@@ -41,7 +43,7 @@ function VendorsTable() {
     });
 
 
-    // Fetch vendors with pagination
+    // Fetch sellers with pagination
     const { data: profilesRes, isLoading, error } = useGetProfilesByRoleQuery({
         role: 'vendor',
         page: pagination.pageIndex + 1, // Convert to 1-based indexing for API
@@ -188,6 +190,18 @@ function VendorsTable() {
         setSuccessMessage('');
     };
 
+    // 🔹 Handle reset password
+    const handleResetPassword = async (userId: string) => {
+        try {
+            const result = await resetUserPassword(userId).unwrap();
+            setSuccessMessage(result.message || 'Password reset email sent successfully');
+            setSuccessDialogOpen(true);
+        } catch (error: any) {
+            const errorMessage = error?.data?.message || error?.message || 'Failed to reset password';
+            enqueueSnackbar(errorMessage, { variant: 'error' });
+        }
+    };
+
     if (isLoading) return <FuseLoading />;
     if (error) return <Typography color="error">Failed to load Sellers</Typography>;
 
@@ -204,6 +218,21 @@ function VendorsTable() {
                 state={{ pagination }}
                 onPaginationChange={setPagination}
                 renderRowActionMenuItems={({ closeMenu, row, table }) => [
+                    <MenuItem
+                        key="reset-password"
+                        onClick={() => {
+                            if (row.original.user?.id) {
+                                handleResetPassword(row.original.user.id);
+                            }
+                            closeMenu();
+                        }}
+                        disabled={isResettingPassword || !row.original.user?.id}
+                    >
+                        <ListItemIcon>
+                            <FuseSvgIcon>heroicons-outline:key</FuseSvgIcon>
+                        </ListItemIcon>
+                        Reset Password
+                    </MenuItem>,
                     <MenuItem
                         key="delete"
                         onClick={() => {

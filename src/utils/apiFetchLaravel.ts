@@ -63,14 +63,34 @@ const apiFetchLaravel = async (endpoint: string, options: FetchOptions = {}) => 
 					errorData = { message: `HTTP ${response.status}: Failed to parse error response` };
 				}
 			} else {
-				errorData = { message: `HTTP ${response.status}` };
+				// Try to read as text for non-JSON responses
+				try {
+					const text = await response.text();
+					errorData = { message: text || `HTTP ${response.status}` };
+				} catch (textError) {
+					errorData = { message: `HTTP ${response.status}` };
+				}
 			}
+			
+			// Log server errors (500+) with more context
+			if (response.status >= 500) {
+				console.error(`Server Error in apiFetch: Error: FetchApiError: ${response.status}`, {
+					endpoint: `${API_BASE_URL}${endpoint}`,
+					method: config.method || 'GET',
+					errorData,
+					hasAuthHeader: config.headers && 'Authorization' in (config.headers as Record<string, string>)
+				});
+			}
+			
 			throw new FetchApiError(response.status, errorData);
 		}
 
 		return response;
 	} catch (error) {
-		console.error('Error in apiFetch:', error);
+		// Only log if it's not already a FetchApiError (to avoid duplicate logs)
+		if (!(error instanceof FetchApiError)) {
+			console.error('Error in apiFetch:', error);
+		}
 		throw error;
 	}
 };

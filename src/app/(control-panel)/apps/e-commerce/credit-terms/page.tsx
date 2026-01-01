@@ -31,7 +31,7 @@ function CreditTermsPage() {
         
         if (!isSupplier && !isAdmin) {
             // Redirect non-suppliers
-            router.push('/dashboards/vendor');
+            router.push('/dashboards/seller');
         }
     }, [session, status, router]);
     
