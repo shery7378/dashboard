@@ -1,5 +1,5 @@
 import { createSelector, WithSlice } from '@reduxjs/toolkit';
-import { apiService as api } from '@/store/apiService';
+import { apiServiceLaravel as api } from '@/store/apiServiceLaravel';
 import BudgetWidgetType from '../finance/widgets/types/BudgetWidgetType';
 import BudgetDistributionDataType from './tabs/budget/widgets/types/BudgetDistributionDataType';
 import ExpensesDataType from './tabs/budget/widgets/types/ExpensesDataType';
@@ -32,7 +32,7 @@ const ProjectDashboardApi = api
 				providesTags: ['project_dashboard_projects']
 			})
 		}),
-		overrideExisting: false
+		overrideExisting: true
 	});
 export default ProjectDashboardApi;
 

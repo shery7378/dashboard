@@ -1,17 +1,18 @@
 import { motion } from 'motion/react';
-import SummaryWidget from '../../../project/tabs/home/widgets/SummaryWidget';
-import OverdueWidget from '../../../project/tabs/home/widgets/OverdueWidget';
-import NewOrdersWidget from '../../../project/tabs/home/widgets/NewOrdersWidget';
-import FeaturesWidget from '../../../project/tabs/home/widgets/FeaturesWidget';
-import StoreSalesWidget from '../../../project/tabs/home/widgets/StoreSalesWidget';
-import TaskDistributionWidget from '../../../project/tabs/home/widgets/TaskDistributionWidget';
-import ScheduleWidget from '../../../project/tabs/home/widgets/ScheduleWidget';
+import SummaryWidget from '../../../vendor/tabs/home/widgets/SummaryWidget';
+import OverdueWidget from '../../../vendor/tabs/home/widgets/OverdueWidget';
+import IssuesWidget from '../../../vendor/tabs/home/widgets/IssuesWidget';
+import FeaturesWidget from '../../../vendor/tabs/home/widgets/FeaturesWidget';
+import GithubIssuesWidget from '../../../vendor/tabs/home/widgets/GithubIssuesWidget';
+import TaskDistributionWidget from '../../../vendor/tabs/home/widgets/TaskDistributionWidget';
+import ScheduleWidget from '../../../vendor/tabs/home/widgets/ScheduleWidget';
 import OrdersTableForHome from '@/app/(control-panel)/apps/e-commerce/orders/OrdersTableForHome';
 import ProductsTableForHome from '@/app/(control-panel)/apps/e-commerce/products/ProductsTableForHome';
 
 /**
  * The Seller HomeTab component.
  * Shows seller-specific dashboard widgets (no wholesale catalog access).
+ * Uses vendor API endpoints for seller/vendor authorization.
  */
 function HomeTab() {
 	const container = {
@@ -41,7 +42,7 @@ function HomeTab() {
 				<OverdueWidget />
 			</motion.div>
 			<motion.div variants={item}>
-				<NewOrdersWidget />
+				<IssuesWidget />
 			</motion.div>
 			<motion.div variants={item}>
 				<FeaturesWidget />
@@ -50,7 +51,7 @@ function HomeTab() {
 				variants={item}
 				className="sm:col-span-2 md:col-span-4"
 			>
-				<StoreSalesWidget />
+				<GithubIssuesWidget />
 			</motion.div>
 
 			<motion.div

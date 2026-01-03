@@ -44,6 +44,36 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 /**
+ * Helper function to extract clean currency code from potentially serialized format.
+ * Handles PHP serialized strings like s:3:"GBP"; and ensures clean currency codes.
+ */
+function extractCurrencyCode(value: any): string {
+	if (!value) return 'GBP';
+	
+	const str = String(value).trim();
+	
+	// If it's already a clean 3-letter currency code, return it
+	if (/^[A-Z]{3}$/.test(str)) {
+		return str;
+	}
+	
+	// Try to extract from PHP serialized format: s:3:"GBP"; or : s:3:"GBP";
+	const serializedMatch = str.match(/s:\d+:"([A-Z]{3})"/i);
+	if (serializedMatch && serializedMatch[1]) {
+		return serializedMatch[1].toUpperCase();
+	}
+	
+	// Try to extract any 3-letter uppercase code from the string
+	const codeMatch = str.match(/\b([A-Z]{3})\b/);
+	if (codeMatch && codeMatch[1]) {
+		return codeMatch[1];
+	}
+	
+	// Fallback to GBP if we can't extract a valid code
+	return 'GBP';
+}
+
+/**
  * The StoreSalesWidget widget - Shows sales analytics over time
  */
 function StoreSalesWidget() {
@@ -65,7 +95,8 @@ function StoreSalesWidget() {
 				});
 				
 				if (response.data?.default_currency) {
-					const currency = response.data.default_currency;
+					const rawCurrency = response.data.default_currency;
+					const currency = extractCurrencyCode(rawCurrency);
 					setDefaultCurrency(currency);
 					setCurrencySymbol(CURRENCY_SYMBOLS[currency] || currency);
 				}
