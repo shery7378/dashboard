@@ -187,13 +187,15 @@ function Product() {
 	const { data: session } = useSession();
 	const sessionStoreId = session?.db?.store_id;
 	
-	// Check if user is vendor or supplier
+	// Check if user is vendor, supplier, or admin
 	const user = session?.user || session?.db;
 	const userRoles = user?.role || session?.db?.role || [];
 	const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
 	const isVendor = roles.includes('vendor');
 	const isSupplier = roles.includes('supplier');
+	const isAdmin = roles.includes('admin') || roles.includes('super_admin') || roles.includes('administrator');
 	const isVendorOrSupplier = isVendor || isSupplier;
+	const showListingCreation = isVendorOrSupplier || isAdmin; // Show for vendors, suppliers, and admins
 
 	useEffect(() => {
 		if (productId === 'new') {
@@ -314,8 +316,8 @@ function Product() {
 		// return <FuseLoading />;
 	}
 
-	// Show MultiKonnect listing creation interface for vendors/suppliers (both new and edit)
-	if (isVendorOrSupplier) {
+	// Show MultiKonnect listing creation interface for vendors/suppliers/admins (both new and edit)
+	if (showListingCreation) {
 		return (
 			<FormProvider {...methods}>
 				<MultiKonnectListingCreation />
