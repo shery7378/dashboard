@@ -11,20 +11,25 @@ export default function ProductLayout({
 	const params = useParams<{ productId: string }>();
 	const productId = params?.productId;
 
-	// Hide sidebar navigation for all product edit pages (both new and existing)
-	// This hides the main app sidebar (Dashboard, Analytics, etc.) only on listing edit page
-	const shouldHideSidebar = true; // Always hide for product edit pages
+	// Hide sidebar navigation and toolbar for all product edit pages (both new and existing)
+	// This hides the main app sidebar (Dashboard, Analytics, etc.) and top toolbar only on listing edit page
+	const shouldHideUI = true; // Always hide for product edit pages
 
 	useEffect(() => {
-		if (!shouldHideSidebar) return;
+		if (!shouldHideUI) return;
 
-		// Hide main sidebar navigation elements
-		const hideSidebar = () => {
+		// Hide main sidebar navigation and toolbar elements
+		const hideUI = () => {
 			const selectors = [
 				'#fuse-navbar',
+				'#fuse-toolbar',
 				'[id*="fuse-navbar"]',
+				'[id*="fuse-toolbar"]',
 				'[class*="NavbarStyle"]',
+				'[class*="ToolbarLayout"]',
 				'[class*="navbar"]',
+				'[class*="toolbar"]',
+				'.MuiToolbar-root',
 			];
 
 			selectors.forEach(selector => {
@@ -36,13 +41,13 @@ export default function ProductLayout({
 		};
 
 		// Hide immediately
-		hideSidebar();
+		hideUI();
 
 		// Also hide after a short delay to catch any dynamically rendered elements
-		const timeout = setTimeout(hideSidebar, 100);
+		const timeout = setTimeout(hideUI, 100);
 
 		// Use MutationObserver to catch any elements added dynamically
-		const observer = new MutationObserver(hideSidebar);
+		const observer = new MutationObserver(hideUI);
 		observer.observe(document.body, {
 			childList: true,
 			subtree: true
@@ -52,17 +57,22 @@ export default function ProductLayout({
 			clearTimeout(timeout);
 			observer.disconnect();
 		};
-	}, [shouldHideSidebar]);
+	}, [shouldHideUI]);
 
 	return (
 		<>
-			{shouldHideSidebar && (
+			{shouldHideUI && (
 				<style dangerouslySetInnerHTML={{
 					__html: `
 						#fuse-navbar,
+						#fuse-toolbar,
 						[id*="fuse-navbar"],
+						[id*="fuse-toolbar"],
 						[class*="NavbarStyle"],
-						[class*="navbar"] {
+						[class*="ToolbarLayout"],
+						[class*="navbar"],
+						[class*="toolbar"],
+						.MuiToolbar-root {
 							display: none !important;
 						}
 					`
