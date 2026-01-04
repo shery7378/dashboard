@@ -40,6 +40,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Divider from '@mui/material/Divider';
+import { useSnackbar } from 'notistack';
 
 interface ListingStep {
 	id: number;
@@ -64,6 +65,7 @@ function MultiKonnectListingCreation() {
 	const { productId } = useParams<{ productId: string }>();
 	const { data: session } = useSession();
 	const navigate = useNavigate();
+	const { enqueueSnackbar } = useSnackbar();
 	
 	const [currentStep, setCurrentStep] = useState(1);
 	const [mpidSearch, setMpidSearch] = useState('');
@@ -1797,6 +1799,17 @@ function MultiKonnectListingCreation() {
 	// Removed galleryImages and variants from dependencies to reduce re-runs
 
 	const handlePublishClick = () => {
+		// Validate "New" condition requires at least one picture
+		if (condition === 'New' && (!galleryImages || galleryImages.length === 0)) {
+			enqueueSnackbar('New condition requires at least one picture. Please add at least one image before publishing.', { 
+				variant: 'error' 
+			});
+			// Scroll to media section
+			setCurrentStep(2);
+			handleStepClick(2);
+			return;
+		}
+
 		// Ensure variants are saved to form before publishing
 		// This prevents race condition where publish happens before useEffect saves variants
 		if (variants.length > 0) {
@@ -2351,8 +2364,8 @@ function MultiKonnectListingCreation() {
 			</div>
 		</header>
 
-			<div className="flex flex-1 overflow-hidden min-h-0">
-				<div className="flex w-full">
+			<div className="flex flex-1 overflow-hidden min-h-0 justify-center">
+				<div className="flex w-full max-w-[1920px]">
 				{/* Left Sidebar - Listing Steps - Light Grey */}
 				<aside 
 					className="w-[280px] border-r overflow-y-auto flex-shrink-0" 
@@ -4080,37 +4093,53 @@ function MultiKonnectListingCreation() {
 									<Controller
 										name="condition"
 										control={control}
-										render={({ field }) => (
-											<FormControl fullWidth size="small">
-												<InputLabel>Condition *</InputLabel>
-												<Select 
-													{...field} 
-													value={condition}
-													label="Condition *"
-													sx={{
-														borderRadius: '12px',
-														fontSize: '14px',
-														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db',
-														},
-														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af',
-														},
-														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#3b82f6',
-															borderWidth: '2px',
-														},
-													}}
-												>
-													<MenuItem value="New">New</MenuItem>
-													<MenuItem value="Like New">Like New</MenuItem>
-													<MenuItem value="Refurbished">Refurbished</MenuItem>
-													<MenuItem value="Used - Excellent">Used - Excellent</MenuItem>
-													<MenuItem value="Used - Good">Used - Good</MenuItem>
-													<MenuItem value="Used - Fair">Used - Fair</MenuItem>
-												</Select>
-											</FormControl>
-										)}
+										render={({ field }) => {
+											const hasError = condition === 'New' && (!galleryImages || galleryImages.length === 0);
+											return (
+												<FormControl fullWidth size="small" error={hasError}>
+													<InputLabel>Condition *</InputLabel>
+													<Select 
+														{...field} 
+														value={condition}
+														label="Condition *"
+														onChange={(e) => {
+															const newCondition = e.target.value;
+															field.onChange(e);
+															// Validate if "New" is selected and no images
+															if (newCondition === 'New' && (!galleryImages || galleryImages.length === 0)) {
+																setValue('condition', newCondition, { shouldValidate: true });
+															}
+														}}
+														sx={{
+															borderRadius: '12px',
+															fontSize: '14px',
+															'& .MuiOutlinedInput-notchedOutline': {
+																borderColor: hasError ? '#ef4444' : '#d1d5db',
+															},
+															'&:hover .MuiOutlinedInput-notchedOutline': {
+																borderColor: hasError ? '#ef4444' : '#9ca3af',
+															},
+															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+																borderColor: hasError ? '#ef4444' : '#3b82f6',
+																borderWidth: '2px',
+															},
+														}}
+													>
+														<MenuItem value="New">New</MenuItem>
+														<MenuItem value="Like New">Like New</MenuItem>
+														<MenuItem value="Refurbished">Refurbished</MenuItem>
+														<MenuItem value="Used - Excellent">Used - Excellent</MenuItem>
+														<MenuItem value="Used - Good">Used - Good</MenuItem>
+														<MenuItem value="Used - Fair">Used - Fair</MenuItem>
+													</Select>
+													{hasError && (
+														<Typography variant="caption" sx={{ color: '#ef4444', marginTop: '4px', fontSize: '12px' }}>
+															New condition requires at least one picture
+														</Typography>
+													)}
+												</FormControl>
+											);
+										}}
 									/>
 
 									{/* IMEI/Serial Number */}
