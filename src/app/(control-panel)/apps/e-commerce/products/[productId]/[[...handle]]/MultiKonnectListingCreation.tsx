@@ -70,6 +70,8 @@ function MultiKonnectListingCreation() {
 	const [currentStep, setCurrentStep] = useState(1);
 	const [mpidSearch, setMpidSearch] = useState('');
 	const [mpidMatched, setMpidMatched] = useState(false);
+	const [sidebarOpen, setSidebarOpen] = useState(false);
+	const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 	const [matchedProduct, setMatchedProduct] = useState<any>(null);
 	const [variants, setVariants] = useState<Variant[]>([]);
 	const [storageOptions, setStorageOptions] = useState<string[]>([]);
@@ -2243,18 +2245,43 @@ function MultiKonnectListingCreation() {
 
 		{/* Top Navigation Bar - Dark Navy Header */}
 		<header 
-			className="px-6 py-4 flex items-center justify-between flex-shrink-0 sticky top-0 z-50" 
+			className="px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0 sticky top-0 z-50" 
 			style={{ 
 				backgroundColor: '#0f172a',
-				height: '60px',
+				minHeight: '60px',
 				boxShadow: 'none',
 				borderBottom: 'none'
 			}}
 		>
-			<div className="flex items-center space-x-3">
+			<div className="flex items-center space-x-2 sm:space-x-3">
+				{/* Back Button */}
+				<IconButton
+					onClick={handleBack}
+					sx={{
+						color: '#ffffff',
+						padding: '8px',
+						marginRight: { xs: '4px', sm: '8px' }
+					}}
+				>
+					<FuseSvgIcon>heroicons-outline:arrow-left</FuseSvgIcon>
+				</IconButton>
+				
+				{/* Sidebar Toggle - Mobile */}
+				<IconButton
+					onClick={() => setSidebarOpen(!sidebarOpen)}
+					sx={{
+						color: '#ffffff',
+						padding: '8px',
+						marginRight: { xs: '4px', sm: '0' },
+						display: { xs: 'flex', lg: 'none' }
+					}}
+				>
+					<FuseSvgIcon>heroicons-outline:bars-3</FuseSvgIcon>
+				</IconButton>
+
 				{/* Orange Circle Logo */}
 				<div 
-					className="rounded-full flex-shrink-0"
+					className="rounded-full flex-shrink-0 hidden sm:block"
 					style={{ 
 						backgroundColor: '#ff6536',
 						width: '8px',
@@ -2267,20 +2294,21 @@ function MultiKonnectListingCreation() {
 				<Typography 
 					variant="h6" 
 					sx={{ 
-						fontSize: '16px', 
+						fontSize: { xs: '14px', sm: '16px' }, 
 						fontWeight: 700,
 						color: '#ffffff',
 						letterSpacing: '0.01em',
 						lineHeight: 1.2,
-						marginRight: '12px'
+						marginRight: { xs: '8px', sm: '12px' }
 					}}
 				>
 					MultiKonnect
 				</Typography>
-				{/* Create Listing Button */}
+				{/* Create Listing Button - Hidden on mobile */}
 				<Button
 					variant="text"
 					size="small"
+					className="hidden sm:flex"
 					sx={{
 						color: '#ffffff',
 						textTransform: 'none',
@@ -2298,16 +2326,29 @@ function MultiKonnectListingCreation() {
 					Create Listing
 				</Button>
 			</div>
-			<div className="flex items-center space-x-2">
+			<div className="flex items-center space-x-1 sm:space-x-2">
+				{/* Right Sidebar Toggle - Mobile */}
+				<IconButton
+					onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+					sx={{
+						color: '#ffffff',
+						padding: '8px',
+						display: { xs: 'flex', lg: 'none' }
+					}}
+				>
+					<FuseSvgIcon>heroicons-outline:chart-bar</FuseSvgIcon>
+				</IconButton>
+
 				<Button 
 					variant="text" 
 					size="small"
 					onClick={handleSaveDraft}
+					className="hidden sm:flex"
 					sx={{
 						color: '#ffffff',
 						textTransform: 'none',
-						fontSize: '14px',
-						padding: '8px 16px',
+						fontSize: { xs: '12px', sm: '14px' },
+						padding: { xs: '6px 12px', sm: '8px 16px' },
 						minHeight: '36px',
 						fontWeight: 500,
 						borderRadius: '8px',
@@ -2317,16 +2358,18 @@ function MultiKonnectListingCreation() {
 						},
 					}}
 				>
-					Save draft
+					<span className="hidden md:inline">Save draft</span>
+					<span className="md:hidden">Save</span>
 				</Button>
 				<Button 
 					variant="text" 
 					size="small"
+					className="hidden sm:flex"
 					sx={{
 						color: '#ffffff',
 						textTransform: 'none',
-						fontSize: '14px',
-						padding: '8px 16px',
+						fontSize: { xs: '12px', sm: '14px' },
+						padding: { xs: '6px 12px', sm: '8px 16px' },
 						minHeight: '36px',
 						fontWeight: 500,
 						borderRadius: '8px',
@@ -2346,8 +2389,8 @@ function MultiKonnectListingCreation() {
 						backgroundColor: '#ff6536',
 						color: '#fff',
 						textTransform: 'none',
-						fontSize: '14px',
-						padding: '8px 20px',
+						fontSize: { xs: '12px', sm: '14px' },
+						padding: { xs: '6px 16px', sm: '8px 20px' },
 						fontWeight: 600,
 						borderRadius: '8px',
 						minHeight: '36px',
@@ -2365,15 +2408,27 @@ function MultiKonnectListingCreation() {
 		</header>
 
 			<div className="flex flex-1 overflow-hidden min-h-0 justify-center">
-				<div className="flex w-full max-w-[1920px]">
+				<div className="flex w-full max-w-[1920px] relative">
+				{/* Mobile Sidebar Overlay */}
+				{sidebarOpen && (
+					<div 
+						className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+						onClick={() => setSidebarOpen(false)}
+					/>
+				)}
+				
 				{/* Left Sidebar - Listing Steps - Light Grey */}
 				<aside 
-					className="w-[280px] border-r overflow-y-auto flex-shrink-0" 
+					className={`fixed lg:static w-[280px] border-r overflow-y-auto flex-shrink-0 z-50 lg:z-auto transition-transform duration-300 ${
+						sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+					}`}
 					style={{ 
 						backgroundColor: '#f8f9fa',
 						borderColor: '#e5e7eb',
 						borderRightWidth: '1px',
-						height: 'calc(100vh - 60px)'
+						height: 'calc(100vh - 60px)',
+						top: '60px',
+						left: 0
 					}}
 				>
 					<div className="p-4">
@@ -2449,18 +2504,19 @@ function MultiKonnectListingCreation() {
 
 				{/* Main Content Area */}
 				<main 
-					className="flex-1 overflow-y-auto min-w-0" 
+					className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8" 
 					style={{ 
 						backgroundColor: '#ffffff',
-						padding: '24px 32px',
+						paddingTop: '16px',
+						paddingBottom: '16px',
 						height: 'calc(100vh - 60px)'
 					}}
 				>
-					<div className="w-full max-w-[1200px] mx-auto space-y-6">
+					<div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-6">
 						{/* Product Identity Section - Step 1 */}
 						<section 
 							ref={(el) => setSectionRef(1, el)}
-							className="p-6 rounded-xl border" 
+							className="p-4 sm:p-6 rounded-xl border" 
 							id="identity"
 							data-step-id="1"
 							style={{
@@ -2478,7 +2534,7 @@ function MultiKonnectListingCreation() {
 								Match to a Master Product (MPID) to lock canonical specs. You can still add merchant-specific notes.
 							</Typography>
 
-							<div className="grid grid-cols-3 gap-3 mb-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
 								<TextField
 									fullWidth
 									placeholder="Search name or GTIN/EAN/U"
@@ -2545,7 +2601,7 @@ function MultiKonnectListingCreation() {
 							</Typography>
 
 							{/* Category Fields */}
-							<div className="grid grid-cols-2 gap-3 mb-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 								<Controller
 									name="main_category"
 									control={control}
@@ -2827,7 +2883,7 @@ function MultiKonnectListingCreation() {
 						{/* Media Section - Step 2 */}
 						<section 
 							ref={(el) => setSectionRef(2, el)}
-							className="p-6 rounded-xl border" 
+							className="p-4 sm:p-6 rounded-xl border" 
 							id="media"
 							data-step-id="2"
 							style={{
@@ -3481,7 +3537,7 @@ function MultiKonnectListingCreation() {
 							<Typography variant="h6" className="font-semibold mb-2 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
 								Pricing & intelligence
 							</Typography>
-							<div className="grid grid-cols-2 gap-3 mb-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 								<Paper 
 									className="p-3"
 									sx={{
@@ -3592,7 +3648,7 @@ function MultiKonnectListingCreation() {
 							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
 								Same-day & stores
 							</Typography>
-							<div className="grid grid-cols-2 gap-3 mb-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 								<Controller
 									name="store_postcode"
 									control={control}
@@ -4511,7 +4567,7 @@ function MultiKonnectListingCreation() {
 							<Typography variant="body2" className="text-gray-600 mb-3" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
 								Exclusive MultiKonnect safeguards to reduce fraud and elevate buyer confidence.
 							</Typography>
-							<div className="grid grid-cols-2 gap-3 mb-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 								<Controller
 									name="kyc_tier"
 									control={control}
@@ -4904,13 +4960,25 @@ function MultiKonnectListingCreation() {
 					</div>
 				</main>
 
+				{/* Mobile Right Sidebar Overlay */}
+				{rightSidebarOpen && (
+					<div 
+						className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+						onClick={() => setRightSidebarOpen(false)}
+					/>
+				)}
+
 				{/* Right Sidebar - Listing Score & Actions */}
 				<aside 
-					className="w-[320px] bg-white border-l overflow-y-auto flex-shrink-0" 
+					className={`fixed lg:static w-[320px] bg-white border-l overflow-y-auto flex-shrink-0 z-50 lg:z-auto transition-transform duration-300 ${
+						rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+					}`}
 					style={{ 
 						borderLeftColor: '#e5e7eb',
 						borderLeftWidth: '1px',
-						height: 'calc(100vh - 60px)'
+						height: 'calc(100vh - 60px)',
+						top: '60px',
+						right: 0
 					}}
 				>
 					<div className="p-5 space-y-5">
@@ -5102,14 +5170,14 @@ function MultiKonnectListingCreation() {
 
 			{/* Bottom Bar - Light Grey */}
 			<div 
-				className="border-t px-6 py-3 flex items-center justify-between flex-shrink-0 sticky bottom-0 z-40" 
+				className="border-t px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 flex-shrink-0 sticky bottom-0 z-40" 
 				style={{ 
 					backgroundColor: '#f3f4f6',
 					borderTopColor: '#e5e7eb',
-					height: '56px'
+					minHeight: '56px'
 				}}
 			>
-				<div className="flex items-center space-x-3">
+				<div className="flex items-center space-x-2 sm:space-x-3 flex-wrap justify-center">
 					{mpidMatched && (
 						<Chip 
 							label="MPID matched" 
@@ -5162,16 +5230,17 @@ function MultiKonnectListingCreation() {
 						/>
 					)}
 				</div>
-				<div className="flex items-center space-x-2">
+				<div className="flex items-center space-x-1 sm:space-x-2">
 					<Button 
 						variant="text" 
 						size="small"
 						onClick={handleSaveDraft}
+						className="hidden sm:flex"
 						sx={{
 							color: '#374151',
 							textTransform: 'none',
-							fontSize: '13px',
-							padding: '8px 16px',
+							fontSize: { xs: '11px', sm: '13px' },
+							padding: { xs: '6px 12px', sm: '8px 16px' },
 							borderRadius: '8px',
 							minHeight: '36px',
 							fontWeight: 500,
@@ -5187,11 +5256,12 @@ function MultiKonnectListingCreation() {
 						variant="text" 
 						size="small"
 						onClick={handlePreviewClick}
+						className="hidden sm:flex"
 						sx={{
 							color: '#374151',
 							textTransform: 'none',
-							fontSize: '13px',
-							padding: '8px 16px',
+							fontSize: { xs: '11px', sm: '13px' },
+							padding: { xs: '6px 12px', sm: '8px 16px' },
 							borderRadius: '8px',
 							minHeight: '36px',
 							fontWeight: 500,
@@ -5210,8 +5280,8 @@ function MultiKonnectListingCreation() {
 							backgroundColor: '#ff6536',
 							color: '#fff',
 							textTransform: 'none',
-							fontSize: '13px',
-							padding: '8px 20px',
+							fontSize: { xs: '11px', sm: '13px' },
+							padding: { xs: '6px 16px', sm: '8px 20px' },
 							fontWeight: 600,
 							borderRadius: '8px',
 							minHeight: '36px',
