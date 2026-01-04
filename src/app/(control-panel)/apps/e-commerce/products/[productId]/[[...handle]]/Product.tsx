@@ -106,7 +106,12 @@ function Product() {
 	if (routeParams.handle && Array.isArray(routeParams.handle) && routeParams.handle.length > 0) {
 		// If productId is actually a slug (not numeric), we might need to handle differently
 		// But typically productId should be numeric
-		console.warn('Route has handle segments:', routeParams.handle);
+		// Only log in development to avoid console noise
+		if (process.env.NODE_ENV === 'development') {
+			console.log('Route has handle segments:', routeParams.handle);
+		}
+		// Ensure productId is extracted correctly - if handle contains the actual ID, use it
+		// Otherwise, productId from routeParams should be correct
 	}
 
 	// Ensure productId is a string and extract just the ID part (in case it includes slug)

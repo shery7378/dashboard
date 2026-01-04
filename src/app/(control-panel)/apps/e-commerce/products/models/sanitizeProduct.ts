@@ -96,10 +96,14 @@ export function sanitizeProduct(data: PartialDeep<EcommerceProduct>): EcommerceP
         }
     }
 
+    // Extract store_postcode and delivery fields from data or extraFields
+    const extraFields = data.extraFields ?? {};
+    const extraFieldsParsed = typeof extraFields === 'string' ? JSON.parse(extraFields) : extraFields;
+    
     return {
         id: data.id ?? '',
         attributes: [],
-        extraFields: {},
+        extraFields: extraFieldsParsed,
         store_id: data.store_id ?? '',
         name: data.name ?? '',
         slug: data.slug ?? slugify(data.name ?? ''),
@@ -135,5 +139,19 @@ export function sanitizeProduct(data: PartialDeep<EcommerceProduct>): EcommerceP
         created_at: data.created_at ?? '',
         updated_at: data.updated_at ?? '',
         deleted_at: data.deleted_at ?? null,
+        // Delivery and postal code fields
+        store_postcode: data.store_postcode ?? extraFieldsParsed?.store_postcode ?? extraFieldsParsed?.postcode ?? '',
+        delivery_radius: data.delivery_radius ?? extraFieldsParsed?.delivery_radius ?? null,
+        delivery_slots: data.delivery_slots ?? extraFieldsParsed?.delivery_slots ?? '12-3pm',
+        ready_in_minutes: data.ready_in_minutes ?? extraFieldsParsed?.ready_in_minutes ?? null,
+        enable_pickup: data.enable_pickup ?? extraFieldsParsed?.enable_pickup ?? false,
+        shipping_charge_regular: data.shipping_charge_regular ?? extraFieldsParsed?.shipping_charge_regular ?? 0,
+        shipping_charge_same_day: data.shipping_charge_same_day ?? extraFieldsParsed?.shipping_charge_same_day ?? 0,
+        // QC & Policies fields
+        condition: data.condition ?? extraFieldsParsed?.condition ?? null,
+        condition_notes: data.condition_notes ?? extraFieldsParsed?.condition_notes ?? null,
+        returns: data.returns ?? extraFieldsParsed?.returns ?? null,
+        warranty: data.warranty ?? extraFieldsParsed?.warranty ?? null,
+        box_contents: data.box_contents ?? extraFieldsParsed?.box_contents ?? null,
     };
 }

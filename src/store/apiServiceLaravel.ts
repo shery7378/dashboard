@@ -91,11 +91,44 @@ export const globalHeaders = {
   // 'Origin': BASEURLAPI,
 };
 
+// Function to check if we're already handling a 401 (using sessionStorage for reliability)
+function isHandling401(): boolean {
+  if (typeof window === 'undefined') return false;
+  return sessionStorage.getItem('_handling_401') === 'true';
+}
+
+// Function to set the 401 handling flag
+function setHandling401(value: boolean): void {
+  if (typeof window === 'undefined') return;
+  if (value) {
+    sessionStorage.setItem('_handling_401', 'true');
+  } else {
+    sessionStorage.removeItem('_handling_401');
+  }
+}
+
+// Clear the flag when on login page (in case user navigated there manually)
+// This runs only on the client side
+if (typeof window !== 'undefined' && window.location.pathname.includes('/sign-in')) {
+  setHandling401(false);
+}
+
 const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, object, FetchBaseQueryMeta> = async (
   args,
   api,
   extraOptions
 ) => {
+  // Early exit if we're already handling a 401 redirect (prevents multiple simultaneous requests from all processing)
+  if (typeof window !== 'undefined' && isHandling401()) {
+    // Return an error immediately without making the request
+    return {
+      error: {
+        status: 401,
+        data: { message: 'Authentication required. Redirecting to login...' },
+      } as FetchBaseQueryError,
+    };
+  }
+
   // Get token using the helper function
   const token = await getAuthToken();
   
@@ -231,45 +264,50 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
     console.warn('⚠️ Page expired (419). If using Bearer token, remove credentials: "include" from baseQuery.');
   }
 
-  // ✅ Handle 401 Unauthorized errors - redirect to login if token is missing
+  // ✅ Handle 401 Unauthorized errors - clear invalid tokens and redirect to login
   if (result.error?.status === 401) {
+    // Skip if already on sign-in page
+    if (typeof window !== 'undefined' && window.location.pathname.includes('/sign-in')) {
+      return result;
+    }
+    
     const requestUrl = typeof args === 'string' ? args : (args as FetchArgs).url;
-    const sessionAny = session as any;
     
-    // Always log 401 errors in development with detailed info
-    if (process.env.NODE_ENV === 'development') {
-      console.error('🚨 401 Unauthorized Error:', {
-        url: requestUrl,
-        hasSession: !!session,
-        hasToken: !!token,
-        tokenType: token ? typeof token : 'none',
-        tokenLength: token ? token.length : 0,
-        tokenPrefix: token ? `${token.substring(0, 15)}...` : 'none',
-        sessionKeys: session ? Object.keys(session) : [],
-        sessionUser: session?.user ? {
-          email: session.user.email,
-          id: (session.user as any).id
-        } : 'no user',
-        accessAuthToken: sessionAny?.accessAuthToken ? `${String(sessionAny.accessAuthToken).substring(0, 15)}...` : 'missing',
-        accessToken: sessionAny?.accessToken ? `${String(sessionAny.accessToken).substring(0, 15)}...` : 'missing',
-        localStorageToken: typeof window !== 'undefined' ? (localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token') ? 'exists' : 'missing') : 'N/A',
-        cookieToken: typeof window !== 'undefined' ? (Cookies.get('auth_token') || Cookies.get('sanctum_token') ? 'exists' : 'missing') : 'N/A',
-        errorData: result.error?.data,
-        suggestion: !token ? 'Token is missing - check if session is loaded' : 'Token exists but Laravel rejected it - check if token is valid/expired'
-      });
+    // Set flag FIRST to prevent race conditions with multiple simultaneous requests
+    // This must happen before any other checks to ensure atomicity
+    const wasHandling = isHandling401();
+    if (!wasHandling) {
+      setHandling401(true);
     }
     
-    // Only redirect if we're in the browser and not already on the login page
-    if (typeof window !== 'undefined' && !window.location.pathname.includes('/sign-in')) {
-      // Check if token exists - if not, redirect to login
-      if (!token) {
-        console.warn('No authentication token found. Redirecting to login...');
-        window.location.href = '/sign-in';
-      } else {
-        // Token exists but was rejected - might be expired
-        console.warn('Token exists but request was unauthorized. Token may be expired or invalid.');
+    // Only do cleanup/redirect if this is the first 401 we're handling
+    if (!wasHandling && typeof window !== 'undefined') {
+      // Log once for the first 401 (only in dev, and only once)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚨 401 Unauthorized - Redirecting to login (tokens cleared)');
       }
+      
+      // Clear all token storage immediately (synchronous)
+      localStorage.removeItem('token');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('access_token');
+      
+      // Clear cookies (synchronous)
+      Cookies.remove('auth_token');
+      Cookies.remove('sanctum_token');
+      
+      // Redirect IMMEDIATELY - this stops all JavaScript execution
+      // Using replace() instead of href for immediate navigation without history entry
+      window.location.replace('/sign-in');
     }
+    
+    // Return error for all 401s (prevents RTK Query from retrying or processing further)
+    return {
+      error: {
+        status: 401,
+        data: { message: 'Unauthorized' },
+      } as FetchBaseQueryError,
+    };
   }
 
   // If server returned text/HTML, attach as string for better error visibility
@@ -281,11 +319,6 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
     } else {
       (result.error as any).data = { message: text } as any;
     }
-  }
-
-  if (result.error && result.error.status === 401) {
-    console.error('Unauthorized request:', result.error);
-    // Add token refresh logic here if needed
   }
 
   return result;

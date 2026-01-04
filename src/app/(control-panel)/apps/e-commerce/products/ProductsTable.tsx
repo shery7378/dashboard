@@ -111,18 +111,68 @@ function ProductsTable() {
     {
       accessorKey: 'categories',
       header: t('category'),
-      accessorFn: (row) => (
-        <div className="flex flex-wrap space-x-0.5">
-          {Array.isArray(row.main_category?.children) && row.main_category?.children.length > 0 ? (
-            <>
-              <Chip key={row.main_category.id} className="text-sm" size="small" color="default" label={row.main_category.name} />
-              {row.subcategories?.map((sub: any) => (
-                <Chip key={sub.id} className="text-sm" size="small" color="default" label={sub.name} />
-              ))}
-            </>
-          ) : '-'}
-        </div>
-      )
+      Cell: ({ row }) => {
+        const mainCategory = row.original.main_category;
+        const subcategories = (row.original as any).subcategories || [];
+        const categories = row.original.categories || [];
+        
+        // Collect all categories to display
+        const categoryChips: any[] = [];
+        
+        // Add main category if it exists
+        if (mainCategory && mainCategory.name) {
+          categoryChips.push(
+            <Chip 
+              key={`main-${mainCategory.id || mainCategory.name}`} 
+              className="text-sm" 
+              size="small" 
+              color="default" 
+              label={mainCategory.name} 
+            />
+          );
+        }
+        
+        // Add subcategories if they exist
+        if (Array.isArray(subcategories) && subcategories.length > 0) {
+          subcategories.forEach((sub: any) => {
+            if (sub && sub.name) {
+              categoryChips.push(
+                <Chip 
+                  key={`sub-${sub.id || sub.name}`} 
+                  className="text-sm" 
+                  size="small" 
+                  color="default" 
+                  label={sub.name} 
+                />
+              );
+            }
+          });
+        }
+        
+        // Fallback: if no main_category or subcategories, try to use categories array
+        if (categoryChips.length === 0 && Array.isArray(categories) && categories.length > 0) {
+          categories.forEach((cat: any, index: number) => {
+            const catName = typeof cat === 'string' ? cat : (cat?.name || cat);
+            if (catName) {
+              categoryChips.push(
+                <Chip 
+                  key={`cat-${index}`} 
+                  className="text-sm" 
+                  size="small" 
+                  color="default" 
+                  label={catName} 
+                />
+              );
+            }
+          });
+        }
+        
+        return (
+          <div className="flex flex-wrap space-x-0.5">
+            {categoryChips.length > 0 ? categoryChips : '-'}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'tags',

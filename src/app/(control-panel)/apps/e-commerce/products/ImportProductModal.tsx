@@ -190,7 +190,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
           </IconButton>
         </Box>
         <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
-          Browse and import products from other vendors. Set your own prices!
+          Browse and import products from other sellers. Set your own prices!
         </Typography>
       </DialogTitle>
       <DialogContent sx={{ p: 3 }}>

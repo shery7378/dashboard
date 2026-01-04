@@ -119,6 +119,8 @@ function ProductHeader() {
     });
     
     const transformed: any = {
+      // Include product ID if available (required for update operations)
+      ...(productId && productId !== 'new' ? { id: String(productId) } : {}),
       ...values,
       // Preserve main_category and subcategory for backend (backend expects these fields)
       // Only include if they exist in form values (don't create fake ones)
@@ -132,12 +134,9 @@ function ProductHeader() {
       price_tax_excl: parseFloat(String(values.price_tax_excl ?? values.price ?? 0)) || 0,
       price_tax_incl: parseFloat(String(values.price_tax_incl ?? values.price ?? 0)) || 0,
       price: parseFloat(String(values.price ?? values.price_tax_excl ?? 0)) || 0,
-      // Database has 'quantity' column, but Laravel model uses 'qty' - send both to be safe
+      // Database has 'quantity' column (not 'qty')
       quantity: parseInt(String(values.quantity ?? 0)) || 0,
-      qty: parseInt(String(values.quantity ?? 0)) || 0, // Laravel model fillable expects 'qty'
-      // Ensure manage_stock and in_stock are set (required for qty to be saved)
-      manage_stock: values.manage_stock !== undefined ? Boolean(values.manage_stock) : ((values.quantity ?? 0) > 0 ? true : false),
-      in_stock: values.in_stock !== undefined ? Boolean(values.in_stock) : ((values.quantity ?? 0) > 0 ? true : false),
+      // Note: manage_stock and in_stock columns don't exist in the products table
       // Transform product_attributes to attributes format (backend expects 'attributes' not 'product_attributes')
       // Backend expects: attributes: [{ attribute_id: number, values: [number, ...] }]
       attributes: (() => {
@@ -369,10 +368,7 @@ function ProductHeader() {
           key !== 'price_tax_excl' && 
           key !== 'price_tax_incl' && 
           key !== 'price' && 
-          key !== 'quantity' && 
-          key !== 'qty' &&
-          key !== 'manage_stock' && // Preserve manage_stock (required for qty)
-          key !== 'in_stock' && // Preserve in_stock (required for qty)
+          key !== 'quantity' &&
           key !== 'attributes' && // Preserve attributes (backend requires this format)
           key !== 'product_attributes' && // Preserve product_attributes for compatibility
           key !== 'description' && // Preserve description
@@ -431,8 +427,8 @@ function ProductHeader() {
     console.log('Final transformed data - tags:', transformed.tags, 'length:', transformed.tags?.length);
     console.log('Final transformed data - attributes:', transformed.attributes, 'length:', transformed.attributes?.length);
     console.log('Final transformed data - product_attributes:', transformed.product_attributes, 'length:', transformed.product_attributes?.length);
-    console.log('Final transformed data - price:', transformed.price, 'price_tax_excl:', transformed.price_tax_excl, 'qty:', transformed.qty, 'quantity:', transformed.quantity);
-    console.log('Final transformed data - manage_stock:', transformed.manage_stock, 'in_stock:', transformed.in_stock);
+    console.log('Final transformed data - price:', transformed.price, 'price_tax_excl:', transformed.price_tax_excl, 'quantity:', transformed.quantity);
+    // Note: manage_stock and in_stock are not in products table (only in variants)
     console.log('Final transformed data - description:', transformed.description, 'length:', transformed.description?.length);
     console.log('Final transformed data - meta_title:', transformed.meta_title, 'length:', transformed.meta_title?.length);
     console.log('Final transformed data - meta_description:', transformed.meta_description, 'length:', transformed.meta_description?.length);
@@ -466,10 +462,40 @@ function ProductHeader() {
         });
       })
       .catch((error) => {
-        console.error('Error updating product:', error.data?.error);
+        console.error('Error updating product:', error);
+        console.error('Error object:', JSON.stringify(error, null, 2));
+        
+        // Extract error message from various possible locations
+        let errorMessage = 'Unknown error occurred';
+        
+        if (error?.data) {
+          // Try different possible error message locations
+          errorMessage = error.data.message || 
+                       error.data.error || 
+                       (typeof error.data === 'string' ? error.data : null) ||
+                       (error.data.errors && typeof error.data.errors === 'object' 
+                         ? JSON.stringify(error.data.errors) 
+                         : null) ||
+                       errorMessage;
+        }
+        
+        if (!errorMessage || errorMessage === 'Unknown error occurred') {
+          errorMessage = error?.message || 
+                        error?.error ||
+                        `HTTP ${error?.status || 'Unknown'} Error`;
+        }
+        
+        console.error('Full error details:', {
+          status: error?.status,
+          originalStatus: error?.originalStatus,
+          data: error?.data,
+          message: errorMessage,
+          fullError: error,
+        });
+        
         enqueueSnackbar(
-          `${t('failed_to_update_product')} ${error.data?.error ?? ''}`,
-          { variant: 'error' }
+          `${t('failed_to_update_product')}: ${errorMessage}`,
+          { variant: 'error', autoHideDuration: 8000 }
         );
       });
   }
@@ -727,15 +753,43 @@ function ProductHeader() {
     }
   }
 
+  const handleBack = () => {
+    // Check if we're on the listing route
+    const currentPath = window.location.pathname;
+    if (currentPath.includes('/listing/')) {
+      navigate('/listing');
+    } else {
+      navigate('/apps/e-commerce/products');
+    }
+  };
+
   return (
     <div className="flex flex-col sm:flex-row flex-1 w-full items-center justify-between space-y-2 sm:space-y-0 py-6 sm:py-8">
       {/* Left section */}
       <div className="flex flex-col items-start space-y-2 sm:space-y-0 w-full sm:max-w-full min-w-0">
         <motion.div
+          className="flex items-center space-x-3 mb-2"
           initial={{ x: 20, opacity: 0 }}
           animate={{ x: 0, opacity: 1, transition: { delay: 0.3 } }}
         >
-          <PageBreadcrumb className="mb-2" />
+          <Button
+            className="min-w-0 px-2 sm:px-3"
+            variant="outlined"
+            color="inherit"
+            onClick={handleBack}
+            startIcon={
+              <FuseSvgIcon size={20}>
+                heroicons-outline:arrow-left
+              </FuseSvgIcon>
+            }
+            sx={{
+              textTransform: 'none',
+              borderRadius: 2,
+            }}
+          >
+            <span className="hidden sm:inline">{t('back') || 'Back'}</span>
+          </Button>
+          <PageBreadcrumb />
         </motion.div>
 
         <div className="flex items-center max-w-full space-x-3">

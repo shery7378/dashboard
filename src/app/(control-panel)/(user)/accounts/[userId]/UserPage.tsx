@@ -15,6 +15,7 @@ import FuseTab from 'src/components/tabs/FuseTab';
 import useThemeMediaQuery from '@fuse/hooks/useThemeMediaQuery';
 import UserHeader from './UserHeader';
 import BasicInfoTab from './tabs/BasicInfoTab';
+import LocationTab from './tabs/LocationTab';
 import { useSnackbar } from 'notistack';
 import { useGetProfileQuery, useCreateProfileMutation, useCreateUserMutation, useUpdateProfileMutation, useDeleteProfileMutation, } from '../apis/ProfileApi';
 import { useParams, useRouter } from 'next/navigation';
@@ -23,7 +24,7 @@ import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
 // ---------------- Validation schema ----------------
 export const createProfileSchema = z
     .object({
-        user_type: z.enum(['customer', 'vendor', 'supplier'], {
+        user_type: z.enum(['customer', 'seller', 'supplier'], {
             errorMap: () => ({ message: 'Please select a valid role' }),
         }),
         store_name: z.string().max(100).optional(),
@@ -31,8 +32,14 @@ export const createProfileSchema = z
         first_name: z.string().max(50).optional(),
         last_name: z.string().max(50).optional(),
         phone: z.string().max(20).optional(),
-        city: z.string().max(20).optional(),
-        address: z.string().optional(),
+        city: z.string().max(255).optional(),
+        address: z.string().max(500).optional(),
+        state: z.string().max(255).optional(),
+        country: z.string().max(255).optional(),
+        postal_code: z.string().max(20).optional(),
+        latitude: z.number().min(-90).max(90).optional(),
+        longitude: z.number().min(-180).max(180).optional(),
+        delivery_radius: z.number().min(0.1).max(1000).optional(),
         email: z.string().email(),
         status: z.enum(['active']).default('active'),
         password: z
@@ -47,11 +54,17 @@ export const createProfileSchema = z
 
 export const updateProfileSchema = z
     .object({
-        user_type: z.enum(['customer', 'vendor', 'supplier']),
+        user_type: z.enum(['customer', 'seller', 'supplier']),
         store_name: z.string().max(100).optional(),
         name: z.string().max(100).optional(),
-        city: z.string().max(20).optional(),
-        address: z.string().optional(),
+        city: z.string().max(255).optional(),
+        address: z.string().max(500).optional(),
+        state: z.string().max(255).optional(),
+        country: z.string().max(255).optional(),
+        postal_code: z.string().max(20).optional(),
+        latitude: z.number().min(-90).max(90).optional(),
+        longitude: z.number().min(-180).max(180).optional(),
+        delivery_radius: z.number().min(0.1).max(1000).optional(),
         first_name: z.string().max(50).optional(),
         last_name: z.string().max(50).optional(),
         phone: z.string().max(20).optional(),
@@ -123,13 +136,19 @@ function UserPage() {
             email: '',
             city: '',
             address: '',
+            state: '',
+            country: '',
+            postal_code: '',
+            latitude: undefined,
+            longitude: undefined,
+            delivery_radius: 10,
             status: 'active',
             password: '',
             confirm_password: '',
         },
     });
 
-    const { reset, handleSubmit } = methods;
+    const { reset, handleSubmit, watch } = methods;
 
     // ---------------- Sync form with profile ----------------
     useEffect(() => {
@@ -151,7 +170,7 @@ function UserPage() {
                 last_name: profile?.last_name || '',
                 phone: profile?.phone || '',
             };
-        } else if (role === 'vendor' || role === 'supplier') {
+        } else if (role === 'seller' || role === 'supplier') {
             defaultValues = {
                 ...defaultValues,
                 name: profile?.user?.name || '',
@@ -159,6 +178,12 @@ function UserPage() {
                 phone: profile?.phone || '',
                 city: profile?.city || '',
                 address: profile?.address || '',
+                state: profile?.state || '',
+                country: profile?.country || '',
+                postal_code: profile?.postal_code || '',
+                latitude: profile?.latitude || undefined,
+                longitude: profile?.longitude || undefined,
+                delivery_radius: profile?.delivery_radius || 10,
             };
         }
 
@@ -176,7 +201,7 @@ function UserPage() {
 
             const roleMapping: Record<string, string> = {
                 customer: 'customer',
-                vendor: 'vendor',
+                seller: 'vendor', // Backend uses 'vendor' but frontend shows 'seller'
                 supplier: 'supplier',
             };
             payload.role = roleMapping[payload.user_type] || payload.user_type;
@@ -188,9 +213,28 @@ function UserPage() {
             payload.storeName = payload.store_name;
             delete payload.store_name;
 
+            // Map name field based on role
             if (payload.role === 'customer') {
-                payload.name = payload.first_name;
+                payload.name = payload.first_name || payload.name;
+            } else if (payload.role === 'vendor' || payload.role === 'supplier') {
+                // For seller/supplier, the 'name' field is the owner name, which should be the user's name
+                // Backend expects 'name' to be the user's full name
+                if (!payload.name || payload.name.trim() === '') {
+                    // If name is not provided, try to construct from first_name and last_name
+                    if (payload.first_name) {
+                        payload.name = payload.first_name + (payload.last_name ? ' ' + payload.last_name : '');
+                    } else {
+                        // Last resort: use email prefix or store name
+                        payload.name = payload.storeName || payload.email?.split('@')[0] || 'User';
+                    }
+                }
+                // For seller/supplier, remove first_name and last_name as they're not needed
+                delete payload.first_name;
+                delete payload.last_name;
             }
+
+            // Clean up fields that shouldn't be sent
+            delete payload.status; // Backend handles this
 
             if (profile?.id) {
                 if (!formData.password) {
@@ -199,7 +243,9 @@ function UserPage() {
                 }
                 await updateProfile({ id: profile.id, ...payload }).unwrap();
             } else {
-                await createProfile({ user_id: userId!, ...payload }).unwrap();
+                // Remove user_id for new users - it shouldn't be sent
+                delete payload.user_id;
+                await createProfile(payload).unwrap();
             }
 
             enqueueSnackbar('Profile updated successfully', { variant: 'success' });
@@ -217,9 +263,12 @@ function UserPage() {
                 setTimeout(() => router.push('/accounts'), 1500);
             }
         } catch (err: any) {
-            const errorMsg = err?.data?.message || err?.error || 'Failed to save profile';
-            enqueueSnackbar(errorMsg, { variant: 'error' });
-            setFormError(errorMsg);
+            console.error('Form submission error:', err);
+            const errorMsg = err?.data?.message || err?.data?.errors || err?.error || 'Failed to save profile';
+            const errorDetails = err?.data?.errors ? JSON.stringify(err.data.errors, null, 2) : '';
+            const displayMsg = typeof errorMsg === 'string' ? errorMsg : 'Validation failed. Please check all required fields.';
+            enqueueSnackbar(displayMsg, { variant: 'error' });
+            setFormError(displayMsg + (errorDetails ? '\n' + errorDetails : ''));
         }
     };
 
@@ -268,9 +317,13 @@ function UserPage() {
                                 onChange={(e: SyntheticEvent, val: string) => setTabValue(val)}
                             >
                                 <FuseTab value="basic-info" label="User Info" />
+                                {(watch('user_type') === 'seller' || watch('user_type') === 'supplier') && (
+                                    <FuseTab value="location" label="Location" />
+                                )}
                             </FuseTabs>
 
                             {tabValue === 'basic-info' && <BasicInfoTab />}
+                            {tabValue === 'location' && (watch('user_type') === 'seller' || watch('user_type') === 'supplier') && <LocationTab />}
                         </motion.div>
                     }
                     scroll={isMobile ? 'normal' : 'content'}

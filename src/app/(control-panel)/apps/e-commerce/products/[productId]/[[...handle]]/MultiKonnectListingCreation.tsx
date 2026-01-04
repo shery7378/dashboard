@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
+import useNavigate from '@fuse/hooks/useNavigate';
 import Button from '@mui/material/Button';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -38,6 +39,7 @@ import Switch from '@mui/material/Switch';
 import CircularProgress from '@mui/material/CircularProgress';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
+import Divider from '@mui/material/Divider';
 
 interface ListingStep {
 	id: number;
@@ -61,6 +63,7 @@ function MultiKonnectListingCreation() {
 	const { errors } = formState;
 	const { productId } = useParams<{ productId: string }>();
 	const { data: session } = useSession();
+	const navigate = useNavigate();
 	
 	const [currentStep, setCurrentStep] = useState(1);
 	const [mpidSearch, setMpidSearch] = useState('');
@@ -2207,6 +2210,17 @@ function MultiKonnectListingCreation() {
 		}, { shouldDirty: true });
 	};
 
+	// Back button handler
+	const handleBack = () => {
+		// Check if we're on the listing route
+		const currentPath = window.location.pathname;
+		if (currentPath.includes('/listing/')) {
+			navigate('/listing');
+		} else {
+			navigate('/apps/e-commerce/products');
+		}
+	};
+
 	return (
 		<div className="flex flex-col h-screen bg-[#f9fafb] overflow-hidden relative" style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif' }}>
 			{/* Hidden ProductHeader for form submission */}
@@ -2272,6 +2286,26 @@ function MultiKonnectListingCreation() {
 					</Button>
 				</div>
 				<div className="flex items-center space-x-2">
+					<Button 
+						variant="text" 
+						size="small"
+						onClick={handleBack}
+						sx={{
+							color: '#ffffff',
+							textTransform: 'none',
+							fontSize: '14px',
+							padding: '8px 16px',
+							minHeight: '36px',
+							fontWeight: 500,
+							borderRadius: '8px',
+							backgroundColor: 'transparent',
+							'&:hover': {
+								backgroundColor: 'rgba(255, 255, 255, 0.1)',
+							},
+						}}
+					>
+						Back
+					</Button>
 					<Button 
 						variant="text" 
 						size="small"
@@ -4010,114 +4044,139 @@ function MultiKonnectListingCreation() {
 						{/* QC & Policies Section - Step 7 */}
 						<Paper 
 							ref={(el) => setSectionRef(7, el as HTMLElement)}
-							className="p-4" 
-							id="policies"
+							className="p-6" 
+							id="qc-policies"
 							data-step-id="7"
 							sx={{
 								borderRadius: '16px',
 								scrollMarginTop: '80px',
 								border: '1px solid #e5e7eb',
 								boxShadow: 'none',
+								backgroundColor: '#ffffff',
 							}}
 						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
-								QC & policies
+							<Typography 
+								variant="h6" 
+								className="font-semibold mb-1 text-gray-900" 
+								sx={{ 
+									fontSize: '18px', 
+									fontWeight: 600, 
+									marginBottom: '8px',
+									color: '#111827'
+								}}
+							>
+								QC & Policies
 							</Typography>
-							<div className="grid grid-cols-3 gap-3 mb-3">
-								<Controller
-									name="condition"
-									control={control}
-									render={({ field }) => (
-										<FormControl fullWidth size="small">
-											<InputLabel>Condition</InputLabel>
-											<Select 
-												{...field} 
-												value={condition}
-												sx={{
-													borderRadius: '12px',
-													fontSize: '14px',
-												}}
-											>
-												<MenuItem value="New">New</MenuItem>
-												<MenuItem value="Open-Box">Open‑Box</MenuItem>
-												<MenuItem value="Like New">Like New</MenuItem>
-												<MenuItem value="Good">Good</MenuItem>
-												<MenuItem value="Fair">Fair</MenuItem>
-											</Select>
-										</FormControl>
-									)}
-								/>
-								<TextField
-									fullWidth
-									label="IMEI / Serial"
-									placeholder="Masked on product page"
-									helperText="Masked on product page"
-									size="small"
-									sx={{
-										'& .MuiOutlinedInput-root': {
-											borderRadius: '12px',
-											fontSize: '14px',
-											minHeight: '40px',
-											maxHeight: '40px',
-										},
-										'& .MuiInputBase-input': {
-											padding: '8px 14px',
-											color: '#111827',
-											fontSize: '14px',
-											width: '100%',
-											boxSizing: 'border-box',
-											overflow: 'hidden',
-											textOverflow: 'ellipsis',
-											whiteSpace: 'nowrap',
-										},
-										'& .MuiFormHelperText-root': {
-											marginTop: '4px',
-											marginLeft: '0',
-											fontSize: '11px',
-										},
+							<Typography 
+								variant="body2" 
+								className="text-gray-600 mb-4" 
+								sx={{ 
+									fontSize: '13px', 
+									color: '#6b7280', 
+									marginBottom: '24px',
+									lineHeight: '1.5'
+								}}
+							>
+								Set product condition, warranty, returns policy, and quality control details to build buyer trust.
+							</Typography>
+
+							{/* Quality Control Section */}
+							<Box sx={{ marginBottom: '32px' }}>
+								<Typography 
+									variant="subtitle2" 
+									sx={{ 
+										fontSize: '14px', 
+										fontWeight: 600, 
+										color: '#374151',
+										marginBottom: '16px',
+										textTransform: 'uppercase',
+										letterSpacing: '0.5px'
 									}}
-								/>
-								<Controller
-									name="returns"
-									control={control}
-									render={({ field }) => (
-										<FormControl fullWidth size="small">
-											<InputLabel>Returns</InputLabel>
-											<Select 
-												{...field} 
-												value={returns}
+								>
+									Quality Control
+								</Typography>
+								
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+									{/* Condition */}
+									<Controller
+										name="condition"
+										control={control}
+										render={({ field }) => (
+											<FormControl fullWidth size="small">
+												<InputLabel>Condition *</InputLabel>
+												<Select 
+													{...field} 
+													value={condition}
+													label="Condition *"
+													sx={{
+														borderRadius: '12px',
+														fontSize: '14px',
+														'& .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#d1d5db',
+														},
+														'&:hover .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#9ca3af',
+														},
+														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#3b82f6',
+															borderWidth: '2px',
+														},
+													}}
+												>
+													<MenuItem value="New">New</MenuItem>
+													<MenuItem value="Like New">Like New</MenuItem>
+													<MenuItem value="Refurbished">Refurbished</MenuItem>
+													<MenuItem value="Used - Excellent">Used - Excellent</MenuItem>
+													<MenuItem value="Used - Good">Used - Good</MenuItem>
+													<MenuItem value="Used - Fair">Used - Fair</MenuItem>
+												</Select>
+											</FormControl>
+										)}
+									/>
+
+									{/* IMEI/Serial Number */}
+									<Controller
+										name="imei"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												fullWidth
+												label="IMEI/Serial Number"
+												placeholder="Enter IMEI or serial number"
+												size="small"
+												error={!!errors.imei}
+												helperText={errors?.imei?.message as string || "Optional: Add for verification"}
 												sx={{
-													borderRadius: '12px',
-													fontSize: '14px',
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														'& .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#d1d5db',
+														},
+														'&:hover .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#9ca3af',
+														},
+														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#3b82f6',
+															borderWidth: '2px',
+														},
+													},
+													'& .MuiInputBase-input': {
+														padding: '12px 14px',
+														color: '#111827',
+													},
+													'& .MuiFormHelperText-root': {
+														fontSize: '11px',
+														marginTop: '4px',
+													},
 												}}
-											>
-												<MenuItem value="7-day returns">7‑day returns</MenuItem>
-												<MenuItem value="15-day returns">15‑day returns</MenuItem>
-												<MenuItem value="30-day returns">30‑day returns</MenuItem>
-											</Select>
-										</FormControl>
-									)}
-								/>
-								<Controller
-									name="warranty"
-									control={control}
-									render={({ field }) => (
-										<FormControl fullWidth size="small">
-											<InputLabel>Warranty</InputLabel>
-											<Select 
-												{...field} 
-												value={warranty}
-												sx={{
-													borderRadius: '12px',
-													fontSize: '14px',
-												}}
-											>
-												<MenuItem value="Manufacturer warranty">Manufacturer warranty</MenuItem>
-												<MenuItem value="Vendor warranty">Vendor warranty</MenuItem>
-											</Select>
-										</FormControl>
-									)}
-								/>
+											/>
+										)}
+									/>
+								</div>
+
+								{/* Condition Notes */}
 								<Controller
 									name="condition_notes"
 									control={control}
@@ -4125,31 +4184,167 @@ function MultiKonnectListingCreation() {
 										<TextField
 											{...field}
 											fullWidth
+											label="Condition Notes"
+											placeholder="Describe any wear, scratches, imperfections, or special conditions..."
+											value={conditionNotes}
 											multiline
 											minRows={3}
-											maxRows={6}
-											label="Condition notes"
-											placeholder="e.g., Minor hairline on frame; battery health 98%."
-											size="small"
+											maxRows={5}
+											size="medium"
+											error={!!errors.condition_notes}
+											helperText={errors?.condition_notes?.message as string || "Optional: Detailed notes help buyers make informed decisions"}
 											sx={{
 												'& .MuiOutlinedInput-root': {
 													borderRadius: '12px',
 													fontSize: '14px',
-													minHeight: '80px',
+													'& .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#d1d5db',
+													},
+													'&:hover .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#9ca3af',
+													},
+													'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#3b82f6',
+														borderWidth: '2px',
+													},
 													'& textarea': {
 														overflow: 'auto !important',
 														resize: 'vertical',
-														minHeight: '60px !important',
+														minHeight: '90px !important',
+														fontFamily: 'inherit',
 													},
 												},
 												'& .MuiInputBase-input': {
-													lineHeight: '1.5',
 													padding: '12px 14px',
+													color: '#111827',
+													lineHeight: '1.5',
+												},
+												'& .MuiFormHelperText-root': {
+													fontSize: '11px',
+													marginTop: '4px',
 												},
 											}}
 										/>
 									)}
 								/>
+							</Box>
+
+							<Divider sx={{ marginY: '32px', borderColor: '#e5e7eb' }} />
+
+							{/* Policies Section */}
+							<Box sx={{ marginBottom: '24px' }}>
+								<Typography 
+									variant="subtitle2" 
+									sx={{ 
+										fontSize: '14px', 
+										fontWeight: 600, 
+										color: '#374151',
+										marginBottom: '16px',
+										textTransform: 'uppercase',
+										letterSpacing: '0.5px'
+									}}
+								>
+									Policies & Warranty
+								</Typography>
+								
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+									{/* Returns Policy */}
+									<Controller
+										name="returns"
+										control={control}
+										render={({ field }) => (
+											<FormControl fullWidth size="small">
+												<InputLabel>Returns Policy *</InputLabel>
+												<Select 
+													{...field} 
+													value={returns}
+													label="Returns Policy *"
+													sx={{
+														borderRadius: '12px',
+														fontSize: '14px',
+														'& .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#d1d5db',
+														},
+														'&:hover .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#9ca3af',
+														},
+														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#3b82f6',
+															borderWidth: '2px',
+														},
+													}}
+												>
+													<MenuItem value="7-day returns">7-day returns</MenuItem>
+													<MenuItem value="14-day returns">14-day returns</MenuItem>
+													<MenuItem value="30-day returns">30-day returns</MenuItem>
+													<MenuItem value="No returns">No returns</MenuItem>
+												</Select>
+											</FormControl>
+										)}
+									/>
+
+									{/* Manufacturer Warranty */}
+									<Controller
+										name="warranty"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												fullWidth
+												label="Manufacturer Warranty"
+												placeholder="e.g., 1-year manufacturer warranty"
+												value={warranty}
+												size="small"
+												error={!!errors.warranty}
+												helperText={errors?.warranty?.message as string || "Optional: Warranty details"}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														'& .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#d1d5db',
+														},
+														'&:hover .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#9ca3af',
+														},
+														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#3b82f6',
+															borderWidth: '2px',
+														},
+													},
+													'& .MuiInputBase-input': {
+														padding: '12px 14px',
+														color: '#111827',
+													},
+													'& .MuiFormHelperText-root': {
+														fontSize: '11px',
+														marginTop: '4px',
+													},
+												}}
+											/>
+										)}
+									/>
+								</div>
+							</Box>
+
+							<Divider sx={{ marginY: '24px', borderColor: '#e5e7eb' }} />
+
+							{/* Box Contents Section */}
+							<Box>
+								<Typography 
+									variant="subtitle2" 
+									sx={{ 
+										fontSize: '14px', 
+										fontWeight: 600, 
+										color: '#374151',
+										marginBottom: '16px',
+										textTransform: 'uppercase',
+										letterSpacing: '0.5px'
+									}}
+								>
+									Box Contents
+								</Typography>
+								
 								<Controller
 									name="box_contents"
 									control={control}
@@ -4157,29 +4352,72 @@ function MultiKonnectListingCreation() {
 										<TextField
 											{...field}
 											fullWidth
-											label="Box contents checklist"
-											placeholder="Phone, USB‑C cable, docs, SIM tool"
-											size="small"
+											label="What's Included"
+											placeholder="List all items included in the box (e.g., Device, Charger, USB-C cable, SIM tool, Documentation, Original box, Warranty card)"
+											value={boxContents}
+											multiline
+											minRows={3}
+											maxRows={5}
+											size="medium"
+											error={!!errors.box_contents}
+											helperText={errors?.box_contents?.message as string || "Be specific about what's included to set accurate buyer expectations"}
 											sx={{
 												'& .MuiOutlinedInput-root': {
 													borderRadius: '12px',
 													fontSize: '14px',
-													minHeight: '40px',
+													'& .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#d1d5db',
+													},
+													'&:hover .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#9ca3af',
+													},
+													'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+														borderColor: '#3b82f6',
+														borderWidth: '2px',
+													},
+													'& textarea': {
+														overflow: 'auto !important',
+														resize: 'vertical',
+														minHeight: '90px !important',
+														fontFamily: 'inherit',
+													},
 												},
 												'& .MuiInputBase-input': {
-													overflow: 'hidden',
-													textOverflow: 'ellipsis',
-													whiteSpace: 'nowrap',
-													padding: '8px 14px',
+													padding: '12px 14px',
+													color: '#111827',
+													lineHeight: '1.5',
+												},
+												'& .MuiFormHelperText-root': {
+													fontSize: '11px',
+													marginTop: '4px',
 												},
 											}}
 										/>
 									)}
 								/>
-							</div>
-							<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
-								Phones: require unseal video at hand‑off; DOA window 48h for instant swap.
-							</Typography>
+							</Box>
+
+							<Box 
+								sx={{ 
+									marginTop: '24px',
+									padding: '12px 16px',
+									backgroundColor: '#f3f4f6',
+									borderRadius: '8px',
+									borderLeft: '3px solid #3b82f6'
+								}}
+							>
+								<Typography 
+									variant="caption" 
+									sx={{ 
+										fontSize: '12px', 
+										color: '#4b5563', 
+										lineHeight: '1.6',
+										display: 'block'
+									}}
+								>
+									<strong>💡 Tip:</strong> QC-verified products with detailed condition notes and complete box contents build buyer trust and reduce returns. Be accurate and transparent.
+								</Typography>
+							</Box>
 						</Paper>
 
 						{/* Offers Section - Step 8 */}
@@ -4912,6 +5150,28 @@ function MultiKonnectListingCreation() {
 					<Button 
 						variant="outlined" 
 						size="small"
+						onClick={handleBack}
+						sx={{
+							borderColor: '#e5e7eb',
+							color: '#374151',
+							textTransform: 'none',
+							fontSize: '13px',
+							padding: '8px 16px',
+							borderRadius: '8px',
+							minHeight: '36px',
+							fontWeight: 500,
+							backgroundColor: '#ffffff',
+							'&:hover': {
+								borderColor: '#d1d5db',
+								backgroundColor: '#f9fafb',
+							},
+						}}
+					>
+						Back
+					</Button>
+					<Button 
+						variant="outlined" 
+						size="small"
 						onClick={handleSaveDraft}
 						sx={{
 							borderColor: '#e5e7eb',
@@ -5096,7 +5356,7 @@ function MultiKonnectListingCreation() {
 				</DialogActions>
 			</Dialog>
 
-			{/* Import from Other Vendor Modal - Use the dedicated ImportProductModal component */}
+			{/* Import from Other Seller Modal - Use the dedicated ImportProductModal component */}
 			<ImportProductModal 
 				open={importVendorDialogOpen} 
 				onClose={() => setImportVendorDialogOpen(false)}

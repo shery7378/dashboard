@@ -37,7 +37,7 @@ const translations = {
 	seo_settings: 'SEO Settings',
 	variants: 'Variants',
 	import_product: 'Import Product',
-	import_product_from_other_vendors: 'Import Product from Other Vendors',
+	import_product_from_other_vendors: 'Import Product from Other Sellers',
 	search_products: 'Search products...',
 	failed_to_load_products: 'Failed to load products',
 	no_products_found: 'No products found',

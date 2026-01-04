@@ -9,7 +9,7 @@ function BasicInfoTab() {
 
 	const userType = useWatch({ control, name: 'user_type' });
 	const isCustomer = userType === 'customer';
-	const isVendorOrSupplier = userType === 'vendor' || userType === 'supplier';
+	const isSellerOrSupplier = userType === 'seller' || userType === 'supplier';
 
 	return (
 		<div className="space-y-6">
@@ -29,14 +29,14 @@ function BasicInfoTab() {
 						required
 					>
 						<MenuItem value="customer">Customer</MenuItem>
-						<MenuItem value="vendor">Vendor</MenuItem>
+						<MenuItem value="seller">Seller</MenuItem>
 						<MenuItem value="supplier">Supplier</MenuItem>
 					</TextField>
 				)}
 			/>
 
-			{/* ---------- VENDOR / SUPPLIER FIELDS ---------- */}
-			{isVendorOrSupplier && (
+			{/* ---------- SELLER / SUPPLIER FIELDS ---------- */}
+			{isSellerOrSupplier && (
 				<>
 					<Controller
 						name="store_name"
@@ -63,36 +63,6 @@ function BasicInfoTab() {
 								fullWidth
 								error={!!errors.name}
 								helperText={errors.name?.message as string}
-								required
-							/>
-						)}
-					/>
-					<Controller
-						name="city"
-						control={control}
-						render={({ field }) => (
-							<TextField
-								{...field}
-								label="Cite"
-								fullWidth
-								error={!!errors.city}
-								helperText={errors.city?.message as string}
-								required
-							/>
-						)}
-					/>
-					<Controller
-						name="address"
-						control={control}
-						render={({ field }) => (
-							<TextField
-								{...field}
-								label="Address"
-								fullWidth
-								multiline
-								rows={3}
-								error={!!errors.address}
-								helperText={errors.address?.message as string}
 								required
 							/>
 						)}
@@ -129,6 +99,36 @@ function BasicInfoTab() {
 								error={!!errors.last_name}
 								helperText={errors.last_name?.message as string}
 								required
+							/>
+						)}
+					/>
+
+					<Controller
+						name="address"
+						control={control}
+						render={({ field }) => (
+							<TextField
+								{...field}
+								label="Address"
+								fullWidth
+								multiline
+								rows={3}
+								error={!!errors.address}
+								helperText={errors.address?.message as string}
+							/>
+						)}
+					/>
+
+					<Controller
+						name="city"
+						control={control}
+						render={({ field }) => (
+							<TextField
+								{...field}
+								label="City"
+								fullWidth
+								error={!!errors.city}
+								helperText={errors.city?.message as string}
 							/>
 						)}
 					/>

@@ -288,6 +288,28 @@ export type EcommerceProduct = {
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
+    // Delivery and postal code fields
+    store_postcode?: string | null;
+    delivery_radius?: number | null;
+    delivery_slots?: string | null;
+    ready_in_minutes?: number | null;
+    enable_pickup?: boolean;
+    shipping_charge_regular?: number;
+    shipping_charge_same_day?: number;
+    // QC & Policies fields
+    condition?: string | null;
+    condition_notes?: string | null;
+    returns?: string | null;
+    warranty?: string | null;
+    box_contents?: string | null;
+    // Extra fields
+    extraFields?: any;
+    // Variants and attributes
+    product_variants?: any[];
+    variants?: any[];
+    main_category?: any;
+    subcategory?: any[];
+    subcategories?: any[];
 };
 
 /** -----------------------------------------------------------------
