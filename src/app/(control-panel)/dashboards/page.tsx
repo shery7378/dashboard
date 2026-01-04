@@ -10,6 +10,11 @@ export default async function DashboardsPage() {
         redirect('/sign-in');
     }
 
+    // If no session, redirect to sign-in
+    if (!session || !session.user) {
+        redirect('/sign-in');
+    }
+
     // Role array hai, pehla role check karen
     const role = session?.user?.role?.[0];
 

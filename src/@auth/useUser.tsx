@@ -92,8 +92,8 @@ function useUser(): useUser {
 			// return signOut();
 			await signOut({ redirect: false }); // Prevent default redirect to handle it manually
 
-			// Redirect to /home
-			window.location.href = '/';
+			// Redirect to sign-in page
+			window.location.href = '/sign-in';
 		} catch (err) {
 			console.error('Logout failed:', err);
 			// Optionally handle the error (e.g., show a message to the user)
