@@ -2409,17 +2409,18 @@ function MultiKonnectListingCreation() {
 
 			<div className="flex flex-1 overflow-hidden min-h-0 justify-center">
 				<div className="flex w-full max-w-[1920px] relative">
-				{/* Mobile Sidebar Overlay */}
+				{/* Mobile Left Sidebar Overlay */}
 				{sidebarOpen && (
 					<div 
-						className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+						className="fixed inset-0 bg-black bg-opacity-50 z-[60] lg:hidden"
 						onClick={() => setSidebarOpen(false)}
+						style={{ top: '60px' }}
 					/>
 				)}
 				
 				{/* Left Sidebar - Listing Steps - Light Grey */}
 				<aside 
-					className={`fixed lg:static w-[280px] border-r overflow-y-auto flex-shrink-0 z-50 lg:z-auto transition-transform duration-300 ${
+					className={`fixed lg:static w-[280px] max-w-[85vw] lg:max-w-none border-r overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
 						sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
 					}`}
 					style={{ 
@@ -2428,10 +2429,21 @@ function MultiKonnectListingCreation() {
 						borderRightWidth: '1px',
 						height: 'calc(100vh - 60px)',
 						top: '60px',
-						left: 0
+						left: 0,
+						boxShadow: sidebarOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none'
 					}}
 				>
-					<div className="p-4">
+					{/* Close button for mobile */}
+					<div className="lg:hidden flex justify-end p-2 border-b">
+						<IconButton
+							onClick={() => setSidebarOpen(false)}
+							size="small"
+							sx={{ color: '#6b7280' }}
+						>
+							<FuseSvgIcon>heroicons-outline:x-mark</FuseSvgIcon>
+						</IconButton>
+					</div>
+					<div className="p-3 sm:p-4">
 						<div className="space-y-0.5">
 							{steps.map((step) => (
 								<a
@@ -2440,6 +2452,10 @@ function MultiKonnectListingCreation() {
 									onClick={(e) => {
 										e.preventDefault();
 										handleStepClick(step.id);
+										// Close sidebar on mobile after selecting a step
+										if (window.innerWidth < 1024) {
+											setSidebarOpen(false);
+										}
 									}}
 									className="flex items-start cursor-pointer transition-all no-underline"
 									style={{
@@ -2504,12 +2520,15 @@ function MultiKonnectListingCreation() {
 
 				{/* Main Content Area */}
 				<main 
-					className="flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8" 
+					className={`flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+						sidebarOpen || rightSidebarOpen ? 'lg:ml-0 lg:mr-0' : ''
+					}`}
 					style={{ 
 						backgroundColor: '#ffffff',
 						paddingTop: '16px',
 						paddingBottom: '16px',
-						height: 'calc(100vh - 60px)'
+						height: 'calc(100vh - 60px)',
+						width: '100%'
 					}}
 				>
 					<div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-6">
@@ -3186,7 +3205,7 @@ function MultiKonnectListingCreation() {
 						{/* Variants Section - Step 3 */}
 						<Paper 
 							ref={(el) => setSectionRef(3, el as HTMLElement)}
-							className="p-6" 
+							className="p-3 sm:p-4 lg:p-6" 
 							id="variants"
 							data-step-id="3"
 							sx={{
@@ -3635,7 +3654,7 @@ function MultiKonnectListingCreation() {
 						{/* Same-day & Stores Section - Step 5 */}
 						<Paper 
 							ref={(el) => setSectionRef(5, el as HTMLElement)}
-							className="p-4" 
+							className="p-3 sm:p-4" 
 							id="delivery"
 							data-step-id="5"
 							sx={{
@@ -3718,7 +3737,7 @@ function MultiKonnectListingCreation() {
 							<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '12px' }}>
 								Set your shipping charges for this product. These will be added to the product price.
 							</Typography>
-							<div className="grid grid-cols-2 gap-3">
+							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 								<Controller
 									name="shipping_charge_regular"
 									control={control}
@@ -3788,7 +3807,7 @@ function MultiKonnectListingCreation() {
 						{/* Copy & SEO Section - Step 6 */}
 						<Paper 
 							ref={(el) => setSectionRef(6, el as HTMLElement)}
-							className="p-6" 
+							className="p-3 sm:p-4 lg:p-6" 
 							id="copy"
 							data-step-id="6"
 							sx={{
@@ -4092,7 +4111,7 @@ function MultiKonnectListingCreation() {
 						{/* QC & Policies Section - Step 7 */}
 						<Paper 
 							ref={(el) => setSectionRef(7, el as HTMLElement)}
-							className="p-6" 
+							className="p-3 sm:p-4 lg:p-6" 
 							id="qc-policies"
 							data-step-id="7"
 							sx={{
@@ -4487,7 +4506,7 @@ function MultiKonnectListingCreation() {
 						{/* Offers Section - Step 8 */}
 						<Paper 
 							ref={(el) => setSectionRef(8, el as HTMLElement)}
-							className="p-4" 
+							className="p-3 sm:p-4" 
 							id="offers"
 							data-step-id="8"
 							sx={{
@@ -4551,7 +4570,7 @@ function MultiKonnectListingCreation() {
 						{/* Trust & Compliance Section - Step 9 */}
 						<Paper 
 							ref={(el) => setSectionRef(9, el as HTMLElement)}
-							className="p-4" 
+							className="p-3 sm:p-4" 
 							id="trust"
 							data-step-id="9"
 							sx={{
@@ -4963,14 +4982,15 @@ function MultiKonnectListingCreation() {
 				{/* Mobile Right Sidebar Overlay */}
 				{rightSidebarOpen && (
 					<div 
-						className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+						className="fixed inset-0 bg-black bg-opacity-50 z-[60] lg:hidden"
 						onClick={() => setRightSidebarOpen(false)}
+						style={{ top: '60px' }}
 					/>
 				)}
 
 				{/* Right Sidebar - Listing Score & Actions */}
 				<aside 
-					className={`fixed lg:static w-[320px] bg-white border-l overflow-y-auto flex-shrink-0 z-50 lg:z-auto transition-transform duration-300 ${
+					className={`fixed lg:static w-[320px] max-w-[85vw] lg:max-w-none bg-white border-l overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
 						rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
 					}`}
 					style={{ 
@@ -4978,10 +4998,21 @@ function MultiKonnectListingCreation() {
 						borderLeftWidth: '1px',
 						height: 'calc(100vh - 60px)',
 						top: '60px',
-						right: 0
+						right: 0,
+						boxShadow: rightSidebarOpen ? '-2px 0 8px rgba(0,0,0,0.1)' : 'none'
 					}}
 				>
-					<div className="p-5 space-y-5">
+					{/* Close button for mobile */}
+					<div className="lg:hidden flex justify-end p-2 border-b">
+						<IconButton
+							onClick={() => setRightSidebarOpen(false)}
+							size="small"
+							sx={{ color: '#6b7280' }}
+						>
+							<FuseSvgIcon>heroicons-outline:x-mark</FuseSvgIcon>
+						</IconButton>
+					</div>
+					<div className="p-3 sm:p-4 lg:p-5 space-y-4 sm:space-y-5">
 						{/* Listing Score */}
 						<div>
 							<div className="flex items-center justify-between mb-3">
