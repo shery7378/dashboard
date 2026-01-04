@@ -328,7 +328,7 @@ function Product() {
 	return (
 		<FormProvider {...methods}>
 			<FusePageCarded
-				header={<ProductHeader />}
+				header={null}
 				content={
 					<div className="p-4 sm:p-6 max-w-5xl space-y-6">
 						<FuseTabs
