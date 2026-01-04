@@ -71,13 +71,14 @@ const ProductsLaravelApi = api
 
             // Get products from other vendors (for import)
             getOtherVendorsProducts: build.query<GetOtherVendorsProductsApiResponse, GetOtherVendorsProductsApiArg>({
-                query: ({ page = 1, perPage = 20, search, categoryId } = {}) => ({
+                query: ({ page = 1, perPage = 20, search, categoryId, includeOwn } = {}) => ({
                     url: `/api/products/other-vendors`,
                     params: { 
                         page, 
                         per_page: perPage,
                         ...(search && { search }),
                         ...(categoryId && { category_id: categoryId }),
+                        ...(includeOwn && { include_own: true }),
                     },
                 }),
                 providesTags: ['eCommerce_products'],
@@ -85,7 +86,7 @@ const ProductsLaravelApi = api
 
             // Import a product from another vendor
         importProduct: build.mutation<ImportProductApiResponse, ImportProductApiArg>({
-            query: ({ productId, paymentMethod, quantity, creditDays, paymentIntentId }) => ({
+            query: ({ productId, paymentMethod, quantity, creditDays, paymentIntentId, importFromOwn }) => ({
                 url: `/api/products/${productId}/import`,
                 method: 'POST',
                 body: {
@@ -93,6 +94,7 @@ const ProductsLaravelApi = api
                     quantity: quantity || 1,
                     ...(paymentMethod === 'credit' && creditDays && { credit_days: creditDays }),
                     ...(paymentMethod === 'instant' && paymentIntentId && { payment_intent_id: paymentIntentId }),
+                    ...(importFromOwn && { import_from_own: true }),
                 },
             }),
             invalidatesTags: ['eCommerce_product', 'eCommerce_products'],
@@ -203,6 +205,7 @@ export type GetOtherVendorsProductsApiArg = {
     perPage?: number; 
     search?: string; 
     categoryId?: string;
+    includeOwn?: boolean; // Include own products for importing from old listings
 };
 
 export type ImportProductApiResponse = {
@@ -225,6 +228,7 @@ export type ImportProductApiArg = {
     quantity?: number;
     creditDays?: 7 | 15 | 30 | 60;
     paymentIntentId?: string; // Stripe payment intent ID for instant payments
+    importFromOwn?: boolean; // Allow importing from own old listings
 };
 
 export type GetSupplierProductsApiResponse = {

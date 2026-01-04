@@ -4,6 +4,7 @@ import Button from '@mui/material/Button';
 import { motion } from 'motion/react';
 import PageBreadcrumb from 'src/components/PageBreadcrumb';
 import { useTranslation } from 'react-i18next';
+import { useSession } from 'next-auth/react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
 import ImportProductModal from './ImportProductModal';
@@ -14,7 +15,18 @@ import './i18n';
  */
 function ProductsHeader() {
 	const { t } = useTranslation('products');
+	const { data: session } = useSession();
 	const [importModalOpen, setImportModalOpen] = useState(false);
+
+	// Get user roles
+	const user = session?.user || session?.db;
+	const userRoles = user?.role || session?.db?.role || [];
+	const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
+	
+	// Hide import button for suppliers and admins
+	const isSupplier = roles.includes('supplier');
+	const isAdmin = roles.includes('admin');
+	const showImportButton = !isSupplier && !isAdmin;
 
 	return (
 		<div className="flex grow-0 flex-1 w-full items-center justify-between space-y-2 sm:space-y-0 py-6 sm:py-8">
@@ -32,15 +44,17 @@ function ProductsHeader() {
 				animate={{ x: 0, transition: { delay: 0.2 } }}
 				className="flex items-center gap-2"
 			>
-				<Button
-					variant="outlined"
-					color="primary"
-					startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
-					onClick={() => setImportModalOpen(true)}
-				>
-					<span className="hidden sm:inline">{t('import_product')}</span>
-					<span className="sm:hidden">{t('import')}</span>
-				</Button>
+				{showImportButton && (
+					<Button
+						variant="outlined"
+						color="primary"
+						startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
+						onClick={() => setImportModalOpen(true)}
+					>
+						<span className="hidden sm:inline">{t('import_product')}</span>
+						<span className="sm:hidden">{t('import')}</span>
+					</Button>
+				)}
 				<Button
 					component={Link}
 					to="/apps/e-commerce/products/new"
@@ -53,10 +67,12 @@ function ProductsHeader() {
 					<span className="sm:hidden">{t('add')}</span>
 				</Button>
 			</motion.div>
-			<ImportProductModal 
-				open={importModalOpen} 
-				onClose={() => setImportModalOpen(false)} 
-			/>
+			{showImportButton && (
+				<ImportProductModal 
+					open={importModalOpen} 
+					onClose={() => setImportModalOpen(false)} 
+				/>
+			)}
 		</div>
 	);
 }

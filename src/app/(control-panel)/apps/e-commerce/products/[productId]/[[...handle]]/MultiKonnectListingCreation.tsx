@@ -67,6 +67,14 @@ function MultiKonnectListingCreation() {
 	const navigate = useNavigate();
 	const { enqueueSnackbar } = useSnackbar();
 	
+	// Get user roles to hide import button for suppliers and admins
+	const user = session?.user || session?.db;
+	const userRoles = user?.role || session?.db?.role || [];
+	const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
+	const isSupplier = roles.includes('supplier');
+	const isAdmin = roles.includes('admin');
+	const showImportFromVendor = !isSupplier && !isAdmin;
+	
 	const [currentStep, setCurrentStep] = useState(1);
 	const [mpidSearch, setMpidSearch] = useState('');
 	const [mpidMatched, setMpidMatched] = useState(false);
@@ -2809,26 +2817,28 @@ function MultiKonnectListingCreation() {
 								>
 									Use My Past Listing
 								</Button>
-								<Button 
-									variant="outlined" 
-									size="small"
-									onClick={handleImportFromVendor}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '10px 14px',
-										borderRadius: '12px',
-										minHeight: '44px',
-										'&:hover': {
-											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
-										},
-									}}
-								>
-									Import from Other Vendor
-								</Button>
+								{showImportFromVendor && (
+									<Button 
+										variant="outlined" 
+										size="small"
+										onClick={handleImportFromVendor}
+										sx={{
+											borderColor: '#e5e7eb',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '10px 14px',
+											borderRadius: '12px',
+											minHeight: '44px',
+											'&:hover': {
+												borderColor: '#d1d5db',
+												backgroundColor: '#f9fafb',
+											},
+										}}
+									>
+										Import from Other Vendor
+									</Button>
+								)}
 								<Button 
 									variant="outlined" 
 									size="small"
@@ -5490,12 +5500,14 @@ function MultiKonnectListingCreation() {
 			</Dialog>
 
 			{/* Import from Other Seller Modal - Use the dedicated ImportProductModal component */}
-			<ImportProductModal 
-				open={importVendorDialogOpen} 
-				onClose={() => setImportVendorDialogOpen(false)}
-				mode="select"
-				onProductSelect={handleSelectVendorProduct}
-			/>
+			{showImportFromVendor && (
+				<ImportProductModal 
+					open={importVendorDialogOpen} 
+					onClose={() => setImportVendorDialogOpen(false)}
+					mode="select"
+					onProductSelect={handleSelectVendorProduct}
+				/>
+			)}
 
 			{/* Add Storage Dialog - Dynamic */}
 			<Dialog open={addStorageDialogOpen} onClose={() => { setAddStorageDialogOpen(false); setNewStorageInput(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>
