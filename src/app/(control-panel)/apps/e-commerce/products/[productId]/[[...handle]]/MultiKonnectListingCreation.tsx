@@ -3378,32 +3378,32 @@ function MultiKonnectListingCreation() {
 								</Button>
 							)}
 
-							<div className="overflow-x-auto">
-								<table className="w-full border-collapse" style={{ fontSize: '13px' }}>
+							<div className="overflow-x-auto -mx-3 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+								<table className="w-full border-collapse" style={{ fontSize: '13px', minWidth: '600px' }}>
 									<thead>
 										<tr className="bg-gray-100">
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>{attribute1Name}</th>
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>{attribute2Name}</th>
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Price (£)</th>
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Compare-at</th>
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Stock</th>
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Same-day</th>
-											<th className="border border-gray-300 px-3 py-2 text-left font-semibold" style={{ fontSize: '12px' }}>Images</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute1Name}</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute2Name}</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Price (£)</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Compare-at</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Stock</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Same-day</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Images</th>
 										</tr>
 									</thead>
 									<tbody>
 										{variants.length === 0 ? (
 											<tr>
-												<td colSpan={7} className="border border-gray-300 px-4 py-8 text-center text-gray-400" style={{ fontSize: '13px' }}>
+												<td colSpan={7} className="border border-gray-300 px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-400 text-xs sm:text-sm">
 													No variants added yet. Add {attribute1Name} and {attribute2Name} options to generate variant matrix.
 												</td>
 											</tr>
 										) : (
 											variants.map((variant, index) => (
 												<tr key={index}>
-													<td className="border border-gray-300 px-3 py-2" style={{ fontSize: '13px' }}>{variant.storage}</td>
-													<td className="border border-gray-300 px-3 py-2" style={{ fontSize: '13px' }}>{variant.color}</td>
-													<td className="border border-gray-300 px-3 py-2">
+													<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.storage}</td>
+													<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.color}</td>
+													<td className="border border-gray-300 px-2 sm:px-3 py-2">
 														<TextField
 															size="small"
 															type="number"
@@ -3413,19 +3413,19 @@ function MultiKonnectListingCreation() {
 															sx={{
 																width: '100%',
 																'& .MuiOutlinedInput-root': {
-																	fontSize: '13px',
-																	minHeight: '36px',
-																	maxHeight: '36px',
+																	fontSize: { xs: '12px', sm: '13px' },
+																	minHeight: { xs: '32px', sm: '36px' },
+																	maxHeight: { xs: '32px', sm: '36px' },
 																},
 																'& .MuiInputBase-input': {
-																	padding: '8px 12px',
+																	padding: { xs: '6px 8px', sm: '8px 12px' },
 																	overflow: 'hidden',
 																	textOverflow: 'ellipsis',
 																},
 															}}
 														/>
 													</td>
-													<td className="border border-gray-300 px-3 py-2">
+													<td className="border border-gray-300 px-2 sm:px-3 py-2">
 														<TextField
 															size="small"
 															type="number"
@@ -3435,19 +3435,19 @@ function MultiKonnectListingCreation() {
 															sx={{
 																width: '100%',
 																'& .MuiOutlinedInput-root': {
-																	fontSize: '13px',
-																	minHeight: '36px',
-																	maxHeight: '36px',
+																	fontSize: { xs: '12px', sm: '13px' },
+																	minHeight: { xs: '32px', sm: '36px' },
+																	maxHeight: { xs: '32px', sm: '36px' },
 																},
 																'& .MuiInputBase-input': {
-																	padding: '8px 12px',
+																	padding: { xs: '6px 8px', sm: '8px 12px' },
 																	overflow: 'hidden',
 																	textOverflow: 'ellipsis',
 																},
 															}}
 														/>
 													</td>
-													<td className="border border-gray-300 px-3 py-2">
+													<td className="border border-gray-300 px-2 sm:px-3 py-2">
 														<TextField
 															size="small"
 															type="number"
@@ -3457,26 +3457,26 @@ function MultiKonnectListingCreation() {
 															sx={{
 																width: '100%',
 																'& .MuiOutlinedInput-root': {
-																	fontSize: '13px',
-																	minHeight: '36px',
-																	maxHeight: '36px',
+																	fontSize: { xs: '12px', sm: '13px' },
+																	minHeight: { xs: '32px', sm: '36px' },
+																	maxHeight: { xs: '32px', sm: '36px' },
 																},
 																'& .MuiInputBase-input': {
-																	padding: '8px 12px',
+																	padding: { xs: '6px 8px', sm: '8px 12px' },
 																	overflow: 'hidden',
 																	textOverflow: 'ellipsis',
 																},
 															}}
 														/>
 													</td>
-													<td className="border border-gray-300 px-3 py-2">
+													<td className="border border-gray-300 px-2 sm:px-3 py-2">
 														<Checkbox
 															checked={variant.sameDay}
 															onChange={(e) => handleVariantChange(index, 'sameDay', e.target.checked)}
 															size="small"
 														/>
 													</td>
-													<td className="border border-gray-300 px-3 py-2">
+													<td className="border border-gray-300 px-2 sm:px-3 py-2">
 														<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 															{(variant as any).image ? (
 																<>
@@ -4727,10 +4727,12 @@ function MultiKonnectListingCreation() {
 									Mobile
 								</Button>
 							</div>
-							<div className="p-4">
-								<div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-1' : 'grid-cols-[1.1fr_0.9fr]'}`}>
+							<div className="p-3 sm:p-4">
+								<div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]'}`}>
 									<div 
-										className="h-[360px] rounded-xl overflow-hidden relative bg-gray-100"
+										className={`rounded-xl overflow-hidden relative bg-gray-100 ${
+											previewMode === 'mobile' ? 'h-[300px] sm:h-[360px]' : 'h-[360px]'
+										}`}
 										style={{
 											borderRadius: '14px',
 										}}
@@ -4820,8 +4822,8 @@ function MultiKonnectListingCreation() {
 											</div>
 										)}
 									</div>
-									<div>
-										<Typography variant="h5" className="font-bold mb-2" sx={{ fontSize: '20px', fontWeight: 700, marginBottom: '6px' }}>
+									<div className="w-full">
+										<Typography variant="h5" className="font-bold mb-2" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, marginBottom: '6px' }}>
 											{productTitle || 'Product Name'}
 										</Typography>
 										<div className="flex flex-wrap gap-2 items-center mb-2">
@@ -4896,8 +4898,8 @@ function MultiKonnectListingCreation() {
 												/>
 											)}
 										</div>
-										<div className="flex gap-2 items-center mb-2">
-											<div className="flex items-center border border-gray-300 rounded-xl px-3 py-2" style={{ maxWidth: '220px', borderRadius: '12px' }}>
+										<div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-2">
+											<div className="flex items-center border border-gray-300 rounded-xl px-3 py-2 flex-1 sm:flex-initial sm:max-w-[220px]" style={{ borderRadius: '12px' }}>
 												<span className="mr-1" style={{ fontSize: '16px', fontWeight: 700 }}>£</span>
 												<input 
 													type="text" 
@@ -4917,6 +4919,7 @@ function MultiKonnectListingCreation() {
 											</div>
 											<Button 
 												variant="contained"
+												fullWidth={previewMode === 'mobile'}
 												disabled={(stock === 0 && variants.length === 0) || (variants.length > 0 && !variants.some(v => parseInt(v.stock) > 0))}
 												sx={{
 													backgroundColor: '#ff6536',
@@ -4927,11 +4930,19 @@ function MultiKonnectListingCreation() {
 													},
 													textTransform: 'none',
 													borderRadius: '10px',
-													fontSize: '13px',
-													padding: '8px 16px',
+													fontSize: { xs: '14px', sm: '13px' },
+													padding: { xs: '10px 16px', sm: '8px 16px' },
+													minHeight: { xs: '44px', sm: '36px' },
+													whiteSpace: previewMode === 'mobile' ? 'normal' : 'nowrap',
 												}}
 											>
-												Add to cart
+												{previewMode === 'mobile' ? (
+													<span>
+														Add<br />to cart
+													</span>
+												) : (
+													'Add to cart'
+												)}
 											</Button>
 										</div>
 										{/* Show variant selection if variants exist */}

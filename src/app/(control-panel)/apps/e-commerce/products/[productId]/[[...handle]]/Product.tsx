@@ -248,6 +248,11 @@ function Product() {
 		const errorStatus = (error as any)?.status || (error as any)?.originalStatus;
 		const errorData = (error as any)?.data;
 		const errorMessage = errorData?.message || (error as any)?.message || (error as any)?.error || 'Unknown error';
+		const isConnectionError = errorMessage.includes('Failed to fetch') || 
+		                          errorMessage.includes('ERR_CONNECTION_RESET') ||
+		                          errorMessage.includes('NetworkError') ||
+		                          errorMessage.includes('Network request failed');
+		const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'Not configured';
 		
 		console.error('Product not found error:', {
 			productId,
@@ -255,6 +260,8 @@ function Product() {
 			errorData,
 			errorMessage,
 			apiUrl: `/api/products/${productId}`,
+			apiBaseUrl,
+			isConnectionError,
 			fullError: error
 		});
 		
@@ -268,23 +275,47 @@ function Product() {
 					color="text.secondary"
 					variant="h5"
 				>
-					Product not found!
+					{isConnectionError ? 'Connection Error!' : 'Product not found!'}
 				</Typography>
 				<Typography
 					color="text.secondary"
 					variant="body2"
 					className="text-center max-w-md"
 				>
-					Product ID: {productId}<br />
-					API URL: /api/products/{productId}<br />
-					{errorStatus && `HTTP Status: ${errorStatus}`}<br />
-					{errorMessage && `Error: ${errorMessage}`}
-					<br /><br />
-					<strong>Possible reasons:</strong><br />
-					• Product doesn't exist in database<br />
-					• Product is inactive (check active status)<br />
-					• Authentication/authorization issue<br />
-					• Product belongs to different store
+					{isConnectionError ? (
+						<>
+							<strong>Unable to connect to API server</strong><br />
+							Product ID: {productId}<br />
+							API Base URL: {apiBaseUrl}<br />
+							Full URL: {apiBaseUrl}/api/products/{productId}<br />
+							<br />
+							<strong>Possible reasons:</strong><br />
+							• API server is down or unreachable<br />
+							• Incorrect API URL configuration<br />
+							• Network connectivity issue<br />
+							• CORS configuration problem<br />
+							• Firewall blocking the connection<br />
+							<br />
+							<strong>To fix:</strong><br />
+							1. Check if NEXT_PUBLIC_API_URL is set correctly<br />
+							2. Verify the API server is running<br />
+							3. Check browser console for CORS errors<br />
+							4. Verify network connectivity
+						</>
+					) : (
+						<>
+							Product ID: {productId}<br />
+							API URL: /api/products/{productId}<br />
+							{errorStatus && `HTTP Status: ${errorStatus}`}<br />
+							{errorMessage && `Error: ${errorMessage}`}
+							<br /><br />
+							<strong>Possible reasons:</strong><br />
+							• Product doesn't exist in database<br />
+							• Product is inactive (check active status)<br />
+							• Authentication/authorization issue<br />
+							• Product belongs to different store
+						</>
+					)}
 				</Typography>
 				<div className="flex gap-2 mt-4">
 					<Button

@@ -83,6 +83,11 @@ export async function getAuthToken(): Promise<string | null> {
 // export const API_BASE_URL = BASEURLAPI;
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
+// Log API base URL in development to help debug connection issues
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+	console.log('🔗 API Base URL:', API_BASE_URL);
+}
+
 // export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.multikonnect.test:8000';
 export const globalHeaders = {
   // Intentionally omit default 'Content-Type' to allow FormData uploads to set proper boundaries
@@ -318,6 +323,41 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
       (result.error as any).data = { message: 'Received HTML response (likely redirect). Ensure you are authenticated as admin and CORS/Accept headers are set.' } as any;
     } else {
       (result.error as any).data = { message: text } as any;
+    }
+  }
+
+  // Handle connection errors (ERR_CONNECTION_RESET, Failed to fetch, etc.)
+  if (result.error && !result.error.status) {
+    const errorMessage = String((result.error as any).error || (result.error as any).data?.message || 'Connection error');
+    const isConnectionError = errorMessage.includes('Failed to fetch') || 
+                              errorMessage.includes('ERR_CONNECTION_RESET') ||
+                              errorMessage.includes('NetworkError') ||
+                              errorMessage.includes('Network request failed') ||
+                              errorMessage.includes('ERR_CONNECTION_REFUSED') ||
+                              errorMessage.includes('ERR_NAME_NOT_RESOLVED');
+    
+    if (isConnectionError) {
+      const requestUrl = typeof args === 'string' ? args : (args as FetchArgs).url;
+      const fullUrl = `${API_BASE_URL}${requestUrl}`;
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.error('🚨 Connection Error:', {
+          error: errorMessage,
+          apiBaseUrl: API_BASE_URL,
+          requestUrl,
+          fullUrl,
+          suggestion: 'Check if NEXT_PUBLIC_API_URL is correct and the API server is accessible'
+        });
+      }
+      
+      // Enhance error with connection-specific message
+      (result.error as any).data = {
+        message: `Connection failed: ${errorMessage}. API URL: ${fullUrl}`,
+        connectionError: true,
+        apiBaseUrl: API_BASE_URL,
+        requestUrl
+      };
+      (result.error as any).status = 'FETCH_ERROR';
     }
   }
 
