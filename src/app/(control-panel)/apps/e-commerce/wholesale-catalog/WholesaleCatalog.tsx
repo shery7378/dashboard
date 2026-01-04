@@ -209,6 +209,8 @@ function WholesaleCatalog() {
                 p: { xs: 2, sm: 3, md: 4 },
                 background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
                 minHeight: '100vh',
+                width: '100%',
+                maxWidth: '100%',
             }}
         >
             <WholesaleCatalogHeader />
@@ -478,9 +480,9 @@ function WholesaleCatalog() {
             )}
 
             {isLoading ? (
-                <Grid container spacing={3}>
+                <Grid container spacing={3} sx={{ maxWidth: '100%' }}>
                     {[...Array(6)].map((_, index) => (
-                        <Grid item xs={12} sm={6} md={4} key={index}>
+                        <Grid item xs={12} sm={6} md={4} lg={4} xl={4} key={index}>
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -681,7 +683,16 @@ function WholesaleCatalog() {
                             />
                         )}
                     </Box>
-                    <Grid container spacing={3}>
+                    <Grid 
+                        container 
+                        spacing={3}
+                        sx={{
+                            maxWidth: '100%',
+                            '& .MuiGrid-item': {
+                                display: 'flex',
+                            },
+                        }}
+                    >
                         <AnimatePresence>
                             {products.map((product: EcommerceProduct, index: number) => {
                                 // Handle different image formats
@@ -706,7 +717,19 @@ function WholesaleCatalog() {
                                 const quantity = product.quantity || product.stock_quantity || 0;
 
                                 return (
-                                    <Grid item xs={12} sm={6} md={4} key={product.id}>
+                                    <Grid 
+                                        item 
+                                        xs={12} 
+                                        sm={6} 
+                                        md={4} 
+                                        lg={4} 
+                                        xl={4}
+                                        key={product.id}
+                                        sx={{
+                                            maxWidth: { md: '33.333%', lg: '33.333%', xl: '33.333%' },
+                                            flexBasis: { md: '33.333%', lg: '33.333%', xl: '33.333%' },
+                                        }}
+                                    >
                                         <motion.div
                                             initial={{ opacity: 0, y: 30, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -722,6 +745,7 @@ function WholesaleCatalog() {
                                             <Card 
                                                 elevation={0}
                                                 sx={{ 
+                                                    width: '100%',
                                                     height: '100%', 
                                                     display: 'flex', 
                                                     flexDirection: 'column',
