@@ -11,27 +11,20 @@ export default function ProductLayout({
 	const params = useParams<{ productId: string }>();
 	const productId = params?.productId;
 
-	// Only hide toolbar for new product page
-	const shouldHideToolbar = productId === 'new';
+	// Hide sidebar navigation for all product edit pages (both new and existing)
+	// This hides the main app sidebar (Dashboard, Analytics, etc.) only on listing edit page
+	const shouldHideSidebar = true; // Always hide for product edit pages
 
 	useEffect(() => {
-		if (!shouldHideToolbar) return;
+		if (!shouldHideSidebar) return;
 
-		// Hide all toolbar and navbar elements
-		const hideToolbar = () => {
+		// Hide main sidebar navigation elements
+		const hideSidebar = () => {
 			const selectors = [
-				'#fuse-toolbar',
-				'.MuiToolbar-root',
-				'[class*="MuiToolbar"]',
-				'[class*="toolbar"]',
 				'#fuse-navbar',
-				'#fuse-navbar-side-panel',
-				'#fuse-navbar-panel',
+				'[id*="fuse-navbar"]',
 				'[class*="NavbarStyle"]',
 				'[class*="navbar"]',
-				'.logo-text',
-				'.logo-icon',
-				'[class*="logo"]'
 			];
 
 			selectors.forEach(selector => {
@@ -43,13 +36,13 @@ export default function ProductLayout({
 		};
 
 		// Hide immediately
-		hideToolbar();
+		hideSidebar();
 
-		// Also hide after a short delay to catch any dynamically rendered toolbars
-		const timeout = setTimeout(hideToolbar, 100);
+		// Also hide after a short delay to catch any dynamically rendered elements
+		const timeout = setTimeout(hideSidebar, 100);
 
-		// Use MutationObserver to catch any toolbar elements added dynamically
-		const observer = new MutationObserver(hideToolbar);
+		// Use MutationObserver to catch any elements added dynamically
+		const observer = new MutationObserver(hideSidebar);
 		observer.observe(document.body, {
 			childList: true,
 			subtree: true
@@ -59,25 +52,17 @@ export default function ProductLayout({
 			clearTimeout(timeout);
 			observer.disconnect();
 		};
-	}, [shouldHideToolbar]);
+	}, [shouldHideSidebar]);
 
 	return (
 		<>
-			{shouldHideToolbar && (
+			{shouldHideSidebar && (
 				<style dangerouslySetInnerHTML={{
 					__html: `
-						#fuse-toolbar,
-						.MuiToolbar-root,
-						[class*="MuiToolbar"],
-						[class*="toolbar"],
 						#fuse-navbar,
-						#fuse-navbar-side-panel,
-						#fuse-navbar-panel,
+						[id*="fuse-navbar"],
 						[class*="NavbarStyle"],
-						[class*="navbar"],
-						.logo-text,
-						.logo-icon,
-						[class*="logo"] {
+						[class*="navbar"] {
 							display: none !important;
 						}
 					`
