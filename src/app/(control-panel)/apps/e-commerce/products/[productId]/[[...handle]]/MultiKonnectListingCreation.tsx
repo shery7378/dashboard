@@ -130,37 +130,6 @@ function MultiKonnectListingCreation() {
 	const hasInitializedRef = useRef(false);
 	const prevProductVariantsRef = useRef<string>('');
 	const prevExtraFieldsRef = useRef<string>('');
-	
-	// Admin-configurable fee settings - load from localStorage or use defaults
-	// Note: Shipping charges are set by vendor, not admin
-	const [feeSettings, setFeeSettings] = useState(() => {
-		if (typeof window !== 'undefined') {
-			const saved = localStorage.getItem('admin_fee_settings');
-			if (saved) {
-				try {
-					return JSON.parse(saved);
-				} catch (e) {
-					console.error('Error parsing fee settings:', e);
-				}
-			}
-		}
-		return {
-			commissionRate: 0.025, // 2.5% default
-			promoFee: 0, // Promotional fee
-		};
-	});
-
-	// Save fee settings to localStorage when changed
-	useEffect(() => {
-		if (typeof window !== 'undefined') {
-			localStorage.setItem('admin_fee_settings', JSON.stringify(feeSettings));
-		}
-	}, [feeSettings]);
-
-	// Update tempFeeSettings when feeSettings changes
-	useEffect(() => {
-		setTempFeeSettings(feeSettings);
-	}, [feeSettings]);
 
 	// Watch form values - all fields are now reactive
 	const productTitle = watch('name') || '';
@@ -216,6 +185,43 @@ function MultiKonnectListingCreation() {
 	const productVariants = watch('product_variants') || [];
 	const extraFields = watch('extraFields') || {};
 
+	// Admin-configurable fee settings - per product, stored in extraFields
+	// Note: Shipping charges are set by vendor, not admin
+	// Get fees from extraFields (product-specific) or use defaults
+	const getProductFees = useCallback(() => {
+		if (extraFields?.commissionRate !== undefined || extraFields?.promoFee !== undefined) {
+			return {
+				commissionRate: extraFields.commissionRate ?? 0.025, // 2.5% default
+				promoFee: extraFields.promoFee ?? 0,
+			};
+		}
+		// Default fees if not set for this product
+		return {
+			commissionRate: 0.025, // 2.5% default
+			promoFee: 0, // Promotional fee
+		};
+	}, [extraFields]);
+
+	const [feeSettings, setFeeSettings] = useState(() => {
+		// Initialize with defaults, will be updated when extraFields loads
+		return {
+			commissionRate: 0.025,
+			promoFee: 0,
+		};
+	});
+
+	// Update feeSettings when extraFields changes (product loads or fees are updated)
+	useEffect(() => {
+		const productFees = getProductFees();
+		setFeeSettings(productFees);
+		setTempFeeSettings(productFees);
+	}, [getProductFees]);
+
+	// Update tempFeeSettings when feeSettings changes
+	useEffect(() => {
+		setTempFeeSettings(feeSettings);
+	}, [feeSettings]);
+
 	// Fetch categories
 	const { data: categoryData } = useGetECommerceCategoriesQuery({});
 	const categoryOptions = categoryData?.data || [];
@@ -263,16 +269,40 @@ function MultiKonnectListingCreation() {
 
 		const city = getCityFromPostcode(storePostcode);
 		
-		// Get selected variant prices (use first variant with price, or main price)
-		const selectedVariantPrice = variants.find(v => v.price && parseFloat(v.price) > 0)?.price 
-			|| priceTaxExcl 
-			|| '0';
-		const basePrice = parseFloat(selectedVariantPrice) || 0;
+		// Get base price from multiple sources - prioritize the most current/relevant price
+		// 1. Check variants state (local state, most up-to-date)
+		// 2. Check product_variants from form (form state)
+		// 3. Check main price_tax_excl (fallback)
+		let basePrice = 0;
+		
+		// First, try to get price from local variants state
+		const variantPrice = variants.find(v => {
+			const price = parseFloat(v.price?.toString() || '0');
+			return price > 0;
+		});
+		
+		if (variantPrice && variantPrice.price) {
+			basePrice = parseFloat(variantPrice.price.toString()) || 0;
+		} else if (Array.isArray(productVariants) && productVariants.length > 0) {
+			// Try form's product_variants
+			const formVariantWithPrice = productVariants.find((v: any) => {
+				const price = parseFloat(v.price_tax_excl?.toString() || '0');
+				return price > 0;
+			});
+			if (formVariantWithPrice?.price_tax_excl) {
+				basePrice = parseFloat(formVariantWithPrice.price_tax_excl.toString()) || 0;
+			}
+		}
+		
+		// Fallback to main price field
+		if (basePrice <= 0 && priceTaxExcl) {
+			basePrice = parseFloat(priceTaxExcl.toString()) || 0;
+		}
 
 		// Mock recent listings data (in production, fetch from API)
 		// This simulates price data for similar products in the city
 		// Optimized: reduced count and use deterministic variation to prevent blocking
-		const generateMockPrices = (base: number, count: number = 10): number[] => {
+		const generateMockPrices = (base: number, count: number = 20): number[] => {
 			if (base <= 0) return [];
 			const prices: number[] = [];
 			// Use deterministic variation based on base price to avoid Math.random() blocking
@@ -281,27 +311,28 @@ function MultiKonnectListingCreation() {
 				// Generate prices within ±15% of base price using seeded variation
 				const variation = ((seed + i) % 30 - 15) / 100; // -15% to +15%
 				const price = base * (1 + variation);
-				prices.push(Math.round(price));
+				prices.push(Math.round(price * 100) / 100); // Round to 2 decimal places
 			}
 			return prices.sort((a, b) => a - b);
 		};
 
 		const recentPrices = basePrice > 0 
 			? generateMockPrices(basePrice)
-			: generateMockPrices(1299); // Default fallback
+			: [];
 
 		// Calculate percentiles
 		const calculatePercentile = (arr: number[], percentile: number): number => {
+			if (arr.length === 0) return 0;
 			const index = Math.ceil((percentile / 100) * arr.length) - 1;
 			return arr[Math.max(0, Math.min(index, arr.length - 1))];
 		};
 
-		const p25 = calculatePercentile(recentPrices, 25);
-		const p75 = calculatePercentile(recentPrices, 75);
-		const median = calculatePercentile(recentPrices, 50);
+		const p25 = recentPrices.length > 0 ? calculatePercentile(recentPrices, 25) : 0;
+		const p75 = recentPrices.length > 0 ? calculatePercentile(recentPrices, 75) : 0;
+		const median = recentPrices.length > 0 ? calculatePercentile(recentPrices, 50) : 0;
 
 		// Calculate fees using admin-configurable settings
-		const commission = basePrice * feeSettings.commissionRate;
+		const commission = basePrice > 0 ? basePrice * feeSettings.commissionRate : 0;
 		
 		// Shipping charge: set by vendor/seller (not admin)
 		const hasSameDay = variants.some(v => v.sameDay) || false;
@@ -310,25 +341,25 @@ function MultiKonnectListingCreation() {
 			: (parseFloat(shippingChargeRegular.toString()) || 0);
 		
 		// Promotional fees (if any promotions are enabled) - admin set
-		const promoFee = feeSettings.promoFee;
+		const promoFee = feeSettings.promoFee || 0;
 		
 		const totalFees = commission + shippingCharge + promoFee;
-		const netPrice = basePrice - totalFees;
+		const netPrice = basePrice > 0 ? basePrice - totalFees : 0;
 
 		return {
 			city,
 			priceRange: { min: p25, max: p75 },
 			median,
 			fees: {
-				commission,
+				commission: Math.round(commission * 100) / 100,
 				shipping: shippingCharge,
 				promos: promoFee,
-				total: totalFees,
+				total: Math.round(totalFees * 100) / 100,
 			},
-			net: netPrice,
+			net: Math.round(netPrice * 100) / 100,
 			basePrice,
 		};
-	}, [storePostcode, variants, priceTaxExcl, feeSettings, shippingChargeRegular, shippingChargeSameDay]);
+	}, [storePostcode, variants, priceTaxExcl, feeSettings, shippingChargeRegular, shippingChargeSameDay, productVariants]);
 
 	// Format currency
 	const formatCurrency = (amount: number): string => {
@@ -5659,7 +5690,7 @@ function MultiKonnectListingCreation() {
 				</DialogContent>
 			</Dialog>
 
-			{/* Fee Settings Dialog - Admin Configuration */}
+			{/* Fee Settings Dialog - Admin Configuration (Per Product) */}
 			<Dialog 
 				open={feeSettingsDialogOpen} 
 				onClose={() => setFeeSettingsDialogOpen(false)} 
@@ -5670,7 +5701,7 @@ function MultiKonnectListingCreation() {
 				<DialogTitle>Configure Fee Settings</DialogTitle>
 				<DialogContent>
 					<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
-						Set the fee rates that will be applied to all product listings. These settings are saved locally and will be used for fee calculations.
+						Set the fee rates for this specific product. These settings are saved with the product and will be used for fee calculations.
 					</Typography>
 					<Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
 						Note: Shipping charges are set by vendors/sellers in the delivery section, not here.
@@ -5718,6 +5749,12 @@ function MultiKonnectListingCreation() {
 					<Button onClick={() => setFeeSettingsDialogOpen(false)}>Cancel</Button>
 					<Button 
 						onClick={() => {
+							// Save fees to extraFields (product-specific)
+							setValue('extraFields', {
+								...extraFields,
+								commissionRate: tempFeeSettings.commissionRate,
+								promoFee: tempFeeSettings.promoFee,
+							}, { shouldDirty: true });
 							setFeeSettings(tempFeeSettings);
 							setFeeSettingsDialogOpen(false);
 						}} 
