@@ -70,12 +70,26 @@ function ProductsTable() {
       enableSorting: false,
       Cell: ({ row }) => {
         const imageUrl = row.original.featured_image?.url;
+        // Handle both relative and absolute URLs
+        const buildImageUrl = (url: string | undefined) => {
+          if (!url) return '/assets/images/apps/ecommerce/product-image-placeholder.png';
+          if (url.startsWith('http://') || url.startsWith('https://')) return url;
+          const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+          if (apiBase) {
+            return url.startsWith('/') ? `${apiBase}${url}` : `${apiBase}/${url}`;
+          }
+          return url.startsWith('/') ? url : `/${url}`;
+        };
+        
         return (
           <div className="flex items-center justify-center">
             <img
               className="w-full max-h-9 max-w-9 block rounded-sm object-cover"
-              src={imageUrl ? `${process.env.NEXT_PUBLIC_API_URL}/${imageUrl}` : '/assets/images/apps/ecommerce/product-image-placeholder.png'}
+              src={buildImageUrl(imageUrl)}
               alt={row.original.name}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = '/assets/images/apps/ecommerce/product-image-placeholder.png';
+              }}
             />
           </div>
         );
