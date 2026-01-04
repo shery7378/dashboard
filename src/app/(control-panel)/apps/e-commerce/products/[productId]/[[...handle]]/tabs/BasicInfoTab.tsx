@@ -763,13 +763,15 @@ function BasicInfoTab() {
 								}
 								label="Active"
 							/>
-							<Typography
-								variant="caption"
-								color="textSecondary"
-								className="block mt-1"
-							>
-								⚠️ Before activating, make sure required fields (Name, Description, Category, Sub-category, one extraFields with its value, Image, All Prices,etc.) are filled.
-							</Typography>
+							{(!productId || productId === 'new') && (
+								<Typography
+									variant="caption"
+									color="textSecondary"
+									className="block mt-1"
+								>
+									⚠️ Before activating, make sure required fields (Name, Description, Category, Sub-category, one extraFields with its value, Image, All Prices,etc.) are filled.
+								</Typography>
+							)}
 						</div>
 					)
 				}}
