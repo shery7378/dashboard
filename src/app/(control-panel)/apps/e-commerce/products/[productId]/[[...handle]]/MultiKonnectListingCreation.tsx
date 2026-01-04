@@ -2228,22 +2228,143 @@ function MultiKonnectListingCreation() {
 			<ProductHeader />
 		</div>
 
-			<div className="flex flex-1 overflow-hidden min-h-0 justify-center">
-				<div className="flex w-full max-w-[1600px]">
+		{/* Top Navigation Bar - Dark Navy Header */}
+		<header 
+			className="px-6 py-4 flex items-center justify-between flex-shrink-0 sticky top-0 z-50" 
+			style={{ 
+				backgroundColor: '#0f172a',
+				height: '60px',
+				boxShadow: 'none',
+				borderBottom: 'none'
+			}}
+		>
+			<div className="flex items-center space-x-3">
+				{/* Orange Circle Logo */}
+				<div 
+					className="rounded-full flex-shrink-0"
+					style={{ 
+						backgroundColor: '#ff6536',
+						width: '8px',
+						height: '8px',
+						borderRadius: '50%',
+						marginRight: '8px'
+					}}
+				/>
+				{/* MultiKonnect Text */}
+				<Typography 
+					variant="h6" 
+					sx={{ 
+						fontSize: '16px', 
+						fontWeight: 700,
+						color: '#ffffff',
+						letterSpacing: '0.01em',
+						lineHeight: 1.2,
+						marginRight: '12px'
+					}}
+				>
+					MultiKonnect
+				</Typography>
+				{/* Create Listing Button */}
+				<Button
+					variant="text"
+					size="small"
+					sx={{
+						color: '#ffffff',
+						textTransform: 'none',
+						fontSize: '14px',
+						padding: '6px 16px',
+						minHeight: '32px',
+						fontWeight: 500,
+						borderRadius: '8px',
+						backgroundColor: 'transparent',
+						'&:hover': {
+							backgroundColor: 'rgba(255, 255, 255, 0.1)',
+						},
+					}}
+				>
+					Create Listing
+				</Button>
+			</div>
+			<div className="flex items-center space-x-2">
+				<Button 
+					variant="text" 
+					size="small"
+					onClick={handleSaveDraft}
+					sx={{
+						color: '#ffffff',
+						textTransform: 'none',
+						fontSize: '14px',
+						padding: '8px 16px',
+						minHeight: '36px',
+						fontWeight: 500,
+						borderRadius: '8px',
+						backgroundColor: 'transparent',
+						'&:hover': {
+							backgroundColor: 'rgba(255, 255, 255, 0.1)',
+						},
+					}}
+				>
+					Save draft
+				</Button>
+				<Button 
+					variant="text" 
+					size="small"
+					sx={{
+						color: '#ffffff',
+						textTransform: 'none',
+						fontSize: '14px',
+						padding: '8px 16px',
+						minHeight: '36px',
+						fontWeight: 500,
+						borderRadius: '8px',
+						backgroundColor: 'transparent',
+						'&:hover': {
+							backgroundColor: 'rgba(255, 255, 255, 0.1)',
+						},
+					}}
+					onClick={handlePreviewClick}
+				>
+					Preview
+				</Button>
+				<Button 
+					variant="contained" 
+					size="small"
+					sx={{ 
+						backgroundColor: '#ff6536',
+						color: '#fff',
+						textTransform: 'none',
+						fontSize: '14px',
+						padding: '8px 20px',
+						fontWeight: 600,
+						borderRadius: '8px',
+						minHeight: '36px',
+						boxShadow: 'none',
+						'&:hover': { 
+							backgroundColor: '#e55a2b',
+							boxShadow: 'none',
+						},
+					}}
+					onClick={handlePublishClick}
+				>
+					Publish
+				</Button>
+			</div>
+		</header>
+
+			<div className="flex flex-1 overflow-hidden min-h-0">
+				<div className="flex w-full">
 				{/* Left Sidebar - Listing Steps - Light Grey */}
 				<aside 
-					className="w-[280px] border-r overflow-y-auto flex-shrink-0 sticky" 
+					className="w-[280px] border-r overflow-y-auto flex-shrink-0" 
 					style={{ 
-						alignSelf: 'start', 
 						backgroundColor: '#f8f9fa',
 						borderColor: '#e5e7eb',
 						borderRightWidth: '1px',
-						top: '60px',
 						height: 'calc(100vh - 60px)'
 					}}
 				>
-					<div className="p-5">
-						<div className="space-y-1">
+					<div className="p-4">
+						<div className="space-y-0.5">
 							{steps.map((step) => (
 								<a
 									key={step.id}
@@ -2256,32 +2377,32 @@ function MultiKonnectListingCreation() {
 									style={{
 										color: 'inherit',
 										textDecoration: 'none',
-										padding: '12px 14px',
-										borderRadius: '8px',
-										backgroundColor: currentStep === step.id ? '#eff6ff' : 'transparent',
-										marginBottom: '2px',
+										padding: '10px 12px',
+										borderRadius: '6px',
+										backgroundColor: currentStep === step.id ? '#dbeafe' : 'transparent',
+										marginBottom: '1px',
 									}}
 								>
 									<span 
 										style={{
-											fontSize: '14px',
+											fontSize: '13px',
 											fontWeight: 600,
 											color: currentStep === step.id ? '#2563eb' : '#6b7280',
-											marginRight: '10px',
-											minWidth: '22px',
-											lineHeight: '1.4'
+											marginRight: '8px',
+											minWidth: '20px',
+											lineHeight: '1.5'
 										}}
 									>
 										{step.id}.
 									</span>
 									<div style={{ flex: 1, minWidth: 0 }}>
-										<div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+										<div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
 											<Typography
 												sx={{ 
 													fontSize: '13px', 
 													fontWeight: 500,
-													color: currentStep === step.id ? '#2563eb' : '#111827',
-													lineHeight: '1.4',
+													color: currentStep === step.id ? '#1e40af' : '#111827',
+													lineHeight: '1.5',
 												}}
 											>
 												{step.title}
@@ -2289,7 +2410,7 @@ function MultiKonnectListingCreation() {
 											{step.completed && (
 												<CheckCircleIcon 
 													sx={{ 
-														fontSize: '16px', 
+														fontSize: '14px', 
 														color: '#10b981',
 														marginLeft: 'auto'
 													}} 
@@ -2301,7 +2422,7 @@ function MultiKonnectListingCreation() {
 												fontSize: '11px', 
 												display: 'block', 
 												color: '#6b7280',
-												lineHeight: '1.3'
+												lineHeight: '1.4'
 											}}
 										>
 											{step.description}
@@ -2315,13 +2436,14 @@ function MultiKonnectListingCreation() {
 
 				{/* Main Content Area */}
 				<main 
-					className="flex-1 overflow-y-auto min-w-0 flex justify-center" 
+					className="flex-1 overflow-y-auto min-w-0" 
 					style={{ 
 						backgroundColor: '#ffffff',
-						padding: '32px 0'
+						padding: '24px 32px',
+						height: 'calc(100vh - 60px)'
 					}}
 				>
-					<div className="w-full max-w-[1200px] px-8 space-y-6">
+					<div className="w-full max-w-[1200px] mx-auto space-y-6">
 						{/* Product Identity Section - Step 1 */}
 						<section 
 							ref={(el) => setSectionRef(1, el)}
@@ -4754,23 +4876,31 @@ function MultiKonnectListingCreation() {
 				</main>
 
 				{/* Right Sidebar - Listing Score & Actions */}
-				<aside className="w-[320px] bg-white border-l border-gray-200 overflow-y-auto flex-shrink-0 sticky top-[52px]" style={{ alignSelf: 'start' }}>
-					<div className="p-4 space-y-4">
+				<aside 
+					className="w-[320px] bg-white border-l overflow-y-auto flex-shrink-0" 
+					style={{ 
+						borderLeftColor: '#e5e7eb',
+						borderLeftWidth: '1px',
+						height: 'calc(100vh - 60px)'
+					}}
+				>
+					<div className="p-5 space-y-5">
 						{/* Listing Score */}
 						<div>
-							<div className="flex items-center justify-between mb-2">
+							<div className="flex items-center justify-between mb-3">
 								<Typography variant="h6" className="font-semibold text-gray-900" sx={{ fontSize: '16px', fontWeight: 600 }}>
 									Listing Score
 								</Typography>
 								<Chip 
 									label={listingScore} 
 									sx={{
-										backgroundColor: '#10b981',
+										backgroundColor: listingScore >= 80 ? '#10b981' : listingScore >= 60 ? '#f59e0b' : '#ef4444',
 										color: '#fff',
 										fontSize: '14px',
 										fontWeight: 700,
 										height: '28px',
 										borderRadius: '999px',
+										padding: '0 12px',
 									}}
 								/>
 							</div>
@@ -4778,15 +4908,15 @@ function MultiKonnectListingCreation() {
 								variant="determinate"
 								value={listingScore}
 								sx={{
-									height: 10,
+									height: 8,
 									borderRadius: '999px',
-									backgroundColor: '#eef0f4',
+									backgroundColor: '#e5e7eb',
 									'& .MuiLinearProgress-bar': {
 										background: listingScore >= 80 
-											? 'linear-gradient(90deg, #22c55e, #f59e0b)' 
+											? 'linear-gradient(90deg, #22c55e, #10b981)' 
 											: listingScore >= 60 
-											? 'linear-gradient(90deg, #f59e0b, #ef4444)' 
-											: '#ef4444',
+											? 'linear-gradient(90deg, #f59e0b, #fbbf24)' 
+											: 'linear-gradient(90deg, #ef4444, #dc2626)',
 										borderRadius: '999px',
 									},
 								}}
@@ -4950,7 +5080,7 @@ function MultiKonnectListingCreation() {
 					height: '56px'
 				}}
 			>
-				<div className="flex items-center space-x-2">
+				<div className="flex items-center space-x-3">
 					{mpidMatched && (
 						<Chip 
 							label="MPID matched" 
@@ -4987,7 +5117,7 @@ function MultiKonnectListingCreation() {
 					)}
 					{storePostcode && (
 						<Chip 
-							label="Same‑day enabled" 
+							label="Same-day enabled" 
 							size="small"
 							sx={{
 								backgroundColor: '#ffffff',
@@ -5005,33 +5135,10 @@ function MultiKonnectListingCreation() {
 				</div>
 				<div className="flex items-center space-x-2">
 					<Button 
-						variant="outlined" 
-						size="small"
-						onClick={handleBack}
-						sx={{
-							borderColor: '#e5e7eb',
-							color: '#374151',
-							textTransform: 'none',
-							fontSize: '13px',
-							padding: '8px 16px',
-							borderRadius: '8px',
-							minHeight: '36px',
-							fontWeight: 500,
-							backgroundColor: '#ffffff',
-							'&:hover': {
-								borderColor: '#d1d5db',
-								backgroundColor: '#f9fafb',
-							},
-						}}
-					>
-						Back
-					</Button>
-					<Button 
-						variant="outlined" 
+						variant="text" 
 						size="small"
 						onClick={handleSaveDraft}
 						sx={{
-							borderColor: '#e5e7eb',
 							color: '#374151',
 							textTransform: 'none',
 							fontSize: '13px',
@@ -5039,21 +5146,19 @@ function MultiKonnectListingCreation() {
 							borderRadius: '8px',
 							minHeight: '36px',
 							fontWeight: 500,
-							backgroundColor: '#ffffff',
+							backgroundColor: 'transparent',
 							'&:hover': {
-								borderColor: '#d1d5db',
-								backgroundColor: '#f9fafb',
+								backgroundColor: 'rgba(0, 0, 0, 0.04)',
 							},
 						}}
 					>
 						Save draft
 					</Button>
 					<Button 
-						variant="outlined" 
+						variant="text" 
 						size="small"
 						onClick={handlePreviewClick}
 						sx={{
-							borderColor: '#e5e7eb',
 							color: '#374151',
 							textTransform: 'none',
 							fontSize: '13px',
@@ -5061,10 +5166,9 @@ function MultiKonnectListingCreation() {
 							borderRadius: '8px',
 							minHeight: '36px',
 							fontWeight: 500,
-							backgroundColor: '#ffffff',
+							backgroundColor: 'transparent',
 							'&:hover': {
-								borderColor: '#d1d5db',
-								backgroundColor: '#f9fafb',
+								backgroundColor: 'rgba(0, 0, 0, 0.04)',
 							},
 						}}
 					>
@@ -5085,7 +5189,7 @@ function MultiKonnectListingCreation() {
 							boxShadow: 'none',
 							'&:hover': { 
 								backgroundColor: '#e55a2b',
-								boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+								boxShadow: 'none',
 							},
 						}}
 						onClick={handlePublishClick}
