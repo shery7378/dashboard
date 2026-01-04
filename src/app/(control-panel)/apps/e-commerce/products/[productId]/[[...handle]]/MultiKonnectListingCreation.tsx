@@ -2189,31 +2189,92 @@ function MultiKonnectListingCreation() {
 	};
 
 	const handleSelectPastListing = (product: any) => {
-		// Load product data into form
-		if (product.name) setValue('name', product.name, { shouldDirty: true });
-		if (product.description) setValue('description', product.description, { shouldDirty: true });
-		if (product.meta_title) setValue('meta_title', product.meta_title, { shouldDirty: true });
-		if (product.meta_description) setValue('meta_description', product.meta_description, { shouldDirty: true });
-		if (product.meta_keywords) setValue('meta_keywords', product.meta_keywords, { shouldDirty: true });
-		if (product.price_tax_excl) setValue('price_tax_excl', product.price_tax_excl, { shouldDirty: true });
-		if (product.price_tax_incl) setValue('price_tax_incl', product.price_tax_incl, { shouldDirty: true });
-		if (product.sku) setValue('sku', product.sku, { shouldDirty: true });
+		// Replace ALL form data with selected product data
 		
-		// Handle categories
+		// Basic Information
+		setValue('name', product.name || '', { shouldDirty: true });
+		setValue('description', product.description || '', { shouldDirty: true });
+		setValue('sku', product.sku || '', { shouldDirty: true });
+		
+		// Pricing
+		setValue('price_tax_excl', product.price_tax_excl || product.price || 0, { shouldDirty: true });
+		setValue('price_tax_incl', product.price_tax_incl || product.price || 0, { shouldDirty: true });
+		setValue('compared_price', product.compared_price || product.compare_at_price || 0, { shouldDirty: true });
+		
+		// SEO Fields
+		setValue('meta_title', product.meta_title || '', { shouldDirty: true });
+		setValue('meta_description', product.meta_description || '', { shouldDirty: true });
+		setValue('meta_keywords', product.meta_keywords || '', { shouldDirty: true });
+		
+		// Categories - Handle both main_category and subcategories
 		if (product.categories && product.categories.length > 0) {
 			const mainCategory = product.categories.find((cat: any) => !cat.parent_id);
 			const subcategories = product.categories.filter((cat: any) => cat.parent_id);
-			if (mainCategory) setValue('main_category_id', mainCategory.id, { shouldDirty: true });
+			
+			if (mainCategory) {
+				setValue('main_category_id', mainCategory.id, { shouldDirty: true });
+				setValue('main_category', { id: mainCategory.id, name: mainCategory.name }, { shouldDirty: true });
+			}
 			if (subcategories.length > 0) {
 				setValue('subcategory_ids', subcategories.map((cat: any) => cat.id), { shouldDirty: true });
+				setValue('subcategory', subcategories.map((cat: any) => ({ id: cat.id, name: cat.name })), { shouldDirty: true });
 			}
 		}
 		
-		if (product.gallery_images) {
-			// Ensure gallery_images is an array before setting
-			const galleryImages = Array.isArray(product.gallery_images) ? product.gallery_images : [];
-			setValue('gallery_images', galleryImages, { shouldDirty: true });
+		// Tags
+		if (product.tags && Array.isArray(product.tags)) {
+			setValue('tags', product.tags.map((tag: any) => ({ id: tag.id || tag, name: tag.name || tag })), { shouldDirty: true });
 		}
+		
+		// Images - Replace all gallery images
+		if (product.gallery_images && Array.isArray(product.gallery_images)) {
+			const galleryImages = product.gallery_images.map((img: any) => ({
+				url: img.url || img.path || img,
+				is_featured: img.is_featured || false,
+			}));
+			setValue('gallery_images', galleryImages, { shouldDirty: true });
+		} else if (product.images && Array.isArray(product.images)) {
+			const galleryImages = product.images.map((img: any) => ({
+				url: img.url || img.path || img,
+				is_featured: img.is_featured || false,
+			}));
+			setValue('gallery_images', galleryImages, { shouldDirty: true });
+		} else {
+			setValue('gallery_images', [], { shouldDirty: true });
+		}
+		
+		// Featured Image
+		if (product.featured_image) {
+			const featuredImg = product.featured_image.url || product.featured_image.path || product.featured_image;
+			setValue('featured_image', featuredImg, { shouldDirty: true });
+		}
+		
+		// Stock & Inventory
+		setValue('quantity', product.quantity || product.qty || 0, { shouldDirty: true });
+		setValue('in_stock', (product.quantity || product.qty || 0) > 0, { shouldDirty: true });
+		
+		// QC & Policies
+		setValue('condition', product.condition || 'New', { shouldDirty: true });
+		setValue('condition_notes', product.condition_notes || '', { shouldDirty: true });
+		setValue('returns', product.returns || '', { shouldDirty: true });
+		setValue('warranty', product.warranty || '', { shouldDirty: true });
+		setValue('box_contents', product.box_contents || '', { shouldDirty: true });
+		
+		// Delivery & Shipping
+		setValue('store_postcode', product.store_postcode || '', { shouldDirty: true });
+		setValue('delivery_radius', product.delivery_radius || 5, { shouldDirty: true });
+		setValue('delivery_slots', product.delivery_slots || '', { shouldDirty: true });
+		setValue('ready_in_minutes', product.ready_in_minutes || 45, { shouldDirty: true });
+		setValue('enable_pickup', product.enable_pickup || false, { shouldDirty: true });
+		setValue('shipping_charge_regular', product.shipping_charge_regular || 0, { shouldDirty: true });
+		setValue('shipping_charge_same_day', product.shipping_charge_same_day || 0, { shouldDirty: true });
+		
+		// Trust & Compliance
+		setValue('kyc_tier', product.kyc_tier || 'Tier 0 - Email verified', { shouldDirty: true });
+		setValue('safe_selling_limit', product.safe_selling_limit || '£5,000 / day', { shouldDirty: true });
+		setValue('payout_lock', product.payout_lock || '48h post-delivery', { shouldDirty: true });
+		
+		// Variants - Replace all variants
 		if (product.product_variants && product.product_variants.length > 0) {
 			// Extract unique storage and color options from variants
 			const storageSet = new Set<string>();
@@ -2246,9 +2307,33 @@ function MultiKonnectListingCreation() {
 				setColorOptions(Array.from(colorSet));
 			}
 			
+			// Replace all variants
 			setVariants(pastVariants);
+		} else {
+			// Clear variants if product has none
+			setVariants([]);
+			setStorageOptions([]);
+			setColorOptions([]);
 		}
+		
+		// Product Attributes
+		if (product.product_attributes && Array.isArray(product.product_attributes)) {
+			setValue('product_attributes', product.product_attributes, { shouldDirty: true });
+		}
+		
+		// Extra Fields
+		if (product.extraFields) {
+			setValue('extraFields', product.extraFields, { shouldDirty: true });
+		}
+		
+		// Close dialog
 		setPastListingsDialogOpen(false);
+		
+		// Show success message
+		enqueueSnackbar('Product data loaded from past listing', { 
+			variant: 'success',
+			anchorOrigin: { vertical: 'top', horizontal: 'right' }
+		});
 	};
 
 	// Import from Other Vendor handler
@@ -5833,3 +5918,4 @@ function MultiKonnectListingCreation() {
 }
 
 export default MultiKonnectListingCreation;
+
