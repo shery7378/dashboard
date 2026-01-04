@@ -379,9 +379,32 @@ function MultiKonnectListingCreation() {
 		}).format(amount);
 	};
 	
-	// Fetch user's past products
-	const { data: pastProductsData, isLoading: loadingPastProducts } = useGetECommerceProductsQuery({ page: 1, perPage: 50 });
-	const pastProducts = pastProductsData?.data || [];
+	// Fetch user's past products - exclude current product if editing
+	const { data: pastProductsData, isLoading: loadingPastProducts } = useGetECommerceProductsQuery({ page: 1, perPage: 100 });
+	// Handle different response formats and exclude current product
+	const pastProducts = useMemo(() => {
+		if (!pastProductsData) return [];
+		
+		let products: any[] = [];
+		
+		// Try different possible response structures
+		if (Array.isArray(pastProductsData)) {
+			products = pastProductsData;
+		} else if (pastProductsData.data && Array.isArray(pastProductsData.data)) {
+			products = pastProductsData.data;
+		} else if (pastProductsData.products?.data && Array.isArray(pastProductsData.products.data)) {
+			products = pastProductsData.products.data;
+		} else if (pastProductsData.products && Array.isArray(pastProductsData.products)) {
+			products = pastProductsData.products;
+		}
+		
+		// Exclude current product if editing
+		if (productId && products.length > 0) {
+			products = products.filter((p: any) => String(p.id) !== String(productId));
+		}
+		
+		return products;
+	}, [pastProductsData, productId]);
 	
 	// Fetch other vendors' products (excludes current vendor's products)
 	const { data: otherVendorsData, isLoading: loadingOtherVendors } = useGetOtherVendorsProductsQuery({ 
@@ -5472,26 +5495,55 @@ function MultiKonnectListingCreation() {
 							<CircularProgress />
 						</Box>
 					) : (
-						<List>
-							{pastProducts
-								.filter((p: any) => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-								.slice(0, 20)
-								.map((product: any) => (
-									<ListItem key={product.id} disablePadding>
-										<ListItemButton onClick={() => handleSelectPastListing(product)}>
-											<ListItemText
-												primary={product.name}
-												secondary={`SKU: ${product.sku || 'N/A'} | Price: £${product.price_tax_excl || 0}`}
-											/>
-										</ListItemButton>
-									</ListItem>
-								))}
-							{pastProducts.length === 0 && (
-								<Typography variant="body2" sx={{ padding: 2, color: '#6b7280', textAlign: 'center' }}>
-									No past listings found
-								</Typography>
+						<>
+							{pastProducts && pastProducts.length > 0 ? (
+								<List>
+									{pastProducts
+										.filter((p: any) => {
+											if (!searchQuery) return true;
+											const query = searchQuery.toLowerCase();
+											return (
+												p.name?.toLowerCase().includes(query) ||
+												p.sku?.toLowerCase().includes(query) ||
+												p.description?.toLowerCase().includes(query)
+											);
+										})
+										.slice(0, 50)
+										.map((product: any) => (
+											<ListItem key={product.id} disablePadding>
+												<ListItemButton onClick={() => handleSelectPastListing(product)}>
+													<ListItemText
+														primary={product.name || 'Unnamed Product'}
+														secondary={
+															<>
+																{product.sku && `SKU: ${product.sku} | `}
+																Price: £{parseFloat((product.price_tax_excl || product.price || 0).toString()).toFixed(2)}
+																{product.categories && product.categories.length > 0 && (
+																	<> | {product.categories.map((c: any) => c.name).join(', ')}</>
+																)}
+															</>
+														}
+													/>
+												</ListItemButton>
+											</ListItem>
+										))}
+								</List>
+							) : (
+								<Box sx={{ p: 4, textAlign: 'center' }}>
+									<FuseSvgIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}>
+										heroicons-outline:inbox
+									</FuseSvgIcon>
+									<Typography variant="h6" color="text.secondary" gutterBottom>
+										No past listings found
+									</Typography>
+									<Typography variant="body2" color="text.secondary">
+										{searchQuery 
+											? 'No listings match your search. Try a different search term.'
+											: 'You haven\'t created any products yet. Create your first product to see it here.'}
+									</Typography>
+								</Box>
 							)}
-						</List>
+						</>
 					)}
 				</DialogContent>
 				<DialogActions>
