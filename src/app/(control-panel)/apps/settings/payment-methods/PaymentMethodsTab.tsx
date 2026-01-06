@@ -750,144 +750,182 @@ function PaymentMethodsTab() {
 				</Table>
 			</TableContainer>
 
-			<Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-				<DialogTitle>
+			<Dialog 
+				open={dialogOpen} 
+				onClose={handleCloseDialog} 
+				maxWidth="md" 
+				fullWidth
+				PaperProps={{
+					sx: {
+						maxHeight: '90vh',
+						display: 'flex',
+						flexDirection: 'column',
+					}
+				}}
+			>
+				<DialogTitle sx={{ pb: 1 }}>
 					{editingCredential ? 'Edit Payment Credentials' : 'Add Payment Credentials'}
 				</DialogTitle>
-				<DialogContent>
-					<Box sx={{ pt: 2 }}>
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-							<TextField
-								select
-								fullWidth
-								label="Payment Method"
-								value={formData.payment_method || ''}
-								onChange={(e) => {
-									const value = e.target.value;
-									console.log('Payment method dropdown changed to:', value);
-									handlePaymentMethodChange(value);
-								}}
-								error={!!errors.payment_method}
-								helperText={errors.payment_method || 'Select a payment gateway'}
-								disabled={!!editingCredential}
-								required
-								SelectProps={{
-									native: true,
-								}}
-							>
-								<option value="">Select Payment Method</option>
-								{availablePaymentMethods.length > 0 ? (
-									availablePaymentMethods.map((method) => (
-										<option 
-											key={method.payment_method} 
-											value={method.payment_method}
-											disabled={method.is_configured && !editingCredential}
-										>
-											{method.name} {method.is_configured && !editingCredential ? '(Already Configured)' : ''}
-										</option>
-									))
-								) : (
-									<option value="" disabled>
-										{loading ? 'Loading payment methods from database...' : 'No payment methods available. Please refresh the page.'}
-									</option>
-								)}
-							</TextField>
-
-							<TextField
-								fullWidth
-								label="Name"
-								value={formData.name}
-								onChange={(e) => handleInputChange('name', e.target.value)}
-								error={!!errors.name}
-								helperText={errors.name}
-							/>
-
-							<TextField
-								fullWidth
-								multiline
-								rows={3}
-								label="Description"
-								value={formData.description || ''}
-								onChange={(e) => handleInputChange('description', e.target.value)}
-							/>
-
-							<Box sx={{ mt: 2 }}>
-								<Typography variant="subtitle2" sx={{ mb: 1 }}>
-									Logo
-								</Typography>
-								{logoPreview && (
-									<Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-										<img 
-											src={logoPreview} 
-											alt="Logo preview" 
-											style={{ 
-												maxWidth: '150px', 
-												maxHeight: '150px', 
-												objectFit: 'contain',
-												border: '1px solid #ddd',
-												borderRadius: '4px',
-												padding: '8px'
-											}} 
-										/>
-										<Button
-											size="small"
-											variant="outlined"
-											color="error"
-											onClick={handleRemoveLogo}
-										>
-											Remove Logo
-										</Button>
-									</Box>
-								)}
-								<input
-									accept="image/*"
-									style={{ display: 'none' }}
-									id="logo-upload"
-									type="file"
-									onChange={handleLogoChange}
-								/>
-								<label htmlFor="logo-upload">
-									<Button
-										variant="outlined"
-										component="span"
-										fullWidth
-										startIcon={<FuseSvgIcon>heroicons-outline:photograph</FuseSvgIcon>}
+				<DialogContent 
+					sx={{ 
+						overflowY: 'auto',
+						flex: '1 1 auto',
+						px: 3,
+						'&::-webkit-scrollbar': {
+							width: '8px',
+						},
+						'&::-webkit-scrollbar-track': {
+							background: '#f1f1f1',
+						},
+						'&::-webkit-scrollbar-thumb': {
+							background: '#888',
+							borderRadius: '4px',
+						},
+						'&::-webkit-scrollbar-thumb:hover': {
+							background: '#555',
+						},
+					}}
+				>
+					<Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+						<TextField
+							select
+							fullWidth
+							label="Payment Method"
+							value={formData.payment_method || ''}
+							onChange={(e) => {
+								const value = e.target.value;
+								console.log('Payment method dropdown changed to:', value);
+								handlePaymentMethodChange(value);
+							}}
+							error={!!errors.payment_method}
+							helperText={errors.payment_method || 'Select a payment gateway'}
+							disabled={!!editingCredential}
+							required
+							SelectProps={{
+								native: true,
+							}}
+						>
+							<option value="">Select Payment Method</option>
+							{availablePaymentMethods.length > 0 ? (
+								availablePaymentMethods.map((method) => (
+									<option 
+										key={method.payment_method} 
+										value={method.payment_method}
+										disabled={method.is_configured && !editingCredential}
 									>
-										{logoPreview ? 'Change Logo' : 'Upload Logo'}
+										{method.name} {method.is_configured && !editingCredential ? '(Already Configured)' : ''}
+									</option>
+								))
+							) : (
+								<option value="" disabled>
+									{loading ? 'Loading payment methods from database...' : 'No payment methods available. Please refresh the page.'}
+								</option>
+							)}
+						</TextField>
+
+						<TextField
+							fullWidth
+							label="Name"
+							value={formData.name}
+							onChange={(e) => handleInputChange('name', e.target.value)}
+							error={!!errors.name}
+							helperText={errors.name}
+							required
+						/>
+
+						<TextField
+							fullWidth
+							multiline
+							rows={3}
+							label="Description"
+							value={formData.description || ''}
+							onChange={(e) => handleInputChange('description', e.target.value)}
+							placeholder="Enter a description for this payment method"
+						/>
+
+						<Box>
+							<Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+								Logo
+							</Typography>
+							{logoPreview && (
+								<Box sx={{ mb: 2, display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
+									<img 
+										src={logoPreview} 
+										alt="Logo preview" 
+										style={{ 
+											maxWidth: '150px', 
+											maxHeight: '150px', 
+											objectFit: 'contain',
+											border: '1px solid #ddd',
+											borderRadius: '4px',
+											padding: '8px',
+											backgroundColor: '#f9f9f9'
+										}} 
+									/>
+									<Button
+										size="small"
+										variant="outlined"
+										color="error"
+										onClick={handleRemoveLogo}
+										sx={{ alignSelf: 'flex-start' }}
+									>
+										Remove Logo
 									</Button>
-								</label>
-								<Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-									Upload a logo image (JPG, PNG, GIF, SVG, WEBP - Max 2MB)
+								</Box>
+							)}
+							<input
+								accept="image/*"
+								style={{ display: 'none' }}
+								id="logo-upload"
+								type="file"
+								onChange={handleLogoChange}
+							/>
+							<label htmlFor="logo-upload">
+								<Button
+									variant="outlined"
+									component="span"
+									fullWidth
+									startIcon={<FuseSvgIcon>heroicons-outline:photograph</FuseSvgIcon>}
+									sx={{ mb: 1 }}
+								>
+									{logoPreview ? 'Change Logo' : 'Upload Logo'}
+								</Button>
+							</label>
+							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5 }}>
+								Upload a logo image (JPG, PNG, GIF, SVG, WEBP - Max 2MB)
+							</Typography>
+						</Box>
+
+						<Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
+							<FormControlLabel
+								control={
+									<Switch
+										checked={formData.is_active}
+										onChange={(e) => handleInputChange('is_active', e.target.checked)}
+									/>
+								}
+								label="Active"
+								sx={{ m: 0 }}
+							/>
+
+							<FormControlLabel
+								control={
+									<Switch
+										checked={formData.is_test_mode}
+										onChange={(e) => handleInputChange('is_test_mode', e.target.checked)}
+									/>
+								}
+								label="Test Mode"
+								sx={{ m: 0 }}
+							/>
+						</Box>
+
+						{formData.payment_method && (
+							<Box sx={{ mt: 1 }}>
+								<Typography variant="subtitle2" sx={{ mb: 2, mt: 1, fontWeight: 600 }}>
+									Credentials
 								</Typography>
-							</Box>
-
-							<Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-								<FormControlLabel
-									control={
-										<Switch
-											checked={formData.is_active}
-											onChange={(e) => handleInputChange('is_active', e.target.checked)}
-										/>
-									}
-									label="Active"
-								/>
-
-								<FormControlLabel
-									control={
-										<Switch
-											checked={formData.is_test_mode}
-											onChange={(e) => handleInputChange('is_test_mode', e.target.checked)}
-										/>
-									}
-									label="Test Mode"
-								/>
-							</Box>
-
-							{formData.payment_method && (
-								<Box>
-									<Typography variant="subtitle2" sx={{ mb: 1, mt: 2 }}>
-										Credentials
-									</Typography>
+								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
 									{getCredentialKeys(formData.payment_method).map((key) => (
 										<TextField
 											key={key}
@@ -896,16 +934,18 @@ function PaymentMethodsTab() {
 											label={key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
 											value={formData.credentials[key] || ''}
 											onChange={(e) => handleCredentialChange(key, e.target.value)}
-											margin="normal"
+											required
 										/>
 									))}
 								</Box>
-							)}
-						</Box>
+							</Box>
+						)}
 					</Box>
 				</DialogContent>
-				<DialogActions>
-					<Button onClick={handleCloseDialog}>Cancel</Button>
+				<DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+					<Button onClick={handleCloseDialog} variant="outlined">
+						Cancel
+					</Button>
 					<Button onClick={handleSubmit} variant="contained" color="primary">
 						{editingCredential ? 'Update' : 'Create'}
 					</Button>
