@@ -25,9 +25,25 @@ export function sanitizeProduct(data: PartialDeep<EcommerceProduct>): EcommerceP
     const images = data.images ?? [];
     const featuredId = data.featured_image_id ?? images?.[0]?.id ?? '';
 
+    // Helper function to add cache-busting to image URLs
+    const addCacheBusting = (url: string | undefined): string => {
+        if (!url) return '';
+        // If it's a base64 data URL, return as-is
+        if (url.startsWith('data:')) return url;
+        
+        // Remove ALL existing query parameters first
+        const [baseUrl] = url.split('?');
+        
+        // Build the full URL
+        const fullUrl = baseUrl.startsWith('http') ? baseUrl : `${apiBase}/${baseUrl}`;
+        
+        // Always add fresh cache-busting parameter
+        return `${fullUrl}?v=${Date.now()}&t=${Date.now()}`;
+    };
+
     const gallery_images = images.map((img) => ({
         ...img,
-        url: img.url?.startsWith('http') ? img.url : `${apiBase}/${img.url}`,
+        url: addCacheBusting(img.url),
         is_featured: img.id === featuredId,
     }));
 

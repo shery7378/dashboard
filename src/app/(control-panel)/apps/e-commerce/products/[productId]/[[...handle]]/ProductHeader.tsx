@@ -69,15 +69,30 @@ function ProductHeader() {
   const { t } = useTranslation('products');
 
   // ✅ dialog states
-  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [createdProductId, setCreatedProductId] = useState<string | null>(null);
   const [isDraftSave, setIsDraftSave] = useState(false);
 
   const { name, gallery_images } = watch() as EcommerceProduct;
 
   function transformFormValues(values: EcommerceProduct): any {
+    // Log ALL form values to see what we're working with
+    console.log('transformFormValues - ALL form values:', {
+      has_gallery_images: !!values.gallery_images,
+      gallery_images_length: Array.isArray(values.gallery_images) ? values.gallery_images.length : 'not array',
+      has_images: !!values.images,
+      images_length: Array.isArray(values.images) ? values.images.length : 'not array',
+      gallery_images_preview: Array.isArray(values.gallery_images) && values.gallery_images.length > 0 
+        ? values.gallery_images.slice(0, 2).map((img: any) => ({
+            has_url: !!img?.url,
+            url_type: typeof img?.url,
+            url_starts_with: img?.url ? img.url.substring(0, 50) : 'no url',
+            is_base64: img?.url?.startsWith('data:image/'),
+          }))
+        : 'no images',
+    });
+    
     // Build categories array from main_category and subcategory
     const categoriesArray: number[] = [];
     
@@ -118,6 +133,46 @@ function ProductHeader() {
       final_categories: categoriesArray
     });
     
+    // Process images - ensure base64 images are preserved and sent correctly
+    const rawImages = values.gallery_images || values.images || [];
+    console.log('transformFormValues - Processing images:', {
+      total_images: rawImages.length,
+      images_preview: rawImages.slice(0, 3).map((img: any) => ({
+        has_url: !!img?.url,
+        url_preview: img?.url ? img.url.substring(0, 100) : 'no url',
+        is_base64: img?.url?.startsWith('data:image/'),
+        has_id: !!img?.id,
+      })),
+    });
+    
+    const processedImages = rawImages.map((img: any) => {
+      if (!img) return null;
+      
+      // If it's already a base64 data URL, keep it as is
+      if (img.url && typeof img.url === 'string' && img.url.startsWith('data:image/')) {
+        console.log('transformFormValues - Found base64 image, preserving it');
+        return {
+          url: img.url, // Keep base64 as-is
+          alt_text: img.alt_text || img.alt || null,
+          type: img.type || 'gallery',
+          is_featured: img.is_featured || false,
+          // Don't include id for new base64 images
+        };
+      }
+      
+      // If it's a file path, keep it as is (existing image)
+      return {
+        ...img,
+        url: img.url || img.path || '',
+      };
+    }).filter((img: any) => img && img.url); // Remove null/empty images
+    
+    console.log('transformFormValues - Processed images:', {
+      processed_count: processedImages.length,
+      base64_count: processedImages.filter((img: any) => img.url?.startsWith('data:image/')).length,
+      file_path_count: processedImages.filter((img: any) => !img.url?.startsWith('data:image/')).length,
+    });
+    
     const transformed: any = {
       // Include product ID if available (required for update operations)
       ...(productId && productId !== 'new' ? { id: String(productId) } : {}),
@@ -127,6 +182,9 @@ function ProductHeader() {
       ...(values.main_category && { main_category: values.main_category }),
       ...(values.subcategory && Array.isArray(values.subcategory) && values.subcategory.length > 0 && { subcategory: values.subcategory }),
       categories: categoriesArray, // Use combined categories array for compatibility
+      // Explicitly set images and gallery_images to ensure base64 images are sent
+      images: processedImages,
+      gallery_images: processedImages,
       tags: values.tags ?? [],
       active: Number(values.active), // Convert true/false or 1/0 to 1/0
       // Explicitly ensure these fields are included (even if 0 or empty)
@@ -451,15 +509,56 @@ function ProductHeader() {
       values = getValues() as EcommerceProduct;
     }
     
-    saveProduct(transformFormValues(values))
+    // Log the values before transformation to see what we're working with
+    console.log('handleSaveProduct - Form values before transform:', {
+      gallery_images_count: Array.isArray(values.gallery_images) ? values.gallery_images.length : 0,
+      images_count: Array.isArray(values.images) ? values.images.length : 0,
+      first_image_preview: Array.isArray(values.gallery_images) && values.gallery_images.length > 0
+        ? {
+            url_preview: values.gallery_images[0]?.url?.substring(0, 100),
+            is_base64: values.gallery_images[0]?.url?.startsWith('data:image/'),
+          }
+        : 'no images',
+    });
+    
+    const transformedData = transformFormValues(values);
+    
+    // Log the transformed data to see what's being sent
+    console.log('handleSaveProduct - Transformed data images:', {
+      images_count: Array.isArray(transformedData.images) ? transformedData.images.length : 0,
+      gallery_images_count: Array.isArray(transformedData.gallery_images) ? transformedData.gallery_images.length : 0,
+      first_image_preview: Array.isArray(transformedData.images) && transformedData.images.length > 0
+        ? {
+            url_preview: transformedData.images[0]?.url?.substring(0, 100),
+            is_base64: transformedData.images[0]?.url?.startsWith('data:image/'),
+          }
+        : 'no images',
+    });
+    
+    saveProduct(transformedData)
       .unwrap()
       .then((data) => {
-        setSuccessMessage(t('your_product_has_been_updated'));
-        setSuccessDialogOpen(true);
-        setCreatedProductId(data.data.id);
+        // Show success snackbar
         enqueueSnackbar(t('product_updated_successfully'), {
           variant: 'success',
         });
+        
+        // For existing products, force a hard reload to bypass all caching
+        // This ensures updated images are displayed immediately
+        if (productId && productId !== 'new') {
+          // Small delay to show success message, then force hard reload
+          setTimeout(() => {
+            // Force hard reload by adding cache-busting parameter to URL
+            const currentUrl = window.location.href;
+            const separator = currentUrl.includes('?') ? '&' : '?';
+            window.location.href = `${currentUrl}${separator}_reload=${Date.now()}`;
+          }, 300);
+        } else {
+          // For new products, redirect to products page
+          setTimeout(() => {
+            navigate('/apps/e-commerce/products');
+          }, 500);
+        }
       })
       .catch((error) => {
         console.error('Error updating product:', error);
@@ -630,9 +729,8 @@ function ProductHeader() {
           
           console.log('Extracted product ID:', productId);
           
-          setSuccessMessage(t('your_product_has_been_created'));
-          setSuccessDialogOpen(true);
           setCreatedProductId(String(productId));
+          setSuccessDialogOpen(true);
           enqueueSnackbar(t('product_created_successfully'), {
             variant: 'success',
           });
@@ -708,7 +806,7 @@ function ProductHeader() {
       .finally(() => setConfirmDialogOpen(false));
   }
 
-  /** ✅ Success dialog close (redirect after action) */
+  /** ✅ Success dialog close (redirect after action) - Only used for create flow */
   function handleCloseDialog() {
     setSuccessDialogOpen(false);
     
@@ -899,12 +997,14 @@ function ProductHeader() {
         )}
       </motion.div>
 
-      {/* ✅ Dialogs */}
-      <SuccessDialog
-        open={successDialogOpen}
-        onClose={handleCloseDialog}
-        message={successMessage}
-      />
+      {/* ✅ Dialogs - Only show success dialog for create flow, not update */}
+      {productId === 'new' && (
+        <SuccessDialog
+          open={successDialogOpen}
+          onClose={handleCloseDialog}
+          message={t('your_product_has_been_created')}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmDialogOpen}

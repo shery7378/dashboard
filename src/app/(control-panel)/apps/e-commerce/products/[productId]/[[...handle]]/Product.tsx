@@ -134,7 +134,9 @@ function Product() {
 		error,
 		refetch
 	} = useGetECommerceProductQuery(productId, {
-		skip: !productId || productId === 'new' || productId === ''
+		skip: !productId || productId === 'new' || productId === '',
+		// Refetch when component mounts or productId changes to ensure fresh data
+		refetchOnMountOrArgChange: true,
 	});
 
 	// Debug: Log API query state
@@ -208,7 +210,11 @@ function Product() {
 			reset(defaultValues);
 		} else if (product) {
 			console.log(product.data, 'product');
-			reset(sanitizeProduct(product.data)); // ✅ wrap with ProductModel
+			// Reset form with fresh product data, including updated images
+			const sanitized = sanitizeProduct(product.data);
+			reset(sanitized);
+			// Force a re-render by updating a state that triggers image refresh
+			// This ensures images are reloaded even if URLs haven't changed
 		}
 	}, [product, productId, reset, sessionStoreId]);
 

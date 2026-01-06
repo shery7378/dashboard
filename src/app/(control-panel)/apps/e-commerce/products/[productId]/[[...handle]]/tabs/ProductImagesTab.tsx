@@ -16,7 +16,7 @@ import {
 	DialogActions,
 	Button,
 } from '@mui/material';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
 const Root = styled('div')(({ theme }) => ({
 	'& .productImageFeaturedStar': {
@@ -64,6 +64,38 @@ const ProductImagesTab = () => {
 	const gallery_images = watch('gallery_images') as EcommerceProduct['gallery_images'];
 
 	const [deleteIndex, setDeleteIndex] = useState<number | null>(null);
+	const [imageCacheKey, setImageCacheKey] = useState(Date.now());
+	
+	// Update cache key when gallery_images changes to force image reload
+	useEffect(() => {
+		// Update cache key whenever gallery_images changes
+		// This forces all images to reload with new cache-busting parameters
+		const newCacheKey = Date.now();
+		setImageCacheKey(newCacheKey);
+		console.log('ProductImagesTab: Gallery images changed, updating cache key', {
+			imageCount: gallery_images?.length || 0,
+			newCacheKey
+		});
+	}, [gallery_images]);
+	
+	// Also update cache key on component mount to ensure fresh images on page load
+	useEffect(() => {
+		setImageCacheKey(Date.now());
+	}, []);
+	
+	// Cache-busting function to force image reload
+	const getImageUrl = (url: string | undefined, index: number): string => {
+		if (!url) return '';
+		// If it's a base64 data URL, return as-is
+		if (url.startsWith('data:')) return url;
+		
+		// Remove ALL existing query parameters (including cache-busting ones)
+		const [baseUrl] = url.split('?');
+		
+		// Add fresh cache-busting parameter with timestamp and index
+		// Use both timestamp and index to ensure uniqueness
+		return `${baseUrl}?v=${imageCacheKey}&i=${index}&t=${Date.now()}`;
+	};
 
 	const handleDeleteConfirm = () => {
 		if (deleteIndex !== null) {
@@ -158,7 +190,27 @@ const ProductImagesTab = () => {
 						<FuseSvgIcon className="productImageFeaturedStar">
 							heroicons-solid:star
 						</FuseSvgIcon>
-						<img className="max-w-none w-auto h-full" src={media.url} alt="product" />
+						<img 
+							className="max-w-none w-auto h-full" 
+							src={getImageUrl(media.url, index)} 
+							alt="product"
+							key={`img-${media.id || index}-${imageCacheKey}`}
+							loading="eager"
+							crossOrigin="anonymous"
+							onError={(e) => {
+								// If image fails to load, try without cache-busting
+								const target = e.target as HTMLImageElement;
+								if (media.url && !media.url.startsWith('data:')) {
+									// Try original URL without cache-busting
+									const [baseUrl] = media.url.split('?');
+									target.src = baseUrl;
+								}
+							}}
+							onLoad={() => {
+								// Image loaded successfully
+								console.log('Image loaded:', media.url);
+							}}
+						/>
 
 						<IconButton
 							className="deleteIcon"
