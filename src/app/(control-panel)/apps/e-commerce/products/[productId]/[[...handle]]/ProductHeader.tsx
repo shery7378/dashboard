@@ -182,7 +182,8 @@ function ProductHeader() {
       ...(values.main_category && { main_category: values.main_category }),
       ...(values.subcategory && Array.isArray(values.subcategory) && values.subcategory.length > 0 && { subcategory: values.subcategory }),
       categories: categoriesArray, // Use combined categories array for compatibility
-      // Explicitly set images and gallery_images to ensure base64 images are sent
+      // CRITICAL: Explicitly set images and gallery_images to ensure base64 images are sent
+      // This MUST come after spreading values to override any file paths that might have been set
       images: processedImages,
       gallery_images: processedImages,
       tags: values.tags ?? [],
