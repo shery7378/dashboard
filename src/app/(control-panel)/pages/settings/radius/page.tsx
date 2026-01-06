@@ -66,6 +66,7 @@ export default function MapsRadiusSettingsPage() {
   const [map, setMap] = useState<any>(null);
   const [marker, setMarker] = useState<any>(null);
   const [circle, setCircle] = useState<any>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const [updateSettings, { isLoading }] = useUpdateAdminMapsRadiusSettingsMutation();
   const {
@@ -104,58 +105,54 @@ export default function MapsRadiusSettingsPage() {
     }
   }, [isSettingsError, settingsError]);
 
-  // Load Google Maps
-  const loadGoogleMaps = useCallback(() => {
-    if (!apiKey || apiKey.trim() === '') {
-      const mapDiv = document.getElementById('maps-radius-map');
-      if (mapDiv) {
-        mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Please enter Google Maps API Key first</div>';
+  // Cleanup map instance
+  const cleanupMap = useCallback(() => {
+    try {
+      if (marker) {
+        marker.setMap(null);
+        setMarker(null);
       }
-      return;
-    }
-
-    // Check if script already exists
-    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existingScript && window.google && window.google.maps) {
-      initMap();
-      return;
-    }
-
-    // Remove existing script if any
-    if (existingScript) {
-      existingScript.remove();
-    }
-
-    // Load Google Maps API dynamically
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=initMapsRadiusMap`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = () => {
-      const mapDiv = document.getElementById('maps-radius-map');
-      if (mapDiv) {
-        mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #d00;">Failed to load Google Maps. Please check your API key.</div>';
+      if (circle) {
+        circle.setMap(null);
+        setCircle(null);
       }
-      setError('Failed to load Google Maps. Please check your API key.');
-    };
-    document.head.appendChild(script);
-  }, [apiKey]);
+      if (map) {
+        // Clear all listeners
+        window.google?.maps?.event?.clearInstanceListeners?.(map);
+        setMap(null);
+      }
+      setMapLoaded(false);
+    } catch (e) {
+      console.error('Error cleaning up map:', e);
+    }
+  }, [map, marker, circle]);
 
   // Initialize map
-  window.initMapsRadiusMap = () => {
+  const initMapsRadiusMap = useCallback(() => {
+    if (isInitializing) {
+      return; // Prevent multiple simultaneous initializations
+    }
+
+    setIsInitializing(true);
+    
     try {
       if (typeof window.google === 'undefined' || !window.google.maps) {
         const mapDiv = document.getElementById('maps-radius-map');
         if (mapDiv) {
           mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Google Maps failed to load</div>';
         }
+        setIsInitializing(false);
         return;
       }
 
       const mapDiv = document.getElementById('maps-radius-map');
       if (!mapDiv) {
+        setIsInitializing(false);
         return;
       }
+
+      // Clear any existing content in the map div
+      mapDiv.innerHTML = '';
 
       const currentLat = latitude || 51.5074;
       const currentLng = longitude || -0.1278;
@@ -210,24 +207,87 @@ export default function MapsRadiusSettingsPage() {
       setMarker(newMarker);
       setCircle(newCircle);
       setMapLoaded(true);
+      setIsInitializing(false);
     } catch (e) {
       console.error('Error initializing map:', e);
       setError('Error initializing map. Please check your API key.');
+      setIsInitializing(false);
     }
-  };
+  }, [latitude, longitude, radius, setValue, isInitializing]);
 
-  const initMap = () => {
-    window.initMapsRadiusMap();
-  };
+  // Load Google Maps
+  const loadGoogleMaps = useCallback(() => {
+    if (!apiKey || apiKey.trim() === '') {
+      cleanupMap();
+      const mapDiv = document.getElementById('maps-radius-map');
+      if (mapDiv) {
+        mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Please enter Google Maps API Key first</div>';
+      }
+      return;
+    }
+
+    // Cleanup existing map before loading new one
+    cleanupMap();
+
+    // Check if script already exists and Google Maps is loaded
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript && window.google && window.google.maps) {
+      // Small delay to ensure cleanup is complete
+      setTimeout(() => {
+        if (window.initMapsRadiusMap) {
+          window.initMapsRadiusMap();
+        }
+      }, 100);
+      return;
+    }
+
+    // Safely remove existing script if any
+    if (existingScript && existingScript.parentNode) {
+      try {
+        existingScript.parentNode.removeChild(existingScript);
+      } catch (e) {
+        console.warn('Could not remove existing script:', e);
+      }
+    }
+
+    // Load Google Maps API dynamically
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=initMapsRadiusMap`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      const mapDiv = document.getElementById('maps-radius-map');
+      if (mapDiv) {
+        mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #d00;">Failed to load Google Maps. Please check your API key.</div>';
+      }
+      setError('Failed to load Google Maps. Please check your API key.');
+      setIsInitializing(false);
+    };
+    document.head.appendChild(script);
+  }, [apiKey, cleanupMap]);
+
+  // Assign to window for callback
+  useEffect(() => {
+    window.initMapsRadiusMap = initMapsRadiusMap;
+    return () => {
+      // Cleanup on unmount
+      cleanupMap();
+      delete window.initMapsRadiusMap;
+    };
+  }, [initMapsRadiusMap, cleanupMap]);
 
   // Load map when API key changes
   useEffect(() => {
     if (apiKey && apiKey.trim() !== '') {
+      // Cleanup first, then load
+      cleanupMap();
       setTimeout(() => {
         loadGoogleMaps();
       }, 500);
+    } else {
+      cleanupMap();
     }
-  }, [apiKey, loadGoogleMaps]);
+  }, [apiKey, loadGoogleMaps, cleanupMap]);
 
   // Update circle radius when radius changes
   useEffect(() => {
