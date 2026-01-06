@@ -108,20 +108,44 @@ export default function MapsRadiusSettingsPage() {
   // Cleanup map instance
   const cleanupMap = useCallback(() => {
     try {
-      if (marker) {
-        marker.setMap(null);
+      // Store references before clearing state
+      const currentMap = map;
+      const currentMarker = marker;
+      const currentCircle = circle;
+      
+      if (currentMarker) {
+        try {
+          currentMarker.setMap(null);
+        } catch (e) {
+          console.warn('Error removing marker:', e);
+        }
         setMarker(null);
       }
-      if (circle) {
-        circle.setMap(null);
+      
+      if (currentCircle) {
+        try {
+          currentCircle.setMap(null);
+        } catch (e) {
+          console.warn('Error removing circle:', e);
+        }
         setCircle(null);
       }
-      if (map) {
-        // Clear all listeners
-        window.google?.maps?.event?.clearInstanceListeners?.(map);
+      
+      if (currentMap) {
+        try {
+          // Clear all listeners first
+          if (window.google?.maps?.event?.clearInstanceListeners) {
+            window.google.maps.event.clearInstanceListeners(currentMap);
+          }
+        } catch (e) {
+          console.warn('Error clearing map listeners:', e);
+        }
         setMap(null);
       }
+      
       setMapLoaded(false);
+      // Note: We don't clear innerHTML here - let Google Maps handle its own DOM cleanup
+      // We'll clear it only when we're about to create a new map instance
     } catch (e) {
       console.error('Error cleaning up map:', e);
     }
@@ -151,8 +175,30 @@ export default function MapsRadiusSettingsPage() {
         return;
       }
 
-      // Clear any existing content in the map div
-      mapDiv.innerHTML = '';
+      // Safely clear any existing content in the map div
+      // This must be done synchronously right before creating the new map
+      // Use innerHTML directly - it's safer than removeChild when dealing with Google Maps
+      try {
+        // First, ensure any existing map instances are cleaned up
+        // (This should have been done by cleanupMap, but double-check)
+        if (map) {
+          try {
+            if (window.google?.maps?.event?.clearInstanceListeners) {
+              window.google.maps.event.clearInstanceListeners(map);
+            }
+          } catch (e) {
+            // Ignore - map might already be cleaned up
+          }
+        }
+        
+        // Use innerHTML to clear - it's atomic and avoids removeChild issues
+        // Google Maps will recreate its DOM structure when we create a new map
+        mapDiv.innerHTML = '';
+      } catch (e) {
+        console.warn('Error clearing map div before initialization:', e);
+        setIsInitializing(false);
+        return;
+      }
 
       const currentLat = latitude || 51.5074;
       const currentLng = longitude || -0.1278;
@@ -217,6 +263,11 @@ export default function MapsRadiusSettingsPage() {
 
   // Load Google Maps
   const loadGoogleMaps = useCallback(() => {
+    if (isInitializing) {
+      // Don't load if already initializing
+      return;
+    }
+
     if (!apiKey || apiKey.trim() === '') {
       cleanupMap();
       const mapDiv = document.getElementById('maps-radius-map');
@@ -229,42 +280,72 @@ export default function MapsRadiusSettingsPage() {
     // Cleanup existing map before loading new one
     cleanupMap();
 
-    // Check if script already exists and Google Maps is loaded
-    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-    if (existingScript && window.google && window.google.maps) {
-      // Small delay to ensure cleanup is complete
-      setTimeout(() => {
+    // Wait a bit for cleanup to complete before proceeding
+    setTimeout(() => {
+      // Check if script already exists and Google Maps is loaded
+      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+      if (existingScript && window.google && window.google.maps) {
+        // Google Maps is already loaded, just reinitialize
         if (window.initMapsRadiusMap) {
           window.initMapsRadiusMap();
         }
-      }, 100);
-      return;
-    }
-
-    // Safely remove existing script if any
-    if (existingScript && existingScript.parentNode) {
-      try {
-        existingScript.parentNode.removeChild(existingScript);
-      } catch (e) {
-        console.warn('Could not remove existing script:', e);
+        return;
       }
-    }
 
-    // Load Google Maps API dynamically
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=initMapsRadiusMap`;
-    script.async = true;
-    script.defer = true;
-    script.onerror = () => {
-      const mapDiv = document.getElementById('maps-radius-map');
-      if (mapDiv) {
-        mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #d00;">Failed to load Google Maps. Please check your API key.</div>';
+      // Only remove script if we're loading a new one with a different key
+      // Check if the existing script has a different API key
+      if (existingScript) {
+        const scriptSrc = existingScript.getAttribute('src') || '';
+        const scriptKeyMatch = scriptSrc.match(/[?&]key=([^&]+)/);
+        const scriptKey = scriptKeyMatch ? decodeURIComponent(scriptKeyMatch[1]) : '';
+        
+        // Only remove if the API key is different
+        if (scriptKey !== apiKey) {
+          try {
+            // Check if script is still in the DOM and has a parent before removing
+            if (existingScript.parentNode && existingScript.parentNode.contains(existingScript)) {
+              existingScript.parentNode.removeChild(existingScript);
+            } else if (existingScript.parentElement && existingScript.parentElement.contains(existingScript)) {
+              existingScript.parentElement.removeChild(existingScript);
+            }
+          } catch (e) {
+            // Script might already be removed or in the process of being removed
+            console.warn('Could not remove existing script (may already be removed):', e);
+          }
+        } else {
+          // Same API key, script is already loading/loaded, just wait for callback
+          return;
+        }
       }
-      setError('Failed to load Google Maps. Please check your API key.');
-      setIsInitializing(false);
-    };
-    document.head.appendChild(script);
-  }, [apiKey, cleanupMap]);
+
+      // Load Google Maps API dynamically
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=initMapsRadiusMap`;
+      script.async = true;
+      script.defer = true;
+      script.onerror = () => {
+        const mapDiv = document.getElementById('maps-radius-map');
+        if (mapDiv) {
+          mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #d00;">Failed to load Google Maps. Please check your API key.</div>';
+        }
+        setError('Failed to load Google Maps. Please check your API key.');
+        setIsInitializing(false);
+      };
+      
+      // Check if script with same src already exists before adding
+      const duplicateScript = Array.from(document.querySelectorAll('script[src*="maps.googleapis.com"]'))
+        .find((s: HTMLScriptElement) => s.src === script.src);
+      
+      if (!duplicateScript) {
+        document.head.appendChild(script);
+      } else {
+        // Script is already loading, just wait for callback
+        if (window.google && window.google.maps && window.initMapsRadiusMap) {
+          window.initMapsRadiusMap();
+        }
+      }
+    }, 100);
+  }, [apiKey, cleanupMap, isInitializing]);
 
   // Assign to window for callback
   useEffect(() => {
@@ -279,11 +360,15 @@ export default function MapsRadiusSettingsPage() {
   // Load map when API key changes
   useEffect(() => {
     if (apiKey && apiKey.trim() !== '') {
-      // Cleanup first, then load
+      // Cleanup first, then load with delay to ensure cleanup completes
       cleanupMap();
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         loadGoogleMaps();
-      }, 500);
+      }, 300);
+      
+      return () => {
+        clearTimeout(timeoutId);
+      };
     } else {
       cleanupMap();
     }
