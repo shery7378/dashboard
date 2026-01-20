@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 
 export default function HideToolbar() {
 	useEffect(() => {
-		// Hide all toolbar and navbar elements
+		// Hide all toolbar, navbar, and sidebar elements
 		const hideToolbar = () => {
 			const selectors = [
 				'#fuse-toolbar',
@@ -18,7 +18,26 @@ export default function HideToolbar() {
 				'[class*="navbar"]',
 				'.logo-text',
 				'.logo-icon',
-				'[class*="logo"]'
+				'[class*="logo"]',
+				// Sidebar navigation elements
+				'[class*="FuseNavigation"]',
+				'[class*="FuseNavVertical"]',
+				'[class*="FuseNavHorizontal"]',
+				'[class*="FuseNavVerticalLayout"]',
+				'[class*="FuseNavVerticalCollapse"]',
+				'[class*="navigation"]',
+				'.navigation',
+				'[data-testid*="navigation"]',
+				// Sidebar container elements
+				'aside[class*="sidebar"]',
+				'aside[class*="Sidebar"]',
+				'aside[class*="Navigation"]',
+				'nav[class*="sidebar"]',
+				'nav[class*="Sidebar"]',
+				'[class*="NavbarWrapper"]',
+				'[class*="LeftSidePanel"]',
+				'[class*="leftSidePanel"]',
+				'[class*="FuseLeftSidePanel"]'
 			];
 
 			selectors.forEach(selector => {

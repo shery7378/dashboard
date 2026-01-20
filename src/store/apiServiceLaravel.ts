@@ -134,6 +134,17 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
     };
   }
 
+  // Intercept /api/mock/* routes - these are Next.js API routes, not Laravel routes
+  // Return a successful empty response to prevent 500 errors
+  const requestUrl = typeof args === 'string' ? args : (args as FetchArgs).url || '';
+  if (String(requestUrl).startsWith('/api/mock/')) {
+    // Return a successful response without making the actual request
+    // Mock notifications are handled by Next.js API routes, not Laravel
+    return {
+      data: {} as unknown,
+    };
+  }
+
   // Get token using the helper function
   const token = await getAuthToken();
   
@@ -178,6 +189,45 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
   }
   // Inspect body to set headers conditionally (avoid setting JSON Content-Type for FormData)
   const isFormData = typeof args === 'object' && args !== null && 'body' in args && (args as FetchArgs).body instanceof FormData;
+  
+  // Fix: Ensure empty objects are properly handled for POST/PUT/PATCH requests
+  // RTK Query's fetchBaseQuery should handle this, but we ensure it's explicitly an object
+  let modifiedArgs = args;
+  if (typeof args === 'object' && args !== null && 'body' in args && 'method' in args) {
+    const method = (args as FetchArgs).method?.toUpperCase();
+    const body = (args as FetchArgs).body;
+    const url = (args as FetchArgs).url;
+    
+    // For POST/PUT/PATCH with empty object, ensure it's a valid empty object (not undefined/null)
+    // Laravel expects either no body or a valid JSON body
+    if ((method === 'POST' || method === 'PUT' || method === 'PATCH') && 
+        !isFormData) {
+      // If body is explicitly an empty object, ensure it's sent correctly
+      if (body !== undefined && body !== null && typeof body === 'object' && 
+          !Array.isArray(body) && Object.keys(body).length === 0) {
+        // Empty object - this is valid, keep it as is (fetchBaseQuery will JSON.stringify it)
+        modifiedArgs = args; // No change needed, {} is valid
+      } else if (body === undefined || body === null) {
+        // No body - remove body property entirely for methods that don't require it
+        const { body: _, ...argsWithoutBody } = args as any;
+        modifiedArgs = argsWithoutBody as FetchArgs;
+      }
+    }
+    
+    // Log request details for 422 debugging (especially for KYC submit)
+    if (method === 'POST' && url && String(url).includes('/kyc/submit') && process.env.NODE_ENV === 'development') {
+      console.log('📤 KYC Submit Request Details:', {
+        url,
+        method,
+        hasBody: 'body' in modifiedArgs && modifiedArgs.body !== undefined,
+        bodyType: modifiedArgs.body ? typeof modifiedArgs.body : 'none',
+        bodyContent: modifiedArgs.body,
+        bodyStringified: modifiedArgs.body ? JSON.stringify(modifiedArgs.body) : 'no body',
+        isFormData: isFormData,
+        fullArgs: JSON.stringify(modifiedArgs, null, 2),
+      });
+    }
+  }
 
   const result = await fetchBaseQuery({
     baseUrl: API_BASE_URL,
@@ -187,7 +237,20 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
     responseHandler: async (response) => {
       const ct = response.headers.get('content-type') || '';
       if (ct.includes('application/json')) {
-        return await response.json();
+        const json = await response.json();
+        
+        // Log 422 errors with full details for debugging
+        if (response.status === 422 && process.env.NODE_ENV === 'development') {
+          console.error('🔴 422 Response Body:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: json,
+            fullJson: JSON.stringify(json, null, 2),
+          });
+        }
+        
+        return json;
       }
       return await response.text();
     },
@@ -262,7 +325,22 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
       }
       return headers;
     },
-  })(args, api, extraOptions);
+  })(modifiedArgs, api, extraOptions);
+
+  // ✅ Log full error details for 422 errors (Unprocessable Entity / Validation errors)
+  if (process.env.NODE_ENV === 'development' && result.error?.status === 422) {
+    const requestUrl = typeof modifiedArgs === 'string' ? modifiedArgs : (modifiedArgs as FetchArgs).url;
+    console.error('🚨 422 Unprocessable Entity - Full Error Details:', {
+      url: requestUrl,
+      status: result.error?.status,
+      error: result.error,
+      data: result.error?.data,
+      originalStatus: (result.error as any)?.originalStatus,
+      message: result.error?.data?.message || (result.error?.data as any)?.error,
+      errors: (result.error?.data as any)?.errors,
+      fullResponse: JSON.stringify(result.error, null, 2),
+    });
+  }
 
   // ✅ Debug warning for 419 errors (Page Expired)
   if (process.env.NODE_ENV === 'development' && result.error?.status === 419) {

@@ -582,9 +582,17 @@ function PaymentMethodsTab() {
 			}
 		} catch (error: any) {
 			console.error('Error saving credentials:', error);
+			console.error('Error response:', error.response?.data);
+			console.error('Error response status:', error.response?.status);
+			console.error('Error response headers:', error.response?.headers);
+			console.error('Full error:', JSON.stringify(error.response?.data, null, 2));
 			const errorMessage =
+				error.response?.data?.error ||
 				error.response?.data?.message ||
-				error.response?.data?.errors ||
+				(error.response?.data?.errors && typeof error.response.data.errors === 'object' 
+					? JSON.stringify(error.response.data.errors) 
+					: error.response?.data?.errors) ||
+				error.message ||
 				'Failed to save payment credentials';
 			enqueueSnackbar(errorMessage, { variant: 'error' });
 		}

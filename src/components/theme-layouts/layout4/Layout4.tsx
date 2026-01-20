@@ -12,6 +12,7 @@ import RightSideLayout4 from './components/RightSideLayout4';
 import ToolbarLayout4 from './components/ToolbarLayout4';
 import FuseDialog from '@fuse/core/FuseDialog';
 import { Layout4ConfigDefaultsType } from './Layout4Config';
+import NotificationPanel from '@/app/(control-panel)/apps/notifications/NotificationPanel';
 
 const Root = styled('div')(({ config }: { config: Layout4ConfigDefaultsType }) => ({
 	...(config.mode === 'boxed' && {
@@ -84,6 +85,8 @@ function Layout4(props: Layout4Props) {
 			</div>
 
 			{config.rightSidePanel.display && <RightSideLayout4 />}
+			{/* Always render NotificationPanel so it works regardless of rightSidePanel setting */}
+			<NotificationPanel />
 			<FuseMessage />
 		</Root>
 	);

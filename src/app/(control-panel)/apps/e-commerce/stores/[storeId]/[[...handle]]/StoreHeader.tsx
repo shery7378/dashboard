@@ -30,7 +30,7 @@ const tabFields: Record<string, (keyof EcommerceStore)[]> = {
 	'basic-info': ['name', 'description', 'slug'],
 	'store-images': ['logo', 'banner_image'],
 	'store-address': ['address', 'zip_code', 'city', 'country', 'latitude', 'longitude'],
-	'store-settings': ['contact_email', 'contact_phone', 'active', 'offers_delivery', 'offers_pickup'],
+	'store-settings': ['contact_email', 'contact_phone', 'active', 'offers_delivery', 'offers_pickup', 'delivery_radius'],
 	'seo-settings': ['meta_title', 'meta_description', 'meta_keywords']
 };
 
@@ -113,6 +113,25 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 			}
 		});
 
+		// When creating a new store, include all existing form values to ensure required fields are present
+		// This prevents 422 errors when saving from a tab that doesn't include required fields like 'name'
+		if (storeId === 'new') {
+			// Include all fields from all tabs if they have values
+			const allTabFields = Object.values(tabFields).flat();
+			allTabFields.forEach((field) => {
+				const value = currentValues[field];
+				if (value !== undefined && value !== null && value !== '') {
+					if (field === 'logo' || field === 'banner_image') {
+						if (!payload[field]) {
+							payload[field] = sanitizeImageFields({ [field]: value } as EcommerceStore)[field];
+						}
+					} else if (!payload[field]) {
+						(payload as any)[field] = value;
+					}
+				}
+			});
+		}
+
 		return payload;
 	};
 
@@ -122,10 +141,38 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 		const payload = buildPayload();
 
 		if (storeId === 'new') {
+			// Validate that required fields are present for new store creation
+			if (!payload.name || payload.name.trim() === '') {
+				enqueueSnackbar('Store name is required. Please fill in the Basic Info tab first.', { variant: 'error' });
+				setError('name', { type: 'manual', message: 'Store name is required' });
+				return;
+			}
+			
 			createStore(payload)
 				.unwrap()
-				.then(() => enqueueSnackbar('Tab saved successfully', { variant: 'success' }))
-				.catch(() => enqueueSnackbar('Failed to save tab', { variant: 'error' }));
+				.then((response) => {
+					enqueueSnackbar('Store created successfully', { variant: 'success' });
+					// Navigate to the created store's edit page
+					if (response?.data?.id) {
+						navigate(`/apps/e-commerce/stores/${response.data.id}`);
+					}
+				})
+				.catch((error) => {
+					const errorMessage = error?.data?.message || error?.data?.errors || 'Failed to create store';
+					enqueueSnackbar(typeof errorMessage === 'string' ? errorMessage : 'Failed to create store', { variant: 'error' });
+					
+					// Set field errors if validation errors are returned
+					if (error?.data?.errors && typeof error.data.errors === 'object') {
+						Object.keys(error.data.errors).forEach((field) => {
+							setError(field as keyof EcommerceStore, {
+								type: 'manual',
+								message: Array.isArray(error.data.errors[field]) 
+									? error.data.errors[field][0] 
+									: error.data.errors[field]
+							});
+						});
+					}
+				});
 		} else {
 			updateStore({ ...payload, id: storeId })
 				.unwrap()
@@ -134,7 +181,22 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 					setSuccessMessage("Your store has been updated successfully.");
 					setSuccessDialogOpen(true);
 				})
-				.catch(() => enqueueSnackbar('Failed to update tab', { variant: 'error' }));
+				.catch((error) => {
+					const errorMessage = error?.data?.message || error?.data?.errors || 'Failed to update tab';
+					enqueueSnackbar(typeof errorMessage === 'string' ? errorMessage : 'Failed to update tab', { variant: 'error' });
+					
+					// Set field errors if validation errors are returned
+					if (error?.data?.errors && typeof error.data.errors === 'object') {
+						Object.keys(error.data.errors).forEach((field) => {
+							setError(field as keyof EcommerceStore, {
+								type: 'manual',
+								message: Array.isArray(error.data.errors[field]) 
+									? error.data.errors[field][0] 
+									: error.data.errors[field]
+							});
+						});
+					}
+				});
 		}
 	};
 	// --- Success Dialog Handler ---

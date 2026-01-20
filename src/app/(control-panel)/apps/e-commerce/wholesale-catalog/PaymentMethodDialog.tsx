@@ -312,7 +312,7 @@ function PaymentMethodDialog({
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 2 }}>
                 <FuseSvgIcon sx={{ color: 'primary.main' }}>heroicons-outline:credit-card</FuseSvgIcon>
-                <Typography variant="h6" fontWeight="bold">
+                <Typography component="span" variant="h6" fontWeight="bold">
                     Select Payment Method
                 </Typography>
             </DialogTitle>

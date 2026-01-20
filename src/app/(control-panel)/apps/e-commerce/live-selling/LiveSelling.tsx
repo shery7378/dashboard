@@ -221,47 +221,236 @@ function LiveSelling() {
             )}
 
             {sessions.length === 0 ? (
-                <Card>
-                    <CardContent className="flex flex-col items-center justify-center py-48">
-                        <FuseSvgIcon className="text-48 text-gray-400 mb-16">
-                            heroicons-outline:video-camera
-                        </FuseSvgIcon>
-                        <Typography variant="h6" className="mb-8">
-                            No Live Selling Sessions
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" className="mb-24">
-                            Create your first live selling session to start broadcasting to customers
-                        </Typography>
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            startIcon={<FuseSvgIcon>heroicons-outline:plus</FuseSvgIcon>}
-                            onClick={handleCreateSession}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <Card
+                        sx={{
+                            borderRadius: 4,
+                            overflow: 'hidden',
+                            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+                            background: 'linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%)',
+                        }}
+                    >
+                        <CardContent
+                            sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                py: { xs: 8, sm: 12 },
+                                px: { xs: 4, sm: 6 },
+                                position: 'relative',
+                                overflow: 'hidden',
+                            }}
                         >
-                            Create Session
-                        </Button>
-                    </CardContent>
-                </Card>
+                            {/* Decorative background circles */}
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: -100,
+                                    right: -100,
+                                    width: 300,
+                                    height: 300,
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+                                    filter: 'blur(80px)',
+                                }}
+                            />
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    bottom: -80,
+                                    left: -80,
+                                    width: 250,
+                                    height: 250,
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%)',
+                                    filter: 'blur(60px)',
+                                }}
+                            />
+
+                            {/* Main content */}
+                            <Box
+                                sx={{
+                                    position: 'relative',
+                                    zIndex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    maxWidth: 500,
+                                    textAlign: 'center',
+                                }}
+                            >
+                                {/* Icon container with gradient background */}
+                                <Box
+                                    sx={{
+                                        width: { xs: 120, sm: 140 },
+                                        height: { xs: 120, sm: 140 },
+                                        borderRadius: '50%',
+                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        mb: 4,
+                                        boxShadow: '0 10px 40px rgba(102, 126, 234, 0.3)',
+                                        position: 'relative',
+                                    }}
+                                >
+                                    <FuseSvgIcon
+                                        sx={{
+                                            fontSize: { xs: 56, sm: 64 },
+                                            color: 'white',
+                                        }}
+                                    >
+                                        heroicons-outline:video-camera
+                                    </FuseSvgIcon>
+                                    {/* Animated pulse effect */}
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            width: '100%',
+                                            height: '100%',
+                                            borderRadius: '50%',
+                                            border: '3px solid rgba(255, 255, 255, 0.3)',
+                                            animation: 'pulse 2s infinite',
+                                            '@keyframes pulse': {
+                                                '0%': {
+                                                    transform: 'scale(1)',
+                                                    opacity: 1,
+                                                },
+                                                '100%': {
+                                                    transform: 'scale(1.2)',
+                                                    opacity: 0,
+                                                },
+                                            },
+                                        }}
+                                    />
+                                </Box>
+
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        fontWeight: 700,
+                                        mb: 2,
+                                        color: 'text.primary',
+                                        fontSize: { xs: '1.75rem', sm: '2rem' },
+                                    }}
+                                >
+                                    No Live Selling Sessions
+                                </Typography>
+                                <Typography
+                                    variant="body1"
+                                    sx={{
+                                        color: 'text.secondary',
+                                        mb: 5,
+                                        fontSize: { xs: '1rem', sm: '1.1rem' },
+                                        lineHeight: 1.7,
+                                        maxWidth: 400,
+                                    }}
+                                >
+                                    Create your first live selling session to start broadcasting to customers and showcase your products in real-time
+                                </Typography>
+
+                                <motion.div
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                >
+                                    <Button
+                                        variant="contained"
+                                        size="large"
+                                        startIcon={
+                                            <FuseSvgIcon sx={{ fontSize: 20 }}>
+                                                heroicons-solid:plus
+                                            </FuseSvgIcon>
+                                        }
+                                        onClick={handleCreateSession}
+                                        sx={{
+                                            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            color: 'white',
+                                            fontWeight: 700,
+                                            fontSize: '1rem',
+                                            padding: '14px 40px',
+                                            borderRadius: 2,
+                                            textTransform: 'none',
+                                            boxShadow: '0 6px 25px rgba(102, 126, 234, 0.4)',
+                                            '&:hover': {
+                                                background: 'linear-gradient(135deg, #5568d3 0%, #6a3d91 100%)',
+                                                boxShadow: '0 8px 30px rgba(102, 126, 234, 0.5)',
+                                            },
+                                        }}
+                                    >
+                                        Create Your First Session
+                                    </Button>
+                                </motion.div>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </motion.div>
             ) : (
                 <Grid container spacing={3}>
-                    {sessions.map((session) => (
+                    {sessions.map((session, index) => (
                         <Grid item xs={12} sm={6} md={4} key={session.id}>
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.3 }}
+                                transition={{ duration: 0.3, delay: index * 0.1 }}
+                                whileHover={{ y: -8 }}
                             >
-                                <Card className="flex flex-col h-full">
-                                    <Box className="relative h-200 bg-gradient-to-br from-blue-400 to-purple-500">
-                                        {session.thumbnail ? (
-                                            <img
-                                                src={session.thumbnail}
-                                                alt={session.title}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <Box className="flex items-center justify-center h-full">
-                                                <FuseSvgIcon className="text-64 text-white opacity-50">
+                                <Card
+                                    sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        height: '100%',
+                                        borderRadius: 3,
+                                        overflow: 'hidden',
+                                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                                        transition: 'all 0.3s ease',
+                                        '&:hover': {
+                                            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.12)',
+                                        },
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            position: 'relative',
+                                            height: 200,
+                                            background: session.thumbnail
+                                                ? `url(${session.thumbnail})`
+                                                : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                            backgroundSize: 'cover',
+                                            backgroundPosition: 'center',
+                                            '&::before': {
+                                                content: '""',
+                                                position: 'absolute',
+                                                top: 0,
+                                                left: 0,
+                                                right: 0,
+                                                bottom: 0,
+                                                background: session.thumbnail
+                                                    ? 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 100%)'
+                                                    : 'transparent',
+                                            },
+                                        }}
+                                    >
+                                        {!session.thumbnail && (
+                                            <Box
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    height: '100%',
+                                                }}
+                                            >
+                                                <FuseSvgIcon
+                                                    sx={{
+                                                        fontSize: 64,
+                                                        color: 'white',
+                                                        opacity: 0.6,
+                                                    }}
+                                                >
                                                     heroicons-outline:video-camera
                                                 </FuseSvgIcon>
                                             </Box>
@@ -270,53 +459,122 @@ function LiveSelling() {
                                             label={session.status.toUpperCase()}
                                             color={getStatusColor(session.status)}
                                             size="small"
-                                            className="absolute top-8 right-8"
+                                            sx={{
+                                                position: 'absolute',
+                                                top: 12,
+                                                right: 12,
+                                                fontWeight: 700,
+                                                fontSize: '0.7rem',
+                                            }}
                                         />
                                         {session.status === 'live' && (
                                             <Chip
+                                                icon={
+                                                    <FuseSvgIcon sx={{ fontSize: 16, color: 'white !important' }}>
+                                                        heroicons-solid:eye
+                                                    </FuseSvgIcon>
+                                                }
                                                 label={`${session.viewer_count} viewers`}
-                                                color="error"
-                                                size="small"
-                                                className="absolute top-8 left-8"
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 12,
+                                                    left: 12,
+                                                    background: 'rgba(244, 67, 54, 0.9)',
+                                                    color: 'white',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.75rem',
+                                                    '& .MuiChip-icon': {
+                                                        color: 'white',
+                                                    },
+                                                }}
                                             />
                                         )}
                                     </Box>
-                                    <CardContent className="flex flex-col flex-auto">
-                                        <Typography variant="h6" className="mb-8 line-clamp-2">
+                                    <CardContent
+                                        sx={{
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            flex: 1,
+                                            p: 3,
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="h6"
+                                            sx={{
+                                                mb: 1.5,
+                                                fontWeight: 700,
+                                                fontSize: '1.25rem',
+                                                lineHeight: 1.3,
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                            }}
+                                        >
                                             {session.title}
                                         </Typography>
                                         {session.description && (
                                             <Typography
                                                 variant="body2"
-                                                color="text.secondary"
-                                                className="mb-16 line-clamp-2"
+                                                sx={{
+                                                    color: 'text.secondary',
+                                                    mb: 2,
+                                                    display: '-webkit-box',
+                                                    WebkitLineClamp: 2,
+                                                    WebkitBoxOrient: 'vertical',
+                                                    overflow: 'hidden',
+                                                    lineHeight: 1.6,
+                                                }}
                                             >
                                                 {session.description}
                                             </Typography>
                                         )}
-                                        <Stack spacing={1} className="mb-16">
+                                        <Stack spacing={0.5} sx={{ mb: 2.5, flex: 1 }}>
                                             {session.scheduled_at && (
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Scheduled: {formatDate(session.scheduled_at)}
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <FuseSvgIcon sx={{ fontSize: 16, color: 'text.secondary' }}>
+                                                        heroicons-outline:calendar
+                                                    </FuseSvgIcon>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{ color: 'text.secondary', fontSize: '0.8rem' }}
+                                                    >
+                                                        {formatDate(session.scheduled_at)}
+                                                    </Typography>
+                                                </Box>
                                             )}
                                             {session.started_at && (
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Started: {formatDate(session.started_at)}
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <FuseSvgIcon sx={{ fontSize: 16, color: 'text.secondary' }}>
+                                                        heroicons-outline:clock
+                                                    </FuseSvgIcon>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{ color: 'text.secondary', fontSize: '0.8rem' }}
+                                                    >
+                                                        Started: {formatDate(session.started_at)}
+                                                    </Typography>
+                                                </Box>
                                             )}
                                             {session.ended_at && (
-                                                <Typography variant="caption" color="text.secondary">
-                                                    Ended: {formatDate(session.ended_at)}
-                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                    <FuseSvgIcon sx={{ fontSize: 16, color: 'text.secondary' }}>
+                                                        heroicons-outline:check-circle
+                                                    </FuseSvgIcon>
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{ color: 'text.secondary', fontSize: '0.8rem' }}
+                                                    >
+                                                        Ended: {formatDate(session.ended_at)}
+                                                    </Typography>
+                                                </Box>
                                             )}
                                         </Stack>
-                                        <Stack direction="row" spacing={1} className="mt-auto">
+                                        <Stack direction="row" spacing={1.5} sx={{ mt: 'auto' }}>
                                             {session.status === 'scheduled' && (
                                                 <Button
                                                     variant="contained"
-                                                    color="primary"
-                                                    size="small"
+                                                    size="medium"
                                                     fullWidth
                                                     onClick={() => handleStartSession(session.id)}
                                                     disabled={actionLoading === session.id}
@@ -324,9 +582,18 @@ function LiveSelling() {
                                                         actionLoading === session.id ? (
                                                             <CircularProgress size={16} />
                                                         ) : (
-                                                            <FuseSvgIcon>heroicons-outline:play</FuseSvgIcon>
+                                                            <FuseSvgIcon>heroicons-solid:play</FuseSvgIcon>
                                                         )
                                                     }
+                                                    sx={{
+                                                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                                                        fontWeight: 600,
+                                                        textTransform: 'none',
+                                                        borderRadius: 2,
+                                                        '&:hover': {
+                                                            background: 'linear-gradient(135deg, #5568d3 0%, #6a3d91 100%)',
+                                                        },
+                                                    }}
                                                 >
                                                     Start
                                                 </Button>
@@ -334,8 +601,7 @@ function LiveSelling() {
                                             {session.status === 'live' && (
                                                 <Button
                                                     variant="contained"
-                                                    color="error"
-                                                    size="small"
+                                                    size="medium"
                                                     fullWidth
                                                     onClick={() => handleEndSession(session.id)}
                                                     disabled={actionLoading === session.id}
@@ -343,26 +609,49 @@ function LiveSelling() {
                                                         actionLoading === session.id ? (
                                                             <CircularProgress size={16} />
                                                         ) : (
-                                                            <FuseSvgIcon>heroicons-outline:stop</FuseSvgIcon>
+                                                            <FuseSvgIcon>heroicons-solid:stop</FuseSvgIcon>
                                                         )
                                                     }
+                                                    sx={{
+                                                        background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
+                                                        fontWeight: 600,
+                                                        textTransform: 'none',
+                                                        borderRadius: 2,
+                                                        '&:hover': {
+                                                            background: 'linear-gradient(135deg, #e53935 0%, #c62828 100%)',
+                                                        },
+                                                    }}
                                                 >
                                                     End
                                                 </Button>
                                             )}
-                                            <Button
-                                                variant="outlined"
-                                                size="small"
+                                            <IconButton
+                                                size="medium"
                                                 onClick={() => handleEditSession(session)}
                                                 disabled={session.status === 'live' || session.status === 'ended'}
+                                                sx={{
+                                                    border: '1px solid',
+                                                    borderColor: 'divider',
+                                                    '&:hover': {
+                                                        background: 'action.hover',
+                                                    },
+                                                }}
                                             >
-                                                Edit
-                                            </Button>
+                                                <FuseSvgIcon>heroicons-outline:pencil</FuseSvgIcon>
+                                            </IconButton>
                                             <IconButton
-                                                size="small"
+                                                size="medium"
                                                 color="error"
                                                 onClick={() => handleDeleteSession(session.id)}
                                                 disabled={actionLoading === session.id || session.status === 'live'}
+                                                sx={{
+                                                    border: '1px solid',
+                                                    borderColor: 'error.main',
+                                                    '&:hover': {
+                                                        background: 'error.light',
+                                                        color: 'error.dark',
+                                                    },
+                                                }}
                                             >
                                                 <FuseSvgIcon>heroicons-outline:trash</FuseSvgIcon>
                                             </IconButton>

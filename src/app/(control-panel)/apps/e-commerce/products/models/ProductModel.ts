@@ -82,6 +82,9 @@ const ProductModel = (data: PartialDeep<EcommerceProduct>) => {
 		variants: [], // Also initialize variants field for compatibility
 		delivery_slots: '12-3pm', // Default delivery slots for same-day delivery
 		store_postcode: '', // Store postcode for same-day delivery
+		ready_in_minutes: 45, // Default ready time in minutes
+		subscription_enabled: false, // Subscription enabled flag
+		subscription_frequencies: '', // Subscription frequencies
 		total: null,
 		meta_title: '',
 		meta_keywords: '',

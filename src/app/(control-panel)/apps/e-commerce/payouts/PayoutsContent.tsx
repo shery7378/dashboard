@@ -64,7 +64,12 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 	};
 
 	const formatCurrency = (amount: number) => {
-		return `$${parseFloat(amount || 0).toFixed(2)}`;
+		return new Intl.NumberFormat('en-GB', {
+			style: 'currency',
+			currency: 'GBP',
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		}).format(parseFloat(amount || 0));
 	};
 
 	const formatDate = (dateString: string) => {
@@ -399,7 +404,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 							value={payoutAmount}
 							onChange={(e) => setPayoutAmount(e.target.value)}
 							inputProps={{ min: 10, max: availableBalance, step: 0.01 }}
-							helperText={`${t('available')}: ${formatCurrency(availableBalance)} | ${t('minimum')}: $10.00`}
+							helperText={`${t('available')}: ${formatCurrency(availableBalance)} | ${t('minimum')}: ${formatCurrency(10.00)}`}
 							sx={{ mb: 2 }}
 						/>
 						<Box sx={{ display: 'flex', gap: 1, mb: 2 }}>

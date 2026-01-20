@@ -1,12 +1,16 @@
 'use client';
 
 import FusePageSimple from '@fuse/core/FusePageSimple';
-import { Box, Button, Card, CardContent, CardHeader, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Stack, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Grid, IconButton, Tooltip, TextField, Snackbar } from '@mui/material';
+import { Box, Button, Card, CardContent, CardHeader, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Stack, Alert, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Grid, IconButton, Tooltip, TextField, Snackbar, Tabs, Tab, Chip } from '@mui/material';
 import { useListKycSubmissionsQuery, useApproveKycMutation, useRejectKycMutation, useGetKycDocumentsQuery, useStartKybInquiryMutation } from '../kyc/apis/KycApi';
 import { useState } from 'react';
 
+type StatusFilter = 'pending' | 'approved' | 'rejected' | 'all';
+
 export default function KycApprovalsPage() {
-  const { data, error, isLoading, refetch } = useListKycSubmissionsQuery({ status: 'pending' });
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const queryStatus = statusFilter === 'all' ? undefined : statusFilter;
+  const { data, error, isLoading, refetch } = useListKycSubmissionsQuery({ status: queryStatus });
   const [approve, { isLoading: approving }] = useApproveKycMutation();
   const [reject, { isLoading: rejecting }] = useRejectKycMutation();
   const [docSubmissionId, setDocSubmissionId] = useState<number | null>(null);
@@ -25,12 +29,32 @@ export default function KycApprovalsPage() {
   const submissions = data?.data ?? [];
 
   async function onApprove(id: number) {
-    await approve({ submissionId: id });
-    refetch();
+    try {
+      await approve({ submissionId: id }).unwrap();
+      setSnackbarMessage('KYC submission approved successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      refetch();
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.data?.error || 'Failed to approve KYC submission';
+      setSnackbarMessage(errorMessage);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
   }
   async function onReject(id: number) {
-    await reject({ submissionId: id });
-    refetch();
+    try {
+      await reject({ submissionId: id }).unwrap();
+      setSnackbarMessage('KYC submission rejected successfully');
+      setSnackbarSeverity('success');
+      setSnackbarOpen(true);
+      refetch();
+    } catch (error: any) {
+      const errorMessage = error?.data?.message || error?.data?.error || 'Failed to reject KYC submission';
+      setSnackbarMessage(errorMessage);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
   }
 
   async function onStartKyb() {
@@ -188,7 +212,19 @@ export default function KycApprovalsPage() {
       content={
         <Box sx={{ p: { xs: 2, md: 3 } }}>
           <Card>
-            <CardHeader title="Pending Submissions" />
+            <CardHeader title="KYC Submissions" />
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+              <Tabs 
+                value={statusFilter} 
+                onChange={(e, newValue) => setStatusFilter(newValue)}
+                sx={{ minHeight: 'auto' }}
+              >
+                <Tab label="All" value="all" sx={{ minHeight: 'auto', py: 1.5 }} />
+                <Tab label="Pending" value="pending" sx={{ minHeight: 'auto', py: 1.5 }} />
+                <Tab label="Approved" value="approved" sx={{ minHeight: 'auto', py: 1.5 }} />
+                <Tab label="Rejected" value="rejected" sx={{ minHeight: 'auto', py: 1.5 }} />
+              </Tabs>
+            </Box>
             <CardContent>
               {isLoading && (
                 <Stack alignItems="center" sx={{ py: 6 }}>
@@ -213,7 +249,9 @@ export default function KycApprovalsPage() {
               )}
               {!isLoading && !error && submissions.length === 0 && (
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  No pending submissions. Ask a vendor to submit their KYC, or remove the status filter to see others.
+                  {statusFilter === 'all' 
+                    ? 'No KYC submissions found.' 
+                    : `No ${statusFilter} submissions found. ${statusFilter === 'pending' ? 'Ask a vendor to submit their KYC.' : 'Try selecting a different status filter.'}`}
                 </Alert>
               )}
               <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
@@ -222,36 +260,71 @@ export default function KycApprovalsPage() {
                     <TableRow>
                       <TableCell>ID</TableCell>
                       <TableCell>Vendor</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <span>Status</span>
+                        </Stack>
+                      </TableCell>
                       <TableCell>Submitted At</TableCell>
                       <TableCell align="right">Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {submissions.map((s: any) => (
-                      <TableRow key={s.id} hover>
-                        <TableCell>{s.id}</TableCell>
-                        <TableCell>{s.vendor_name}</TableCell>
-                        <TableCell>{s.status}</TableCell>
-                        <TableCell>{new Date(s.submitted_at).toLocaleString()}</TableCell>
-                        <TableCell align="right">
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
-                            <Button size="small" variant="text" onClick={() => { setKybVendor({ id: s.vendor_id, name: s.vendor_name }); setKybName(s.vendor_name || ''); setKybEmail(''); setKybError(null); setKybOpen(true); }}>
-                              Start KYB
-                            </Button>
-                            <Button size="small" variant="outlined" onClick={() => setDocSubmissionId(s.id)}>
-                              View Documents
-                            </Button>
-                            <Button size="small" variant="contained" color="success" onClick={() => onApprove(s.id)} disabled={approving}>
-                              Approve
-                            </Button>
-                            <Button size="small" variant="outlined" color="error" onClick={() => onReject(s.id)} disabled={rejecting}>
-                              Reject
-                            </Button>
-                          </Stack>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {submissions.map((s: any) => {
+                      const status = s.status || 'pending';
+                      const getStatusColor = (status: string) => {
+                        switch (status.toLowerCase()) {
+                          case 'approved':
+                            return 'success';
+                          case 'rejected':
+                            return 'error';
+                          case 'pending':
+                            return 'warning';
+                          default:
+                            return 'default';
+                        }
+                      };
+                      
+                      return (
+                        <TableRow key={s.id} hover>
+                          <TableCell>{s.id}</TableCell>
+                          <TableCell>{s.vendor_name}</TableCell>
+                          <TableCell>
+                            <Chip 
+                              label={status.charAt(0).toUpperCase() + status.slice(1)} 
+                              color={getStatusColor(status) as any}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>{new Date(s.submitted_at || s.created_at).toLocaleString()}</TableCell>
+                          <TableCell align="right">
+                            <Stack direction="row" spacing={1} justifyContent="flex-end">
+                              <Button size="small" variant="text" onClick={() => { setKybVendor({ id: s.vendor_id, name: s.vendor_name }); setKybName(s.vendor_name || ''); setKybEmail(''); setKybError(null); setKybOpen(true); }}>
+                                Start KYB
+                              </Button>
+                              <Button size="small" variant="outlined" onClick={() => setDocSubmissionId(s.id)}>
+                                View Documents
+                              </Button>
+                              {status === 'pending' && (
+                                <>
+                                  <Button size="small" variant="contained" color="success" onClick={() => onApprove(s.id)} disabled={approving}>
+                                    Approve
+                                  </Button>
+                                  <Button size="small" variant="outlined" color="error" onClick={() => onReject(s.id)} disabled={rejecting}>
+                                    Reject
+                                  </Button>
+                                </>
+                              )}
+                              {status !== 'pending' && (
+                                <Typography variant="caption" color="text.secondary" sx={{ alignSelf: 'center', px: 1 }}>
+                                  {status === 'approved' ? '✓ Approved' : status === 'rejected' ? '✗ Rejected' : ''}
+                                </Typography>
+                              )}
+                            </Stack>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </TableContainer>

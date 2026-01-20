@@ -13,12 +13,12 @@ import OrdersStatus from './OrdersStatus';
 
 function OrdersTableForHome() {
 	const { data: session, status: sessionStatus } = useSession();
-	
+
 	// Skip query if session is loading or token is not available
-	const hasToken = session?.accessAuthToken || 
-	                 session?.accessToken || 
-	                 (typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token') : null);
-	
+	const hasToken = session?.accessAuthToken ||
+		session?.accessToken ||
+		(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token') : null);
+
 	const { data: orders, isLoading, error } = useGetECommerceOrdersQuery(undefined, {
 		skip: sessionStatus === 'loading' || !hasToken
 	});
@@ -30,16 +30,19 @@ function OrdersTableForHome() {
 				accessorKey: 'order_number',
 				header: 'Order Number',
 				size: 64,
-				Cell: ({ row }) => (
-					<Typography
-						component={Link}
-						// to={`/apps/e-commerce/orders/${row.original.id}`}
-						to={`/dashboards/seller/#OrdersTable`}  // Link to OrdersTable section in dashboard
-						role="button"
-					>
-						<u>{row.original.order_number}</u>
-					</Typography>
-				)
+				Cell: ({ row }) => {
+					const userRole = (session as any)?.user?.role?.[0] || (session as any)?.db?.role?.[0];
+					const dashboardLink = userRole === 'supplier' ? '/dashboards/supplier' : '/dashboards/seller';
+					return (
+						<Typography
+							component={Link}
+							to={`${dashboardLink}/#OrdersTable`}
+							role="button"
+						>
+							<u>{row.original.order_number}</u>
+						</Typography>
+					);
+				}
 			},
 			{
 				accessorKey: 'user.name',
@@ -50,7 +53,12 @@ function OrdersTableForHome() {
 				accessorKey: 'price',
 				header: 'Total',
 				size: 64,
-				Cell: ({ row }) => `$${parseFloat(row.original.price).toFixed(2)}`
+				Cell: ({ row }) => {
+					const rawPrice = row.original.price;
+					const priceValue = rawPrice?.toString().replace(/[£$,\s]/g, '') || '0';
+					const formatted = `\u00A3${parseFloat(priceValue).toFixed(2)}`;
+					return <span style={{ fontFamily: 'Arial, sans-serif' }}>{formatted}</span>;
+				}
 			},
 			{
 				accessorKey: 'payment_status',

@@ -90,7 +90,36 @@ export default function VendorKycPage() {
     const res = await submitKyc({});
     if ('error' in res) {
       const err: any = (res as any).error;
-      const msg = err?.data?.message || err?.data?.error || err?.error || 'Submit failed';
+      
+      // Log full error for debugging
+      console.error('KYC Submit Error:', {
+        status: err?.status,
+        data: err?.data,
+        error: err?.error,
+        originalStatus: err?.originalStatus,
+      });
+      
+      // Extract error message
+      let msg = 'Submit failed';
+      if (err?.data?.message) {
+        msg = err.data.message;
+      } else if (err?.data?.error) {
+        msg = err.data.error;
+      } else if (err?.data?.errors) {
+        // Handle Laravel validation errors
+        const errors = err.data.errors;
+        const firstError = Object.values(errors)[0];
+        if (Array.isArray(firstError) && firstError.length > 0) {
+          msg = firstError[0] as string;
+        } else if (typeof firstError === 'string') {
+          msg = firstError;
+        } else {
+          msg = 'Validation failed: ' + JSON.stringify(errors);
+        }
+      } else if (err?.error) {
+        msg = err.error;
+      }
+      
       setError(msg);
     } else {
       setSuccess('Submitted');

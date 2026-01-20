@@ -87,6 +87,14 @@ const CategoriesLaravelApi = api
                 providesTags: ['eCommerce_categories'],
             }),
 
+            // Get all parent categories with children (for product form)
+            getECommerceAllCategories: build.query<GetECommerceCategoriesApiResponse, void>({
+                query: () => ({
+                    url: `/api/categories/getAllCategories`,
+                }),
+                providesTags: ['eCommerce_categories'],
+            }),
+
         }),
         overrideExisting: false,
     });
@@ -193,6 +201,7 @@ export const {
     useDeleteECommerceCategoriesMutation,
     useAssignProductsToCategoryMutation,
     useGetECommerceParentCategoriesQuery,
+    useGetECommerceAllCategoriesQuery,
 } = CategoriesLaravelApi;
 
 // Optional: for Redux integration

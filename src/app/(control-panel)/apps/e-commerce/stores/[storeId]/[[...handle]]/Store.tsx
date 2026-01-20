@@ -39,6 +39,7 @@ const schema = z.object({
 	contact_phone: z.string().optional(),
 	latitude: z.number().optional(),
 	longitude: z.number().optional(),
+	delivery_radius: z.number().optional(),
 });
 
 function Store() {

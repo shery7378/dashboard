@@ -88,7 +88,9 @@ function ToolbarLayout4(props: ToolbarLayout4Props) {
 						/>
 						<NavigationSearch />
 						<QuickPanelToggleButton />
-						<NotificationPanelToggleButton />
+						<div style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}>
+							<NotificationPanelToggleButton />
+						</div>
 					</div>
 
 					{config.navbar.display && config.navbar.position === 'right' && (

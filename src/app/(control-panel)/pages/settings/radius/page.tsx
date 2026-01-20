@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import {
   TextField,
@@ -67,6 +67,7 @@ export default function MapsRadiusSettingsPage() {
   const [marker, setMarker] = useState<any>(null);
   const [circle, setCircle] = useState<any>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
 
   const [updateSettings, { isLoading }] = useUpdateAdminMapsRadiusSettingsMutation();
   const {
@@ -161,50 +162,44 @@ export default function MapsRadiusSettingsPage() {
     
     try {
       if (typeof window.google === 'undefined' || !window.google.maps) {
-        const mapDiv = document.getElementById('maps-radius-map');
-        if (mapDiv) {
-          mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Google Maps failed to load</div>';
-        }
+        // Don't manipulate innerHTML - causes React reconciliation errors
         setIsInitializing(false);
         return;
       }
 
-      const mapDiv = document.getElementById('maps-radius-map');
+      // Use ref instead of getElementById to avoid React reconciliation issues
+      const mapDiv = mapContainerRef.current;
       if (!mapDiv) {
         setIsInitializing(false);
         return;
       }
 
-      // Safely clear any existing content in the map div
-      // This must be done synchronously right before creating the new map
-      // Use innerHTML directly - it's safer than removeChild when dealing with Google Maps
-      try {
-        // First, ensure any existing map instances are cleaned up
-        // (This should have been done by cleanupMap, but double-check)
-        if (map) {
-          try {
-            if (window.google?.maps?.event?.clearInstanceListeners) {
-              window.google.maps.event.clearInstanceListeners(map);
-            }
-          } catch (e) {
-            // Ignore - map might already be cleaned up
-          }
-        }
-        
-        // Use innerHTML to clear - it's atomic and avoids removeChild issues
-        // Google Maps will recreate its DOM structure when we create a new map
-        mapDiv.innerHTML = '';
-      } catch (e) {
-        console.warn('Error clearing map div before initialization:', e);
-        setIsInitializing(false);
-        return;
-      }
+      // Don't clear innerHTML - this causes React reconciliation errors
+      // Google Maps Map constructor can handle reinitializing on the same container
+      // It will replace the content itself. We just need to ensure the old map
+      // instance is destroyed (which cleanupMap already did)
+      
+      // Use requestAnimationFrame to ensure we're not interfering with React's render cycle
+      requestAnimationFrame(() => {
+        initializeMapOnDiv(mapDiv);
+      });
+      
+      return;
+    } catch (e) {
+      console.error('Error in initMapsRadiusMap:', e);
+      setError('Error initializing map. Please check your API key.');
+      setIsInitializing(false);
+    }
+  }, [latitude, longitude, radius, setValue, isInitializing]);
 
+  // Separate function to initialize map on a div
+  const initializeMapOnDiv = useCallback((mapDiv: HTMLDivElement) => {
+    try {
       const currentLat = latitude || 51.5074;
       const currentLng = longitude || -0.1278;
       const currentRadius = radius || 10;
 
-      // Initialize map
+      // Initialize map - Google Maps will handle replacing any existing content
       const newMap = new window.google.maps.Map(mapDiv, {
         center: { lat: currentLat, lng: currentLng },
         zoom: 12,
@@ -259,7 +254,7 @@ export default function MapsRadiusSettingsPage() {
       setError('Error initializing map. Please check your API key.');
       setIsInitializing(false);
     }
-  }, [latitude, longitude, radius, setValue, isInitializing]);
+  }, [latitude, longitude, radius, setValue]);
 
   // Load Google Maps
   const loadGoogleMaps = useCallback(() => {
@@ -270,10 +265,7 @@ export default function MapsRadiusSettingsPage() {
 
     if (!apiKey || apiKey.trim() === '') {
       cleanupMap();
-      const mapDiv = document.getElementById('maps-radius-map');
-      if (mapDiv) {
-        mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Please enter Google Maps API Key first</div>';
-      }
+      // Don't manipulate innerHTML directly - let React handle it
       return;
     }
 
@@ -323,14 +315,12 @@ export default function MapsRadiusSettingsPage() {
       script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(apiKey)}&libraries=places&callback=initMapsRadiusMap`;
       script.async = true;
       script.defer = true;
-      script.onerror = () => {
-        const mapDiv = document.getElementById('maps-radius-map');
-        if (mapDiv) {
-          mapDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #d00;">Failed to load Google Maps. Please check your API key.</div>';
-        }
-        setError('Failed to load Google Maps. Please check your API key.');
-        setIsInitializing(false);
-      };
+    script.onerror = () => {
+      // Don't manipulate innerHTML - causes React reconciliation errors
+      // Just set the error state and let React handle the UI
+      setError('Failed to load Google Maps. Please check your API key.');
+      setIsInitializing(false);
+    };
       
       // Check if script with same src already exists before adding
       const duplicateScript = Array.from(document.querySelectorAll('script[src*="maps.googleapis.com"]'))
@@ -542,6 +532,7 @@ export default function MapsRadiusSettingsPage() {
                           Click on the map or drag the marker to set the default location
                         </Typography>
                         <Box
+                          ref={mapContainerRef}
                           id="maps-radius-map"
                           sx={{
                             height: 400,

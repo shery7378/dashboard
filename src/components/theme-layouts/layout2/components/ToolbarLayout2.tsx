@@ -53,7 +53,9 @@ function ToolbarLayout2(props: ToolbarLayout2Props) {
 						<FullScreenToggle />
 						<NavigationSearch />
 						<QuickPanelToggleButton />
-						<NotificationPanelToggleButton />
+						<div style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}>
+							<NotificationPanelToggleButton />
+						</div>
 						{!isMobile && (
 							<UserMenu
 								className="border border-solid"

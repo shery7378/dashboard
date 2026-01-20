@@ -12,6 +12,7 @@ import NavbarWrapperLayout1 from './components/NavbarWrapperLayout1';
 import RightSideLayout1 from './components/RightSideLayout1';
 import ToolbarLayout1 from './components/ToolbarLayout1';
 import FuseDialog from '@fuse/core/FuseDialog';
+import NotificationPanel from '@/app/(control-panel)/apps/notifications/NotificationPanel';
 
 const Root = styled('div')(({ config }: { config: Layout1ConfigDefaultsType }) => ({
 	...(config.mode === 'boxed' && {
@@ -87,6 +88,8 @@ function Layout1(props: Layout1Props) {
 			</div>
 
 			{config.rightSidePanel.display && <RightSideLayout1 />}
+			{/* Always render NotificationPanel so it works regardless of rightSidePanel setting */}
+			<NotificationPanel />
 			<FuseMessage />
 		</Root>
 	);

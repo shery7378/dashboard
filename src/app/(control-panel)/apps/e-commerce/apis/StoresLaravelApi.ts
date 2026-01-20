@@ -133,6 +133,7 @@ export type EcommerceStore = {
     products_count: number | null;
     offers_pickup: boolean;
     offers_delivery: boolean;
+    delivery_radius: number | null;
     created_at: string;
     updated_at: string;
     deleted_at: string | null;

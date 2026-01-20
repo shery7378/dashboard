@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { 
 	Paper, 
 	Typography, 
@@ -20,6 +20,7 @@ import { IconButton } from '@mui/material';
 import Icon from '@mui/material/Icon';
 import { getSession } from 'next-auth/react';
 import { alpha, useTheme } from '@mui/material/styles';
+import getEcho from '@/config/echo';
 
 // Get API URL from environment or use default
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -34,6 +35,10 @@ function MessagesAppContent() {
 	const [loading, setLoading] = useState(false);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+	const backgroundPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+	const lastMessageIdsRef = useRef<{ [key: string]: number }>({}); // Track last message ID per conversation
+	const notificationPermissionRef = useRef<NotificationPermission | null>(null);
+	const [isPageVisible, setIsPageVisible] = useState(true);
 
 	// Get auth token - same method as apiServiceLaravel
 	const getAuthToken = async () => {
@@ -59,6 +64,71 @@ function MessagesAppContent() {
 				return localStorage.getItem('token') || localStorage.getItem('auth_token');
 			}
 			return null;
+		}
+	};
+
+	// Request notification permission on mount
+	useEffect(() => {
+		if ('Notification' in window) {
+			if (Notification.permission === 'default') {
+				Notification.requestPermission().then(permission => {
+					notificationPermissionRef.current = permission;
+				});
+			} else {
+				notificationPermissionRef.current = Notification.permission;
+			}
+		}
+
+		// Track page visibility for notifications
+		const handleVisibilityChange = () => {
+			setIsPageVisible(!document.hidden);
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	}, []);
+
+	// Function to show browser notification
+	const showMessageNotification = (conversation: any) => {
+		if (!('Notification' in window)) {
+			return; // Browser doesn't support notifications
+		}
+
+		if (Notification.permission === 'granted') {
+			const senderName = conversation.is_support 
+				? 'Support' 
+				: (conversation.other_user?.name || conversation.other_user?.first_name || 'Someone');
+			const message = conversation.last_message || 'New message';
+			
+			const notification = new Notification(`${senderName} sent you a message`, {
+				body: message.length > 100 ? message.substring(0, 100) + '...' : message,
+				icon: '/images/profile/profile.png',
+				badge: '/images/profile/profile.png',
+				tag: `chat-${conversation.id}`, // Prevent duplicate notifications
+				requireInteraction: false,
+			});
+
+			// Focus window when notification is clicked
+			notification.onclick = () => {
+				window.focus();
+				// Optionally navigate to the messages page or open the conversation
+				notification.close();
+			};
+
+			// Auto-close after 5 seconds
+			setTimeout(() => {
+				notification.close();
+			}, 5000);
+		} else if (Notification.permission === 'default') {
+			// Request permission
+			Notification.requestPermission().then(permission => {
+				notificationPermissionRef.current = permission;
+				if (permission === 'granted') {
+					showMessageNotification(conversation);
+				}
+			});
 		}
 	};
 
@@ -112,7 +182,7 @@ function MessagesAppContent() {
 	}, []);
 
 	// Fetch conversations
-	const fetchConversations = async () => {
+	const fetchConversations = useCallback(async () => {
 		try {
 			const token = await getAuthToken();
 			if (!token) return;
@@ -129,7 +199,24 @@ function MessagesAppContent() {
 			if (response.ok) {
 				const data = await response.json();
 				if (data.success && data.data) {
-					setConversations(data.data);
+					setConversations(prevConversations => {
+						const previousConversations = prevConversations;
+						
+						// Check for new messages and show notifications
+						data.data.forEach((conv: any) => {
+							// If conversation has unread messages and page is not visible or this is not the active conversation
+							if (conv.unread_count > 0 && (!isPageVisible || activeConversation?.id !== conv.id)) {
+								// Check if this is a new unread message (conversation didn't exist before or unread count increased)
+								const prevConv = previousConversations.find((p: any) => p.id === conv.id);
+								if (!prevConv || (prevConv.unread_count || 0) < conv.unread_count) {
+									showMessageNotification(conv);
+								}
+							}
+						});
+						
+						return data.data;
+					});
+					
 					// Auto-select first conversation if none selected
 					if (!activeConversation && data.data.length > 0) {
 						setActiveConversation(data.data[0]);
@@ -139,41 +226,17 @@ function MessagesAppContent() {
 		} catch (error) {
 			console.error('Error fetching conversations:', error);
 		}
-	};
+	}, [isPageVisible, activeConversation]);
 
 	// Fetch messages for active conversation
-	useEffect(() => {
-		if (activeConversation && isInitialized) {
-			fetchMessages();
-		}
-	}, [activeConversation, isInitialized]);
-
-	// Poll for new messages
-	useEffect(() => {
-		if (isInitialized) {
-			pollIntervalRef.current = setInterval(() => {
-				fetchConversations();
-				if (activeConversation) {
-					fetchMessages();
-				}
-			}, 3000); // Poll every 3 seconds
-		}
-
-		return () => {
-			if (pollIntervalRef.current) {
-				clearInterval(pollIntervalRef.current);
-			}
-		};
-	}, [isInitialized, activeConversation]);
-
-	const fetchMessages = async () => {
+	const fetchMessages = useCallback(async () => {
 		if (!activeConversation) return;
 
 		try {
 			const token = await getAuthToken();
 			if (!token) return;
 
-			const response = await fetch(`${API_URL}/api/chat/conversations/${activeConversation.id}`, {
+			const response = await fetch(`${API_URL}/api/chat/conversations/${activeConversation.id}?per_page=50`, {
 				headers: {
 					'Authorization': `Bearer ${token}`,
 					'Content-Type': 'application/json',
@@ -185,18 +248,247 @@ function MessagesAppContent() {
 			if (response.ok) {
 				const data = await response.json();
 				if (data.success && data.data?.messages) {
-					setMessages(data.data.messages);
+					const newMessages = data.data.messages;
+					const conversationId = activeConversation.id;
+					
+					if (conversationId && newMessages.length > 0) {
+						// Get the last message ID we've seen for this conversation
+						const lastSeenId = lastMessageIdsRef.current[conversationId];
+						const latestMessage = newMessages[newMessages.length - 1];
+						
+						// Get current user ID from token or session
+						const getUserId = async () => {
+							try {
+								const session = await getSession();
+								return session?.user?.id || 
+									(typeof window !== 'undefined' ? parseInt(localStorage.getItem('user_id') || localStorage.getItem('id') || '0') : 0);
+							} catch {
+								return typeof window !== 'undefined' ? parseInt(localStorage.getItem('user_id') || localStorage.getItem('id') || '0') : 0;
+							}
+						};
+						
+						// If we have a new message and page is not visible or this conversation is not active
+						if (lastSeenId && latestMessage.id !== lastSeenId && (!isPageVisible || activeConversation?.id !== conversationId)) {
+							const userId = await getUserId();
+							// Only notify if the message is not from the current user
+							if (latestMessage.sender_id !== userId) {
+								showMessageNotification({
+									id: conversationId,
+									last_message: latestMessage.message,
+									is_support: activeConversation?.is_support,
+									other_user: activeConversation?.other_user
+								});
+							}
+						}
+						
+						// Update last seen message ID
+						lastMessageIdsRef.current[conversationId] = latestMessage.id;
+					}
+					
+					// Ensure messages are in chronological order (oldest first, newest last)
+					// Backend already reverses them, so we use them as-is
+					setMessages(newMessages);
+					
+					// Dispatch event to refresh unread count immediately after viewing messages
+					// (messages are marked as read on the backend when conversation is viewed)
+					if (typeof window !== 'undefined') {
+						window.dispatchEvent(new CustomEvent('refreshUnreadMessagesCount'));
+					}
 				}
 			}
 		} catch (error) {
 			console.error('Error fetching messages:', error);
 		}
-	};
+	}, [activeConversation, isPageVisible]);
 
-	// Scroll to bottom when messages change
+	// Fetch messages for active conversation
 	useEffect(() => {
-		messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-	}, [messages]);
+		if (activeConversation && isInitialized) {
+			fetchMessages();
+		}
+	}, [activeConversation, isInitialized, fetchMessages]);
+
+	// Set up Pusher real-time listeners instead of polling
+	useEffect(() => {
+		if (!isInitialized || typeof window === 'undefined') return;
+
+		const echo = getEcho();
+		if (!echo) return;
+
+		const getUserId = async () => {
+			try {
+				const session = await getSession();
+				return session?.user?.id || 
+					(typeof window !== 'undefined' ? parseInt(localStorage.getItem('user_id') || localStorage.getItem('id') || '0') : 0);
+			} catch {
+				return typeof window !== 'undefined' ? parseInt(localStorage.getItem('user_id') || localStorage.getItem('id') || '0') : 0;
+			}
+		};
+
+		let userChannel: any = null;
+		let conversationChannels: any[] = [];
+
+		const setupListeners = async () => {
+			const userId = await getUserId();
+			if (!userId) return;
+
+			// Listen to user channel for conversation updates
+			userChannel = echo.private(`user.${userId}`);
+			
+			userChannel.listen('.conversation.updated', (data: any) => {
+				// Update conversation in list immediately
+				setConversations((prev) => {
+					return prev.map((conv) => 
+						conv.id === data.conversation_id 
+							? { ...conv, last_message: data.last_message, last_message_at: data.last_message_at, unread_count: data.unread_count }
+							: conv
+					);
+				});
+
+				// Refresh unread count immediately
+				if (typeof window !== 'undefined') {
+					window.dispatchEvent(new CustomEvent('refreshUnreadMessagesCount'));
+				}
+			});
+
+			// Also listen to user channel for new messages (catches all messages immediately)
+			userChannel.listen('.message.sent', (data: any) => {
+				// Refresh unread count immediately
+				if (typeof window !== 'undefined') {
+					window.dispatchEvent(new CustomEvent('refreshUnreadMessagesCount'));
+				}
+
+				// Update conversation list immediately
+				setConversations((prev) => {
+					const existingIndex = prev.findIndex((c) => c.id === data.conversation_id);
+					
+					if (existingIndex >= 0) {
+						// Update existing conversation
+						const updated = [...prev];
+						updated[existingIndex] = {
+							...updated[existingIndex],
+							last_message: data.message,
+							last_message_at: data.created_at,
+							unread_count: (updated[existingIndex].unread_count || 0) + 1,
+						};
+						return updated;
+					} else {
+						// New conversation - add it
+						return [...prev, {
+							id: data.conversation_id,
+							last_message: data.message,
+							last_message_at: data.created_at,
+							unread_count: 1,
+						}];
+					}
+				});
+
+				// Show notification immediately if not viewing this conversation
+				if (activeConversation?.id !== data.conversation_id || !isPageVisible) {
+					const conversation = conversations.find((c) => c.id === data.conversation_id);
+					if (conversation) {
+						showMessageNotification({
+							...conversation,
+							last_message: data.message,
+						});
+					} else {
+						// Show notification even if conversation not in list yet
+						showMessageNotification({
+							id: data.conversation_id,
+							last_message: data.message,
+							sender_name: data.sender_name,
+						});
+					}
+				}
+
+				// If this is the active conversation, add message to list
+				if (activeConversation?.id === data.conversation_id) {
+					setMessages((prev) => {
+						if (prev.some((msg) => msg.id === data.id)) {
+							return prev;
+						}
+						return [...prev, data];
+					});
+				}
+			});
+
+			// Listen to conversation channels for new messages
+			conversations.forEach((conv) => {
+				const channel = echo.private(`conversation.${conv.id}`);
+				
+				channel.listen('.message.sent', (data: any) => {
+					// If this is the active conversation, add message to list
+					if (activeConversation?.id === data.conversation_id) {
+						setMessages((prev) => {
+							// Check if message already exists
+							if (prev.some((msg) => msg.id === data.id)) {
+								return prev;
+							}
+							return [...prev, data];
+						});
+					} else {
+						// Update conversation list
+						setConversations((prev) => {
+							return prev.map((c) => 
+								c.id === data.conversation_id 
+									? { ...c, last_message: data.message, last_message_at: data.created_at }
+									: c
+							);
+						});
+					}
+
+					// Show notification if not viewing this conversation
+					if (activeConversation?.id !== data.conversation_id || !isPageVisible) {
+						const conversation = conversations.find((c) => c.id === data.conversation_id);
+						if (conversation) {
+							showMessageNotification({
+								...conversation,
+								last_message: data.message,
+							});
+						}
+					}
+				});
+
+				conversationChannels.push(channel);
+			});
+		};
+
+		setupListeners();
+
+		// Fallback: Still poll every 30 seconds as backup (much less frequent)
+		pollIntervalRef.current = setInterval(() => {
+			fetchConversations();
+			if (activeConversation) {
+				fetchMessages();
+			}
+		}, 30000); // 30 seconds as backup
+
+		return () => {
+			// Clean up Pusher listeners
+			if (userChannel) {
+				userChannel.stopListening('.conversation.updated');
+				userChannel.stopListening('.message.sent');
+			}
+			conversationChannels.forEach((channel) => {
+				channel.stopListening('.message.sent');
+			});
+			
+			// Clean up polling
+			if (pollIntervalRef.current) {
+				clearInterval(pollIntervalRef.current);
+			}
+		};
+	}, [isInitialized, conversations, activeConversation, isPageVisible, fetchConversations, fetchMessages]);
+
+	// Scroll to bottom when messages change (show latest message at bottom)
+	useEffect(() => {
+		if (messagesEndRef.current && messages.length > 0) {
+			// Use setTimeout to ensure DOM is updated before scrolling
+			setTimeout(() => {
+				messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+			}, 100);
+		}
+	}, [messages, activeConversation]);
 
 	const handleSendMessage = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -227,11 +519,9 @@ function MessagesAppContent() {
 
 			if (response.ok) {
 				setMessageText('');
-				// Refresh messages
-				setTimeout(() => {
-					fetchMessages();
-					fetchConversations();
-				}, 300);
+				// Refresh messages immediately (no delay) - backend returns the new message
+				fetchMessages();
+				fetchConversations();
 			}
 		} catch (error) {
 			console.error('Error sending message:', error);
@@ -371,13 +661,14 @@ function MessagesAppContent() {
 				</Box>
 
 				{/* Conversations List */}
-				<Box className="flex-1 overflow-y-auto" sx={{ 
-					'&::-webkit-scrollbar': { width: '6px' },
-					'&::-webkit-scrollbar-track': { background: 'transparent' },
-					'&::-webkit-scrollbar-thumb': { 
-						background: alpha(theme.palette.text.secondary, 0.2),
-						borderRadius: '3px',
+				<Box className="flex-1" sx={{ 
+					overflowY: 'auto',
+					overflowX: 'hidden',
+					'&::-webkit-scrollbar': { 
+						display: 'none', // Hide scrollbar for conversations list
 					},
+					scrollbarWidth: 'none', // Firefox
+					msOverflowStyle: 'none', // IE/Edge
 				}}>
 					{conversations.length === 0 ? (
 						<Box 
@@ -803,7 +1094,12 @@ function MessagesAppContent() {
 									</Typography>
 								</Box>
 							) : (
-								<Box sx={{ '& > * + *': { mt: 2 } }}>
+								<Box sx={{ 
+									'& > * + *': { mt: 2 },
+									display: 'flex',
+									flexDirection: 'column',
+									minHeight: '100%',
+								}}>
 									{messages.map((msg: any, idx: number) => {
 										const userId = parseInt(
 											localStorage.getItem('user_id') ||

@@ -276,6 +276,16 @@ function ProductHeader() {
       // Also include at root level for compatibility (backend might handle these separately)
       delivery_slots: values.delivery_slots ?? (values as any).delivery_slots ?? '',
       store_postcode: values.store_postcode ?? (values as any).store_postcode ?? '',
+      // Shipping charges - ensure they're sent as numbers
+      shipping_charge_regular: parseFloat(String(values.shipping_charge_regular ?? (values as any).shippingChargeRegular ?? 0)) || 0,
+      shipping_charge_same_day: parseFloat(String(values.shipping_charge_same_day ?? (values as any).shippingChargeSameDay ?? 0)) || 0,
+      // Other delivery fields
+      delivery_radius: parseInt(String(values.delivery_radius ?? (values as any).deliveryRadius ?? 5)) || 5,
+      ready_in_minutes: parseInt(String(values.ready_in_minutes ?? (values as any).readyInMinutes ?? 45)) || 45,
+      enable_pickup: Boolean(values.enable_pickup ?? (values as any).enablePickup ?? false),
+      // Subscription fields
+      subscription_enabled: Boolean(values.subscription_enabled ?? (values as any).subscriptionEnabled ?? false),
+      subscription_frequencies: values.subscription_frequencies ?? (values as any).subscriptionFrequencies ?? null,
     };
     
     // Transform product_variants to variants (backend expects 'variants' field to always exist)
@@ -329,6 +339,8 @@ function ProductHeader() {
             is_default: variant.is_default !== undefined ? Boolean(variant.is_default) : false,
             // Position is set by backend, but include if present
             position: variant.position !== undefined ? parseInt(String(variant.position)) || (index + 1) : (index + 1),
+            // Preserve variant image if it exists (base64 data URL)
+            ...(variant.image && { image: variant.image }),
           };
         }
         return variant;
@@ -661,10 +673,7 @@ function ProductHeader() {
         enqueueSnackbar('Main category is required', { variant: 'error' });
         return;
       }
-      if (!values.subcategory || !Array.isArray(values.subcategory) || values.subcategory.length === 0) {
-        enqueueSnackbar('At least one subcategory is required', { variant: 'error' });
-        return;
-      }
+      // Subcategory is now optional, so no validation needed
       // Skip other validations for drafts - allow saving without images/description
     } else {
       // Full validation for published products

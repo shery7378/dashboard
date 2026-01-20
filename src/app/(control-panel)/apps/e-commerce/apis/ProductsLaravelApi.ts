@@ -306,6 +306,9 @@ export type EcommerceProduct = {
     returns?: string | null;
     warranty?: string | null;
     box_contents?: string | null;
+    // Subscription fields
+    subscription_enabled?: boolean | number;
+    subscription_frequencies?: string | null;
     // Extra fields
     extraFields?: any;
     // Variants and attributes

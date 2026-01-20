@@ -11,6 +11,7 @@ import NavbarWrapperLayout2 from './components/NavbarWrapperLayout2';
 import RightSideLayout2 from './components/RightSideLayout2';
 import ToolbarLayout2 from './components/ToolbarLayout2';
 import Configurator from '../components/configurator/Configurator';
+import NotificationPanel from '@/app/(control-panel)/apps/notifications/NotificationPanel';
 
 const Root = styled('div')(({ config }: { config: Layout2ConfigDefaultsType }) => ({
 	...(config.mode === 'boxed' && {
@@ -94,6 +95,8 @@ function Layout2(props: Layout2Props) {
 			</div>
 
 			{config.rightSidePanel.display && <RightSideLayout2 />}
+			{/* Always render NotificationPanel so it works regardless of rightSidePanel setting */}
+			<NotificationPanel />
 			<FuseMessage />
 		</Root>
 	);

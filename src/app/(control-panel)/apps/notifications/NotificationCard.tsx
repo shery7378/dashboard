@@ -62,10 +62,10 @@ function NotificationCard(props: NotificationCardProps) {
 				className={clsx('relative flex min-h-16 items-center space-x-2 rounded-xl p-5 shadow-sm', className)}
 				sx={[
 					{
-						backgroundColor: bgColor,
-						color: `${contrastTheme.palette.text.primary}!important`
+						backgroundColor: '#ffffff',
+						color: '#000000!important'
 					},
-					item.link ? { '&:hover': { backgroundColor: darken(bgColor, 0.05) } } : {}
+					item.link ? { '&:hover': { backgroundColor: darken('#ffffff', 0.05) } } : {}
 				]}
 				elevation={0}
 				component={item.link ? NavLinkAdapter : 'div'}
@@ -74,7 +74,7 @@ function NotificationCard(props: NotificationCardProps) {
 			>
 				{item.icon && !item.image && (
 					<Box
-						sx={{ backgroundColor: darken(bgColor, contrastTheme.palette.mode === 'dark' ? 0.3 : 0.1) }}
+						sx={{ backgroundColor: '#f5f5f5' }}
 						className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
 					>
 						<FuseSvgIcon
@@ -96,17 +96,28 @@ function NotificationCard(props: NotificationCardProps) {
 				)}
 
 				<div className="flex flex-auto flex-col">
-					{item.title && <Typography className="line-clamp-1 font-semibold">{item.title}</Typography>}
+					{item.title && (
+						<Typography 
+							className="line-clamp-1 font-semibold"
+							sx={{ color: '#000000' }}
+						>
+							{item.title}
+						</Typography>
+					)}
 
 					{item.description && (
 						<div
 							className="line-clamp-2"
+							style={{ color: '#000000' }}
 							dangerouslySetInnerHTML={{ __html: item.description }}
 						/>
 					)}
 
 					{item.time && (
-						<Typography className="mt-2 text-sm leading-none opacity-60">
+						<Typography 
+							className="mt-2 text-sm leading-none"
+							sx={{ color: '#666666' }}
+						>
 							{formatDistanceToNow(new Date(item.time), { addSuffix: true })}
 						</Typography>
 					)}

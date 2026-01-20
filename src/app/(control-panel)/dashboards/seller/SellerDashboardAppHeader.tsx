@@ -64,7 +64,9 @@ function SellerDashboardAppHeader() {
 								className="mx-1.5 leading-6 truncate"
 								color="text.secondary"
 							>
-								Seller Dashboard - Direct Sales
+								{user?.role?.includes('supplier')
+									? 'Supplier Dashboard'
+									: 'Seller Dashboard - Direct Sales'}
 							</Typography>
 						</div>
 					</div>

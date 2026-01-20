@@ -31,6 +31,7 @@ export function sanitizeStore(data: Partial<EcommerceStore>): EcommerceStore {
 		rating: data.rating ?? null,
 		offers_pickup: data.offers_pickup ?? false,
 		offers_delivery: data.offers_delivery ?? false,
+		delivery_radius: data.delivery_radius ?? null,
 		active: data.active ?? false,
 		user: data.user ?? {
 			id: '',

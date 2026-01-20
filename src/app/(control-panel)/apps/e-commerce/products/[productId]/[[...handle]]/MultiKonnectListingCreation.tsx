@@ -24,8 +24,10 @@ import InputLabel from '@mui/material/InputLabel';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Chip from '@mui/material/Chip';
-import { useGetECommerceCategoriesQuery } from '../../../apis/CategoriesLaravelApi';
+import { useGetECommerceCategoriesQuery, useGetECommerceParentCategoriesQuery, useGetECommerceAllCategoriesQuery } from '../../../apis/CategoriesLaravelApi';
 import { useGetECommerceProductsQuery, useGetOtherVendorsProductsQuery } from '../../../apis/ProductsLaravelApi';
+import { useGetECommerceStoreQuery } from '../../../apis/StoresLaravelApi';
+import { useGetAdminProductFeesSettingsQuery } from '../../../../../pages/settings/product-fees/ProductFeesAdminApi';
 import { slugify } from '../../models/ProductModel';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -92,7 +94,7 @@ function MultiKonnectListingCreation() {
 	const [newAttributeName, setNewAttributeName] = useState('');
 	const [feeSettingsDialogOpen, setFeeSettingsDialogOpen] = useState(false);
 	const [tempFeeSettings, setTempFeeSettings] = useState({
-		commissionRate: 0.025,
+		commissionRate: 0,
 		promoFee: 0,
 	});
 	const [offers, setOffers] = useState({
@@ -184,6 +186,8 @@ function MultiKonnectListingCreation() {
 	const deliverySlots = watch('delivery_slots') || '12-3pm';
 	const readyInMinutes = watch('ready_in_minutes') || 45;
 	const enablePickup = watch('enable_pickup') || false;
+	const subscriptionEnabled = watch('subscription_enabled') || false;
+	const subscriptionFrequencies = watch('subscription_frequencies') || '';
 	// Vendor-set shipping charges
 	const shippingChargeRegular = watch('shipping_charge_regular') || 0;
 	const shippingChargeSameDay = watch('shipping_charge_same_day') || 0;
@@ -193,46 +197,170 @@ function MultiKonnectListingCreation() {
 	const productVariants = watch('product_variants') || [];
 	const extraFields = watch('extraFields') || {};
 
+	// Fetch admin product fees settings
+	const { data: adminFeesData, isLoading: isLoadingAdminFees, error: adminFeesError } = useGetAdminProductFeesSettingsQuery(undefined, {
+		refetchOnMountOrArgChange: true,
+	});
+
+	// Debug admin fees data
+	useEffect(() => {
+		console.log('=== ADMIN FEES DATA DEBUG ===');
+		console.log('adminFeesData:', adminFeesData);
+		console.log('adminFeesData?.data:', adminFeesData?.data);
+		console.log('isLoadingAdminFees:', isLoadingAdminFees);
+		console.log('adminFeesError:', adminFeesError);
+		if (adminFeesData?.data) {
+			console.log('standard_product_fee:', adminFeesData.data.standard_product_fee);
+			console.log('standard_product_fee_type:', adminFeesData.data.standard_product_fee_type);
+		}
+		console.log('===========================');
+	}, [adminFeesData, isLoadingAdminFees, adminFeesError]);
+
 	// Admin-configurable fee settings - per product, stored in extraFields
 	// Note: Shipping charges are set by vendor, not admin
-	// Get fees from extraFields (product-specific) or use defaults
+	// Get fees from extraFields (product-specific) or use admin defaults
 	const getProductFees = useCallback(() => {
+		// Debug logging
+		console.log('getProductFees called:', {
+			extraFields,
+			adminFeesData,
+			adminFeesDataData: adminFeesData?.data
+		});
+		
+		// If product has specific fees set, use those
 		if (extraFields?.commissionRate !== undefined || extraFields?.promoFee !== undefined) {
+			// If commissionRate is explicitly set to undefined/null, check admin default first
+			let commissionRate = extraFields.commissionRate;
+			if (commissionRate === undefined || commissionRate === null) {
+				// Check admin default before using fallback
+				const adminFees = adminFeesData?.data;
+				if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+					commissionRate = adminFees.standard_product_fee / 100;
+					console.log('Using admin fee from extraFields check:', commissionRate);
+				} else {
+					commissionRate = 0; // Will be updated when admin fees load
+				}
+			}
 			return {
-				commissionRate: extraFields.commissionRate ?? 0.025, // 2.5% default
+				commissionRate: commissionRate,
 				promoFee: extraFields.promoFee ?? 0,
 			};
 		}
-		// Default fees if not set for this product
+		
+		// Otherwise, use admin-set standard product fee if it's a percentage
+		const adminFees = adminFeesData?.data;
+		console.log('Checking admin fees:', {
+			adminFees,
+			hasData: !!adminFees,
+			feeType: adminFees?.standard_product_fee_type,
+			feeValue: adminFees?.standard_product_fee
+		});
+		
+		if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+			// Convert percentage to decimal (e.g., 2% -> 0.02)
+			const adminCommissionRate = adminFees.standard_product_fee / 100;
+			console.log('Using admin fee:', adminCommissionRate, 'from', adminFees.standard_product_fee);
+			return {
+				commissionRate: adminCommissionRate,
+				promoFee: 0,
+			};
+		}
+		
+		// Default fees only if admin has loaded but doesn't have percentage type set
+		// Otherwise wait for admin fees to load (will return 0 initially, then update when loaded)
+		console.log('Returning 0 - no admin fees or not percentage type');
 		return {
-			commissionRate: 0.025, // 2.5% default
-			promoFee: 0, // Promotional fee
+			commissionRate: 0, // Will be updated when admin fees load
+			promoFee: 0,
 		};
-	}, [extraFields]);
+	}, [extraFields, adminFeesData]);
 
 	const [feeSettings, setFeeSettings] = useState(() => {
-		// Initialize with defaults, will be updated when extraFields loads
+		// Initialize with 0, will be updated when extraFields or admin fees load
 		return {
-			commissionRate: 0.025,
+			commissionRate: 0,
 			promoFee: 0,
 		};
 	});
 
-	// Update feeSettings when extraFields changes (product loads or fees are updated)
+	// Update feeSettings when extraFields or admin fees data changes
 	useEffect(() => {
 		const productFees = getProductFees();
+		console.log('=== FEE SETTINGS UPDATE ===');
+		console.log('Calculated productFees:', productFees);
+		console.log('feeSettingsDialogOpen:', feeSettingsDialogOpen);
+		// Always update feeSettings with calculated fees
 		setFeeSettings(productFees);
-		setTempFeeSettings(productFees);
-	}, [getProductFees]);
+		// Only update tempFeeSettings if dialog is not open (to avoid overriding user edits)
+		if (!feeSettingsDialogOpen) {
+			setTempFeeSettings(productFees);
+		}
+		console.log('==========================');
+	}, [getProductFees, feeSettingsDialogOpen, adminFeesData]);
 
-	// Update tempFeeSettings when feeSettings changes
+	// Update tempFeeSettings when feeSettings changes (but not when dialog is open to allow user edits)
 	useEffect(() => {
-		setTempFeeSettings(feeSettings);
-	}, [feeSettings]);
+		if (!feeSettingsDialogOpen) {
+			setTempFeeSettings(feeSettings);
+		}
+	}, [feeSettings, feeSettingsDialogOpen]);
 
-	// Fetch categories
-	const { data: categoryData } = useGetECommerceCategoriesQuery({});
-	const categoryOptions = categoryData?.data || [];
+	// When fee settings dialog opens, initialize with current product fees or admin default
+	// This only runs once when dialog opens, allowing users to edit the values
+	useEffect(() => {
+		if (feeSettingsDialogOpen) {
+			// First check if product has specific fees set - use those
+			if (extraFields?.commissionRate !== undefined) {
+				setTempFeeSettings({
+					commissionRate: extraFields.commissionRate,
+					promoFee: extraFields.promoFee ?? 0,
+				});
+			} else {
+				// No product-specific fees, use admin default if available
+				const adminFees = adminFeesData?.data;
+				if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+					// Use admin default percentage as initial value (user can change it)
+					setTempFeeSettings({
+						commissionRate: adminFees.standard_product_fee / 100, // Convert percentage to decimal
+						promoFee: extraFields?.promoFee ?? 0,
+					});
+				} else {
+					// Use current feeSettings (which may have defaults)
+					setTempFeeSettings(feeSettings);
+				}
+			}
+		}
+		// Only run when dialog opens/closes, not when other dependencies change
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [feeSettingsDialogOpen]);
+
+	// Fetch parent categories only for main category dropdown
+	const { data: parentCategoriesData } = useGetECommerceParentCategoriesQuery();
+	const categoryOptions = parentCategoriesData?.data || [];
+	
+	// Fetch all parent categories WITH children relationship for subcategory dropdown
+	// Use getAllCategories endpoint which returns parent categories with their children
+	const { data: allCategoriesData } = useGetECommerceAllCategoriesQuery();
+	const parentCategoriesWithChildren = allCategoriesData?.data || [];
+
+	// Get user's store_id from session
+	const userStoreId = user?.store_id || session?.db?.store_id || null;
+	
+	// Fetch store data to get postcode (skip query if no store_id)
+	const { data: storeData } = useGetECommerceStoreQuery(userStoreId || '', {
+		skip: !userStoreId, // Skip query if no store_id
+	});
+
+	// Fetch and populate store postcode when store data is available
+	useEffect(() => {
+		// Only set postcode if:
+		// 1. Store data is available
+		// 2. Store has a zip_code
+		// 3. Current store_postcode is empty (don't overwrite existing value from product)
+		if (storeData?.data?.zip_code && !storePostcode) {
+			setValue('store_postcode', storeData.data.zip_code, { shouldDirty: false });
+		}
+	}, [storeData, storePostcode, setValue]);
 
 	// Calculate pricing intelligence dynamically
 	const pricingIntelligence = useMemo(() => {
@@ -1508,6 +1636,15 @@ function MultiKonnectListingCreation() {
 		// The useEffect above will handle saving to form
 	}, []);
 
+	const handleDeleteVariant = useCallback((index: number) => {
+		setVariants(prevVariants => {
+			const updated = [...prevVariants];
+			updated.splice(index, 1);
+			return updated;
+		});
+		// The useEffect above will handle saving to form
+	}, []);
+
 	const handleApplyPriceToAll = () => {
 		setApplyPriceDialogOpen(true);
 	};
@@ -2050,14 +2187,7 @@ function MultiKonnectListingCreation() {
 			missing.push({ field: 'Main Category', section: 'Product Identity', step: 1 });
 		}
 		
-		// Check subcategory - must be an array with at least one item that has an id
-		const hasValidSubcategory = subcategory && 
-			Array.isArray(subcategory) && 
-			subcategory.length > 0 && 
-			subcategory.some((cat: any) => cat && cat.id !== null && cat.id !== undefined && cat.id !== '');
-		if (!hasValidSubcategory) {
-			missing.push({ field: 'At least one Subcategory', section: 'Product Identity', step: 1 });
-		}
+		// Subcategory is now optional, so no validation needed
 		
 		// Media (Step 2)
 		if (!galleryImages || galleryImages.length === 0) {
@@ -2196,10 +2326,14 @@ function MultiKonnectListingCreation() {
 		setValue('description', product.description || '', { shouldDirty: true });
 		setValue('sku', product.sku || '', { shouldDirty: true });
 		
-		// Pricing
-		setValue('price_tax_excl', product.price_tax_excl || product.price || 0, { shouldDirty: true });
-		setValue('price_tax_incl', product.price_tax_incl || product.price || 0, { shouldDirty: true });
-		setValue('compared_price', product.compared_price || product.compare_at_price || 0, { shouldDirty: true });
+		// Pricing - Ensure prices are set properly
+		const basePriceTaxExcl = product.price_tax_excl || product.price || 0;
+		const basePriceTaxIncl = product.price_tax_incl || product.price || basePriceTaxExcl;
+		const baseComparedPrice = product.compared_price || product.compare_at_price || 0;
+		
+		setValue('price_tax_excl', basePriceTaxExcl, { shouldDirty: true });
+		setValue('price_tax_incl', basePriceTaxIncl, { shouldDirty: true });
+		setValue('compared_price', baseComparedPrice, { shouldDirty: true });
 		
 		// SEO Fields
 		setValue('meta_title', product.meta_title || '', { shouldDirty: true });
@@ -2226,27 +2360,144 @@ function MultiKonnectListingCreation() {
 			setValue('tags', product.tags.map((tag: any) => ({ id: tag.id || tag, name: tag.name || tag })), { shouldDirty: true });
 		}
 		
-		// Images - Replace all gallery images
-		if (product.gallery_images && Array.isArray(product.gallery_images)) {
-			const galleryImages = product.gallery_images.map((img: any) => ({
-				url: img.url || img.path || img,
-				is_featured: img.is_featured || false,
-			}));
-			setValue('gallery_images', galleryImages, { shouldDirty: true });
-		} else if (product.images && Array.isArray(product.images)) {
-			const galleryImages = product.images.map((img: any) => ({
-				url: img.url || img.path || img,
-				is_featured: img.is_featured || false,
-			}));
-			setValue('gallery_images', galleryImages, { shouldDirty: true });
-		} else {
-			setValue('gallery_images', [], { shouldDirty: true });
+		// Helper function to convert image URL to proper format
+		const convertImageUrl = (img: any): string | null => {
+			// If image has a file ID, use the file serving route (preferred method)
+			if (img.id || img.file_id) {
+				const fileId = img.id || img.file_id;
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				return `${apiUrl}/api/files/${fileId}`;
+			}
+			
+			let url = img.url || img.path || img;
+			
+			// Return null if URL is missing or not a string
+			if (!url || typeof url !== 'string' || url.length === 0) {
+				return null;
+			}
+			
+			// If already a full URL (http/https) or base64, return as-is
+			if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) {
+				return url;
+			}
+			
+			// If it's a relative storage path, convert to full URL (try to use it)
+			// Even if it's product-specific, we'll try it and let error handler deal with it if it fails
+			if (url.startsWith('storage/')) {
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				// Remove 'storage/' prefix and use the public storage URL
+				const pathWithoutStorage = url.replace(/^storage\//, '');
+				return `${apiUrl}/storage/${pathWithoutStorage}`;
+			}
+			
+			// If it's already a relative path (doesn't start with storage/), try to make it work
+			if (!url.startsWith('/') && !url.startsWith('http')) {
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				return `${apiUrl}/${url}`;
+			}
+			
+			// Return as-is if it looks like a valid path
+			return url;
+		};
+		
+		// Images - Check multiple sources: gallery_images, images, media, base_image
+		let allImages: any[] = [];
+		
+		// Priority 1: gallery_images or images array
+		if (product.gallery_images && Array.isArray(product.gallery_images) && product.gallery_images.length > 0) {
+			allImages = product.gallery_images;
+		} else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+			allImages = product.images;
 		}
 		
-		// Featured Image
-		if (product.featured_image) {
-			const featuredImg = product.featured_image.url || product.featured_image.path || product.featured_image;
-			setValue('featured_image', featuredImg, { shouldDirty: true });
+		// Priority 2: Check media/files relationship (if images array is empty)
+		if (allImages.length === 0 && product.media && Array.isArray(product.media) && product.media.length > 0) {
+			allImages = product.media;
+		}
+		
+		// Priority 3: Check base_image (if still empty)
+		if (allImages.length === 0 && product.base_image) {
+			allImages = [product.base_image];
+		}
+		
+		// Convert and set images
+		if (allImages.length > 0) {
+			const galleryImages = allImages
+				.map((img: any, index: number) => {
+					const convertedUrl = convertImageUrl(img);
+					if (!convertedUrl) return null;
+					return {
+						...(img.id ? { id: img.id } : {}),
+						...(img.file_id ? { file_id: img.file_id } : {}),
+						url: convertedUrl,
+						is_featured: img.is_featured || (index === 0), // First image is featured by default
+					};
+				})
+				.filter((img: any) => img !== null); // Remove invalid images
+			
+			// Also check featured_image - if it's different from gallery images, add it
+			if (product.featured_image) {
+				const featuredImgUrl = convertImageUrl(product.featured_image);
+				if (featuredImgUrl) {
+					// Check if featured image is already in gallery
+					const featuredInGallery = galleryImages.some((img: any) => 
+						img.url === featuredImgUrl || 
+						(img.id && product.featured_image?.id === img.id)
+					);
+					
+					if (!featuredInGallery) {
+						galleryImages.unshift({
+							...(product.featured_image.id ? { id: product.featured_image.id } : {}),
+							...(product.featured_image.file_id ? { file_id: product.featured_image.file_id } : {}),
+							url: featuredImgUrl,
+							is_featured: true,
+						});
+					} else {
+						// Mark the matching image as featured
+						const featuredIndex = galleryImages.findIndex((img: any) => 
+							img.url === featuredImgUrl || 
+							(img.id && product.featured_image?.id === img.id)
+						);
+						if (featuredIndex >= 0) {
+							galleryImages[featuredIndex].is_featured = true;
+						}
+					}
+					
+					setValue('featured_image', featuredImgUrl, { shouldDirty: true });
+				}
+			}
+			
+			// Only set if we have at least one valid image
+			if (galleryImages.length > 0) {
+				// Ensure at least one image is marked as featured
+				const hasFeatured = galleryImages.some((img: any) => img.is_featured);
+				if (!hasFeatured && galleryImages.length > 0) {
+					galleryImages[0].is_featured = true;
+				}
+				
+				setValue('gallery_images', galleryImages, { shouldDirty: true });
+			} else {
+				setValue('gallery_images', [], { shouldDirty: true });
+			}
+		} else {
+			// Check featured_image as last resort
+			if (product.featured_image) {
+				const featuredImgUrl = convertImageUrl(product.featured_image);
+				if (featuredImgUrl) {
+					const featuredImage = {
+						...(product.featured_image.id ? { id: product.featured_image.id } : {}),
+						...(product.featured_image.file_id ? { file_id: product.featured_image.file_id } : {}),
+						url: featuredImgUrl,
+						is_featured: true,
+					};
+					setValue('gallery_images', [featuredImage], { shouldDirty: true });
+					setValue('featured_image', featuredImgUrl, { shouldDirty: true });
+				} else {
+					setValue('gallery_images', [], { shouldDirty: true });
+				}
+			} else {
+				setValue('gallery_images', [], { shouldDirty: true });
+			}
 		}
 		
 		// Stock & Inventory
@@ -2269,48 +2520,200 @@ function MultiKonnectListingCreation() {
 		setValue('shipping_charge_regular', product.shipping_charge_regular || 0, { shouldDirty: true });
 		setValue('shipping_charge_same_day', product.shipping_charge_same_day || 0, { shouldDirty: true });
 		
+		// Subscription
+		setValue('subscription_enabled', product.subscription_enabled || false, { shouldDirty: true });
+		setValue('subscription_frequencies', product.subscription_frequencies || '', { shouldDirty: true });
+		
 		// Trust & Compliance
 		setValue('kyc_tier', product.kyc_tier || 'Tier 0 - Email verified', { shouldDirty: true });
 		setValue('safe_selling_limit', product.safe_selling_limit || '£5,000 / day', { shouldDirty: true });
 		setValue('payout_lock', product.payout_lock || '48h post-delivery', { shouldDirty: true });
 		
-		// Variants - Replace all variants
+		// Helper function to find attribute value (case-insensitive)
+		const findAttributeValue = (attributes: any[], attributeName: string): string => {
+			if (!attributes || !Array.isArray(attributes)) return '';
+			
+			// Try exact match first (case-sensitive)
+			let attr = attributes.find((a: any) => 
+				(a.attribute_name === attributeName || a.name === attributeName)
+			);
+			
+			// Try case-insensitive match
+			if (!attr) {
+				attr = attributes.find((a: any) => {
+					const attrName = (a.attribute_name || a.name || '').toLowerCase();
+					return attrName === attributeName.toLowerCase();
+				});
+			}
+			
+			// Return attribute value
+			return attr?.attribute_value || attr?.value || '';
+		};
+		
+		// Variants - Replace all variants with proper price handling
 		if (product.product_variants && product.product_variants.length > 0) {
+			console.log('Processing variants:', product.product_variants.length, 'variants found');
+			console.log('First variant structure:', JSON.stringify(product.product_variants[0], null, 2));
+			
 			// Extract unique storage and color options from variants
 			const storageSet = new Set<string>();
 			const colorSet = new Set<string>();
 			
+			// Get base product price as fallback
+			const basePrice = product.price_tax_excl || product.price || product.price_tax_incl || 0;
+			const baseCompareAtPrice = product.compared_price || 0;
+			
 			const pastVariants = product.product_variants.map((v: any) => {
-				const storage = v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '';
-				const color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
+				// Try multiple sources for storage and color:
+				// 1. Direct properties on variant (some APIs return them directly)
+				let storage = (v.storage || '').trim();
+				let color = (v.color || '').trim();
 				
-				if (storage) storageSet.add(storage);
-				if (color) colorSet.add(color);
+				// 2. Variant attributes array (case-insensitive)
+				if (!storage || !color) {
+					const attrStorage = findAttributeValue(v.attributes || [], 'Storage');
+					const attrColor = findAttributeValue(v.attributes || [], 'Color');
+					if (!storage && attrStorage) storage = attrStorage.trim();
+					if (!color && attrColor) color = attrColor.trim();
+				}
+				
+				// 3. Product attributes filtered by variant_id
+				if ((!storage || !color) && product.product_attributes && Array.isArray(product.product_attributes)) {
+					const variantAttrs = product.product_attributes.filter((attr: any) => 
+						attr.variant_id === v.id || attr.variant_id === String(v.id)
+					);
+					
+					if (!storage) {
+						const foundStorage = findAttributeValue(variantAttrs, 'Storage');
+						if (foundStorage) storage = foundStorage.trim();
+					}
+					if (!color) {
+						const foundColor = findAttributeValue(variantAttrs, 'Color');
+						if (foundColor) color = foundColor.trim();
+					}
+				}
+				
+				// 4. Try variant name parsing (e.g., "64GB - Black" or "Storage: 64GB, Color: Black" format)
+				if ((!storage || !color) && v.name) {
+					const nameStr = String(v.name);
+					
+					// Try "Storage - Color" format
+					if (nameStr.includes(' - ')) {
+						const nameParts = nameStr.split(' - ').map((p: string) => p.trim());
+						if (nameParts.length >= 2) {
+							if (!storage && nameParts[0]) storage = nameParts[0].trim();
+							if (!color && nameParts[1]) color = nameParts[1].trim();
+						}
+					}
+					
+					// Try "Storage: X, Color: Y" format
+					if ((!storage || !color) && nameStr.includes(':')) {
+						const storageMatch = nameStr.match(/(?:Storage|storage)[:\s]+([^,]+)/i);
+						const colorMatch = nameStr.match(/(?:Color|color)[:\s]+([^,]+)/i);
+						if (!storage && storageMatch && storageMatch[1]) storage = storageMatch[1].trim();
+						if (!color && colorMatch && colorMatch[1]) color = colorMatch[1].trim();
+					}
+				}
+				
+				// Add to sets if found (only add non-empty values)
+				if (storage && storage.trim()) {
+					storageSet.add(storage.trim());
+					console.log(`Variant ${v.id}: Found storage = "${storage.trim()}"`);
+				}
+				if (color && color.trim()) {
+					colorSet.add(color.trim());
+					console.log(`Variant ${v.id}: Found color = "${color.trim()}"`);
+				}
+				
+				if (!storage && !color) {
+					console.warn(`Variant ${v.id}: No storage or color found. Variant name: "${v.name}", Attributes:`, v.attributes);
+				}
+				
+				// Get price from variant, fallback to base product price
+				const variantPrice = v.price_tax_excl || v.price || v.price_tax_incl || basePrice;
+				const variantCompareAtPrice = v.compared_price || v.compared_price || baseCompareAtPrice;
+				
+				// Ensure price is a valid number (convert to string for form)
+				const priceStr = variantPrice ? (typeof variantPrice === 'number' ? variantPrice.toString() : String(variantPrice)) : basePrice.toString();
+				const compareAtStr = variantCompareAtPrice ? (typeof variantCompareAtPrice === 'number' ? variantCompareAtPrice.toString() : String(variantCompareAtPrice)) : '';
+				
+				// Get stock quantity
+				const stockQty = v.quantity || v.qty || 0;
+				const stockStr = stockQty ? (typeof stockQty === 'number' ? stockQty.toString() : String(stockQty)) : '0';
 				
 				return {
 					id: v.id?.toString(),
-					storage,
-					color,
-					price: v.price_tax_excl?.toString() || v.price?.toString() || '',
-					compareAt: v.compared_price?.toString() || '',
-					stock: v.quantity?.toString() || v.qty?.toString() || '',
+					storage: storage || '', // Keep even if empty - user can fill later
+					color: color || '', // Keep even if empty - user can fill later
+					price: priceStr || basePrice.toString(), // Always ensure a price
+					compareAt: compareAtStr || '',
+					stock: stockStr,
 					sameDay: v.same_day || false,
-					image: v.image || (v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value),
+					image: v.image || findAttributeValue(v.attributes || [], 'Image'),
 				};
+			}).filter((v: any) => {
+				// Only keep variants with valid prices (storage/color can be empty and filled later)
+				const hasValidPrice = v.price && v.price !== '0' && v.price !== '';
+				return hasValidPrice;
 			});
 			
-			// Update storage and color options
-			if (storageSet.size > 0) {
-				setStorageOptions(Array.from(storageSet));
-			}
-			if (colorSet.size > 0) {
-				setColorOptions(Array.from(colorSet));
+			// Update storage and color options - ensure they're set even if variants are filtered out
+			const finalStorageOptions = Array.from(storageSet).filter(s => s && s.trim());
+			const finalColorOptions = Array.from(colorSet).filter(c => c && c.trim());
+			
+			if (finalStorageOptions.length > 0) {
+				setStorageOptions(finalStorageOptions);
+				console.log('Storage options set:', finalStorageOptions);
+			} else {
+				console.warn('No storage options found in variants');
 			}
 			
-			// Replace all variants
-			setVariants(pastVariants);
+			if (finalColorOptions.length > 0) {
+				setColorOptions(finalColorOptions);
+				console.log('Color options set:', finalColorOptions);
+			} else {
+				console.warn('No color options found in variants');
+			}
+			
+			// Only set variants if we have at least one valid variant with price and storage/color
+			if (pastVariants.length > 0) {
+				setVariants(pastVariants);
+				console.log('Variants set:', pastVariants.length, 'variants');
+				
+				// If variants exist, set base product price from first variant (or use base price)
+				if (pastVariants[0]?.price) {
+					const firstVariantPrice = parseFloat(pastVariants[0].price) || basePrice;
+					if (firstVariantPrice > 0) {
+						setValue('price_tax_excl', firstVariantPrice, { shouldDirty: true });
+					}
+				}
+				
+				// Ensure storage and color options are set from the variants we're keeping
+				const variantStorages = new Set(pastVariants.map((v: any) => v.storage).filter((s: string) => s && s.trim()));
+				const variantColors = new Set(pastVariants.map((v: any) => v.color).filter((c: string) => c && c.trim()));
+				
+				if (variantStorages.size > 0) {
+					setStorageOptions(Array.from(variantStorages));
+				}
+				if (variantColors.size > 0) {
+					setColorOptions(Array.from(variantColors));
+				}
+			} else {
+				// Clear variants if none are valid, but keep storage/color options if they were found
+				console.warn('No valid variants found - all variants were filtered out');
+				setVariants([]);
+				
+				// Only clear storage/color options if we didn't find any
+				if (finalStorageOptions.length === 0) {
+					setStorageOptions([]);
+				}
+				if (finalColorOptions.length === 0) {
+					setColorOptions([]);
+				}
+			}
 		} else {
 			// Clear variants if product has none
+			console.log('No product variants found in product data');
 			setVariants([]);
 			setStorageOptions([]);
 			setColorOptions([]);
@@ -2342,24 +2745,9 @@ function MultiKonnectListingCreation() {
 	};
 
 	const handleSelectVendorProduct = (product: any) => {
-		// Import product data
-		if (product.name) setValue('name', product.name, { shouldDirty: true });
-		if (product.description) setValue('description', product.description, { shouldDirty: true });
-		if (product.meta_title) setValue('meta_title', product.meta_title, { shouldDirty: true });
-		if (product.meta_description) setValue('meta_description', product.meta_description, { shouldDirty: true });
-		if (product.price_tax_excl) setValue('price_tax_excl', product.price_tax_excl, { shouldDirty: true });
-		if (product.product_variants) {
-			const vendorVariants = product.product_variants.map((v: any) => ({
-				id: v.id?.toString(),
-				storage: v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '',
-				color: v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '',
-				price: v.price_tax_excl?.toString() || '',
-				compareAt: v.compared_price?.toString() || '',
-				stock: v.quantity?.toString() || '',
-				sameDay: v.same_day || false,
-			}));
-			setVariants(vendorVariants);
-		}
+		// Use the same comprehensive copying logic as handleSelectPastListing
+		// This ensures ALL product fields are copied, not just a few
+		handleSelectPastListing(product);
 		setImportVendorDialogOpen(false);
 	};
 
@@ -2807,12 +3195,13 @@ function MultiKonnectListingCreation() {
 									control={control}
 									render={({ field }) => {
 										const mainCategory = watch('main_category');
-										const selected = field.value || [];
-										const mainChildren = mainCategory?.children || [];
-										// Combine selected and main category children, avoiding duplicates
-										const subcategoryOptions = [...mainChildren, ...selected].filter(
-											(value, index, self) => self.findIndex(v => v.id === value.id) === index
-										);
+										
+										// Find the parent category with children from parentCategoriesWithChildren
+										const fullMainCategory = parentCategoriesWithChildren.find(cat => cat.id === mainCategory?.id);
+										const mainChildren = fullMainCategory?.children || [];
+										
+										// Use only the children (subcategories) of the selected main category
+										const subcategoryOptions = mainChildren;
 
 										return (
 											<Autocomplete
@@ -2830,11 +3219,11 @@ function MultiKonnectListingCreation() {
 												renderInput={(params) => (
 													<TextField
 														{...params}
-														label="Subcategory *"
-														placeholder={mainCategory ? "Select subcategories" : "Select main category first"}
+														label="Subcategory"
+														placeholder={mainCategory ? "Select subcategories (optional)" : "Select main category first"}
 														size="small"
 														error={!!errors.subcategory}
-														helperText={errors.subcategory?.message as string || (mainCategory ? "Select at least one subcategory" : "")}
+														helperText={errors.subcategory?.message as string || ""}
 														sx={{
 															'& .MuiOutlinedInput-root': {
 																borderRadius: '12px',
@@ -3143,6 +3532,10 @@ function MultiKonnectListingCreation() {
 														}}
 														onError={(e) => {
 															console.error('Image load error:', e);
+															// Remove broken image from gallery
+															const currentImages = watch('gallery_images') || [];
+															const updatedImages = currentImages.filter((_: any, i: number) => i !== index);
+															setValue('gallery_images', updatedImages, { shouldDirty: true });
 														}}
 													/>
 													<button
@@ -3538,12 +3931,13 @@ function MultiKonnectListingCreation() {
 											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Stock</th>
 											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Same-day</th>
 											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Images</th>
+											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Actions</th>
 										</tr>
 									</thead>
 									<tbody>
 										{variants.length === 0 ? (
 											<tr>
-												<td colSpan={7} className="border border-gray-300 px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-400 text-xs sm:text-sm">
+												<td colSpan={8} className="border border-gray-300 px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-400 text-xs sm:text-sm">
 													No variants added yet. Add {attribute1Name} and {attribute2Name} options to generate variant matrix.
 												</td>
 											</tr>
@@ -3631,7 +4025,19 @@ function MultiKonnectListingCreation() {
 																<>
 																	<Box
 																		component="img"
-																		src={(variant as any).image}
+																		src={(() => {
+																			const imageUrl = (variant as any).image;
+																			// If it's a full URL or base64, use it directly
+																			if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/')) {
+																				return imageUrl;
+																			}
+																			// If it's a relative path, prepend API URL
+																			const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+																			if (imageUrl.startsWith('storage/')) {
+																				return `${apiUrl}/${imageUrl}`;
+																			}
+																			return `${apiUrl}/storage/${imageUrl}`;
+																		})()}
 																		alt={`${variant.storage} ${variant.color}`}
 																		sx={{
 																			width: 40,
@@ -3680,6 +4086,16 @@ function MultiKonnectListingCreation() {
 																</label>
 															)}
 														</Box>
+													</td>
+													<td className="border border-gray-300 px-2 sm:px-3 py-2">
+														<IconButton
+															size="small"
+															onClick={() => handleDeleteVariant(index)}
+															sx={{ color: '#ef4444', padding: '4px' }}
+															title="Delete variant"
+														>
+															<FuseSvgIcon size={14}>heroicons-outline:trash</FuseSvgIcon>
+														</IconButton>
 													</td>
 												</tr>
 											))
@@ -3877,6 +4293,28 @@ function MultiKonnectListingCreation() {
 										</FormControl>
 									)}
 								/>
+								<Controller
+									name="ready_in_minutes"
+									control={control}
+									render={({ field }) => (
+										<TextField 
+											{...field} 
+											label="Ready in (minutes)" 
+											type="number"
+											value={readyInMinutes} 
+											fullWidth 
+											size="small"
+											inputProps={{ min: 0, step: 1 }}
+											sx={{
+												'& .MuiOutlinedInput-root': {
+													borderRadius: '12px',
+													fontSize: '14px',
+												},
+											}}
+											helperText="Time to prepare product for delivery"
+										/>
+									)}
+								/>
 							</div>
 							
 							{/* Shipping Charges - Set by Vendor */}
@@ -3951,6 +4389,65 @@ function MultiKonnectListingCreation() {
 							<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '8px' }}>
 								Same-day badge appears only if stock &gt; 0 and slots are available.
 							</Typography>
+						</Paper>
+
+						{/* Subscription Section */}
+						<Paper 
+							className="p-3 sm:p-4" 
+							id="subscription"
+							sx={{
+								borderRadius: '16px',
+								border: '1px solid #e5e7eb',
+								boxShadow: 'none',
+								scrollMarginTop: '80px',
+								marginTop: '16px',
+							}}
+						>
+							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+								Subscription Options
+							</Typography>
+							<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '16px' }}>
+								Enable subscription for this product to allow customers to subscribe for regular deliveries.
+							</Typography>
+							
+							<Controller
+								name="subscription_enabled"
+								control={control}
+								render={({ field }) => (
+									<FormControlLabel
+										control={<Checkbox {...field} checked={subscriptionEnabled} size="small" />}
+										label="Enable subscription"
+										sx={{ marginBottom: subscriptionEnabled ? '16px' : 0 }}
+									/>
+								)}
+							/>
+							
+							{subscriptionEnabled && (
+								<Controller
+									name="subscription_frequencies"
+									control={control}
+									render={({ field }) => (
+										<TextField 
+											{...field} 
+											label="Subscription Frequencies" 
+											placeholder="e.g., weekly, monthly, quarterly" 
+											fullWidth 
+											size="small"
+											value={subscriptionFrequencies}
+											multiline
+											rows={2}
+											sx={{
+												'& .MuiOutlinedInput-root': {
+													borderRadius: '12px',
+													fontSize: '14px',
+												},
+												marginTop: '12px',
+											}}
+											helperText="Enter available subscription frequencies (comma-separated or one per line)"
+										/>
+									)}
+								/>
+							)}
 						</Paper>
 
 						{/* Copy & SEO Section - Step 6 */}
@@ -4903,8 +5400,13 @@ function MultiKonnectListingCreation() {
 													style={{
 														objectFit: 'contain',
 													}}
-													onError={(e) => {
+													onError={(e: any) => {
 														console.error('Image load error:', e);
+														// Try to fallback to a placeholder or remove broken image
+														const target = e.target as HTMLImageElement;
+														if (target) {
+															target.style.display = 'none';
+														}
 													}}
 												/>
 												{/* Image Counter Badge */}
@@ -5642,7 +6144,7 @@ function MultiKonnectListingCreation() {
 					open={importVendorDialogOpen} 
 					onClose={() => setImportVendorDialogOpen(false)}
 					mode="select"
-					onProductSelect={handleSelectVendorProduct}
+					onProductSelect={handleSelectVendorProduct} // This will populate form with ALL fields
 				/>
 			)}
 
@@ -5842,75 +6344,159 @@ function MultiKonnectListingCreation() {
 			{/* Fee Settings Dialog - Admin Configuration (Per Product) */}
 			<Dialog 
 				open={feeSettingsDialogOpen} 
-				onClose={() => setFeeSettingsDialogOpen(false)} 
+				onClose={() => setFeeSettingsDialogOpen(false)}
 				PaperProps={{ sx: { borderRadius: '16px' } }} 
 				maxWidth="sm" 
 				fullWidth
 			>
-				<DialogTitle>Configure Fee Settings</DialogTitle>
+				<DialogTitle>Fee Settings</DialogTitle>
 				<DialogContent>
-					<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
-						Set the fee rates for this specific product. These settings are saved with the product and will be used for fee calculations.
-					</Typography>
-					<Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
-						Note: Shipping charges are set by vendors/sellers in the delivery section, not here.
-					</Typography>
-					
-					<TextField
-						fullWidth
-						label="Commission Rate (%)"
-						type="number"
-						value={(tempFeeSettings.commissionRate * 100).toFixed(2)}
-						onChange={(e) => {
-							const value = parseFloat(e.target.value) || 0;
-							setTempFeeSettings({
-								...tempFeeSettings,
-								commissionRate: value / 100
-							});
-						}}
-						InputProps={{
-							endAdornment: <InputAdornment position="end">%</InputAdornment>,
-						}}
-						sx={{ marginBottom: 2 }}
-						helperText="Percentage of sale price (e.g., 2.5 for 2.5%)"
-					/>
-					
-					
-					<TextField
-						fullWidth
-						label="Promotional Fee (£)"
-						type="number"
-						value={tempFeeSettings.promoFee}
-						onChange={(e) => {
-							setTempFeeSettings({
-								...tempFeeSettings,
-								promoFee: parseFloat(e.target.value) || 0
-							});
-						}}
-						InputProps={{
-							startAdornment: <InputAdornment position="start">£</InputAdornment>,
-						}}
-						sx={{ marginBottom: 2 }}
-						helperText="Additional fee for promotional listings (optional)"
-					/>
+					{isAdmin ? (
+						<>
+							<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
+								Set the fee rates for this specific product. These settings are saved with the product and will be used for fee calculations.
+							</Typography>
+							<Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
+								Note: Shipping charges are set by vendors/sellers in the delivery section, not here.
+							</Typography>
+							{adminFeesData?.data && adminFeesData.data.standard_product_fee_type === 'percentage' && adminFeesData.data.standard_product_fee > 0 && (
+								<Typography variant="caption" sx={{ color: '#10b981', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
+									Default commission rate from admin settings: {adminFeesData.data.standard_product_fee}%
+								</Typography>
+							)}
+							
+							<TextField
+								fullWidth
+								label="Commission Rate (%)"
+								type="number"
+								value={(tempFeeSettings.commissionRate * 100).toFixed(2)}
+								onChange={(e) => {
+									const value = parseFloat(e.target.value) || 0;
+									setTempFeeSettings({
+										...tempFeeSettings,
+										commissionRate: value / 100
+									});
+								}}
+								InputProps={{
+									endAdornment: <InputAdornment position="end">%</InputAdornment>,
+								}}
+								sx={{ marginBottom: 2 }}
+								helperText="Percentage of sale price (e.g., 2.5 for 2.5%)"
+							/>
+							
+							
+							<TextField
+								fullWidth
+								label="Promotional Fee (£)"
+								type="number"
+								value={tempFeeSettings.promoFee}
+								onChange={(e) => {
+									setTempFeeSettings({
+										...tempFeeSettings,
+										promoFee: parseFloat(e.target.value) || 0
+									});
+								}}
+								InputProps={{
+									startAdornment: <InputAdornment position="start">£</InputAdornment>,
+								}}
+								sx={{ marginBottom: 2 }}
+								helperText="Additional fee for promotional listings (optional)"
+							/>
+						</>
+					) : (
+						<>
+							<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
+								The commission rate for this product is set by the administrator. You cannot modify these settings.
+							</Typography>
+							{(() => {
+								// Determine the commission rate to display - prioritize direct data sources
+								let displayCommissionRate = 0;
+								const adminFees = adminFeesData?.data;
+								const isProductSpecific = extraFields?.commissionRate !== undefined;
+								
+								// Debug logging
+								console.log('Fee Settings Dialog - Non-Admin View:', {
+									adminFeesData,
+									adminFees,
+									extraFields,
+									feeSettings,
+									isProductSpecific,
+									isLoadingAdminFees
+								});
+								
+								if (isProductSpecific) {
+									// Product has specific commission rate
+									displayCommissionRate = (extraFields.commissionRate * 100);
+								} else if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+									// Use admin default percentage directly
+									displayCommissionRate = adminFees.standard_product_fee;
+								} else if (feeSettings.commissionRate > 0) {
+									// Fallback to feeSettings if it has a value
+									displayCommissionRate = feeSettings.commissionRate * 100;
+								}
+								
+								let helperText = 'Commission rate for this product';
+								if (isProductSpecific) {
+									helperText = 'This product has a custom commission rate set by an administrator';
+								} else if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+									helperText = `This is the standard commission rate (${adminFees.standard_product_fee}%) set by the administrator`;
+								} else if (isLoadingAdminFees) {
+									helperText = 'Loading commission rate...';
+								} else if (!adminFeesData) {
+									helperText = 'Unable to load commission rate. Please refresh the page.';
+								}
+								
+								return (
+									<TextField
+										fullWidth
+										label="Commission Rate (%)"
+										type="number"
+										value={displayCommissionRate.toFixed(2)}
+										disabled
+										InputProps={{
+											endAdornment: <InputAdornment position="end">%</InputAdornment>,
+										}}
+										sx={{ marginBottom: 2 }}
+										helperText={helperText}
+									/>
+								);
+							})()}
+							<TextField
+								fullWidth
+								label="Promotional Fee (£)"
+								type="number"
+								value={feeSettings.promoFee ?? 0}
+								disabled
+								InputProps={{
+									startAdornment: <InputAdornment position="start">£</InputAdornment>,
+								}}
+								sx={{ marginBottom: 2 }}
+								helperText="Additional fee for promotional listings (if set)"
+							/>
+						</>
+					)}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setFeeSettingsDialogOpen(false)}>Cancel</Button>
-					<Button 
-						onClick={() => {
-							// Save fees to extraFields (product-specific)
-							setValue('extraFields', {
-								...extraFields,
-								commissionRate: tempFeeSettings.commissionRate,
-								promoFee: tempFeeSettings.promoFee,
-							}, { shouldDirty: true });
-							setFeeSettings(tempFeeSettings);
-							setFeeSettingsDialogOpen(false);
-						}} 
-						variant="contained"
-					>
-						Save Settings
+					<Button onClick={() => setFeeSettingsDialogOpen(false)}>
+						{isAdmin ? 'Cancel' : 'Close'}
 					</Button>
+					{isAdmin && (
+						<Button 
+							onClick={() => {
+								// Save fees to extraFields (product-specific)
+								setValue('extraFields', {
+									...extraFields,
+									commissionRate: tempFeeSettings.commissionRate,
+									promoFee: tempFeeSettings.promoFee,
+								}, { shouldDirty: true });
+								setFeeSettings(tempFeeSettings);
+								setFeeSettingsDialogOpen(false);
+							}} 
+							variant="contained"
+						>
+							Save Settings
+						</Button>
+					)}
 				</DialogActions>
 			</Dialog>
 		</div>

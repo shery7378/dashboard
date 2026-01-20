@@ -52,7 +52,17 @@ export default function CampaignsPage() {
   }
 
   async function sendNow(id: number) {
-    await apiFetch(`/api/admin/campaigns/${id}/send-now`, { method: "POST" });
+    try {
+      const res = await apiFetch(`/api/admin/campaigns/${id}/send-now`, { method: "POST" });
+      if (res && res.message) {
+        alert(res.message);
+        if (res.errors && res.errors.length > 0) {
+          console.error(res.errors);
+        }
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    }
     load();
   }
 

@@ -23,7 +23,9 @@ const Root = styled(FusePageSimple)(({ theme }) => ({
  * Sellers directly sell products to customers (no wholesale catalog access).
  */
 function SellerDashboardApp() {
-	const { isLoading } = useGetProjectDashboardWidgetsQuery();
+	const { isLoading, error } = useGetProjectDashboardWidgetsQuery(undefined, {
+		skip: false, // Keep querying, but handle errors gracefully
+	});
 
 	const [tabValue, setTabValue] = useState('home');
 
@@ -33,6 +35,11 @@ function SellerDashboardApp() {
 
 	if (isLoading) {
 		return <FuseLoading />;
+	}
+
+	// Log error for debugging but don't block the page
+	if (error) {
+		console.error('[SellerDashboard] Error loading widgets:', error);
 	}
 
 	return (

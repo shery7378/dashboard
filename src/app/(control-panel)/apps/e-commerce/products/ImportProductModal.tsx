@@ -118,13 +118,35 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
       const result = await importProduct({ 
         productId: idString,
         paymentMethod: 'instant',
-        quantity: 1
+        quantity: 1,
+        importFromOwn: false
       }).unwrap();
-      enqueueSnackbar(result.message || t('product_imported_successfully'), { 
-        variant: 'success',
-        anchorOrigin: { vertical: 'top', horizontal: 'right' }
-      });
-      // Don't close modal, let user continue importing
+      
+      // If import returns product data and we have a callback, populate the form
+      if (result.data?.product && onProductSelect) {
+        // Use the imported product data to populate the form with ALL fields
+        onProductSelect(result.data.product);
+        enqueueSnackbar('Product imported and form populated with all details', { 
+          variant: 'success',
+          anchorOrigin: { vertical: 'top', horizontal: 'right' }
+        });
+        onClose(); // Close modal after populating form
+      } else if (result.data?.product_id && onProductSelect) {
+        // If only product_id is returned, try to fetch the full product
+        // Note: This would require importing useGetECommerceProductQuery
+        // For now, just show success message
+        enqueueSnackbar(result.message || t('product_imported_successfully'), { 
+          variant: 'success',
+          anchorOrigin: { vertical: 'top', horizontal: 'right' }
+        });
+        // Don't close modal, let user continue importing
+      } else {
+        enqueueSnackbar(result.message || t('product_imported_successfully'), { 
+          variant: 'success',
+          anchorOrigin: { vertical: 'top', horizontal: 'right' }
+        });
+        // Don't close modal, let user continue importing
+      }
       setImportingId(null);
     } catch (error: any) {
       const errorMessage = error?.data?.message || error?.data?.error || error?.message || t('failed_to_import_product');

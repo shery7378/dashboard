@@ -37,11 +37,20 @@ const KycApi = api
         { status: number; message: string },
         { notes?: string }
       >({
-        query: ({ notes } = {}) => ({
-          url: `/api/kyc/submit`,
-          method: 'POST',
-          body: notes ? { notes } : undefined,
-        }),
+        query: ({ notes } = {}) => {
+          // Only include body if notes are provided
+          // Don't send empty body - Laravel may reject it
+          const query: any = {
+            url: `/api/kyc/submit`,
+            method: 'POST',
+          };
+          
+          if (notes) {
+            query.body = { notes };
+          }
+          
+          return query;
+        },
         invalidatesTags: ['Kyc'],
       }),
 
@@ -74,7 +83,7 @@ const KycApi = api
         query: ({ submissionId, reason }) => ({
           url: `/api/kyc/${submissionId}/reject`,
           method: 'POST',
-          body: reason ? { reason } : undefined,
+          body: reason ? { reason } : {},
         }),
         invalidatesTags: ['Kyc'],
       }),

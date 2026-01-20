@@ -169,5 +169,8 @@ export function sanitizeProduct(data: PartialDeep<EcommerceProduct>): EcommerceP
         returns: data.returns ?? extraFieldsParsed?.returns ?? null,
         warranty: data.warranty ?? extraFieldsParsed?.warranty ?? null,
         box_contents: data.box_contents ?? extraFieldsParsed?.box_contents ?? null,
+        // Subscription fields
+        subscription_enabled: data.subscription_enabled ?? extraFieldsParsed?.subscription_enabled ?? false,
+        subscription_frequencies: data.subscription_frequencies ?? extraFieldsParsed?.subscription_frequencies ?? null,
     };
 }

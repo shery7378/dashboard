@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import { ListItemIcon, MenuItem, Paper, Typography, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert } from '@mui/material';
+import { ListItemIcon, MenuItem, Paper, Typography, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, IconButton } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { useSession } from 'next-auth/react';
@@ -28,17 +28,167 @@ const formatAmount = (amount: number | string | undefined | null): string => {
 	return isNaN(parsed) ? '0.00' : parsed.toFixed(2);
 };
 
+// Helper function to normalize file paths - replaces localhost/127.0.0.1 with API URL from env
+function normalizeFileUrl(filePath: string | undefined): string | null {
+	if (!filePath) return null;
+	
+	// Get API URL from environment
+	const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+	
+	// Extract the base URL from the API URL (remove trailing slashes and ensure clean format)
+	let apiBaseUrl = apiUrl.replace(/\/+$/, '');
+	
+	// Ensure apiBaseUrl doesn't have duplicate ports (clean it up)
+	// Remove any trailing :port if it exists incorrectly
+	apiBaseUrl = apiBaseUrl.replace(/:(\d+):(\d+)/, ':$1'); // Fix double ports like :8000:8000
+	
+	try {
+		// Try to parse the URL to extract components
+		const url = new URL(filePath);
+		
+		// Parse the API base URL to get its components
+		const apiUrlObj = new URL(apiBaseUrl);
+		
+		// If it's localhost or 127.0.0.1, replace with API URL from env
+		if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+			// Reconstruct URL with the API base URL, preserving path, search, and hash
+			return `${apiUrlObj.protocol}//${apiUrlObj.host}${url.pathname}${url.search}${url.hash}`;
+		}
+		
+		// If already using the correct domain, return as is
+		return filePath;
+	} catch (e) {
+		// If URL parsing fails, try regex replacement as fallback
+		// Match: protocol://host/path?query#hash
+		const urlMatch = filePath.match(/^(https?:\/\/)([^\/]+)(\/.*)$/);
+		
+		if (urlMatch) {
+			const [, protocol, host, path] = urlMatch;
+			
+			// Check if host is localhost or 127.0.0.1 (with or without port)
+			if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
+				// Parse API base URL if possible
+				try {
+					const apiUrlObj = new URL(apiBaseUrl);
+					return `${apiUrlObj.protocol}//${apiUrlObj.host}${path}`;
+				} catch {
+					// If parsing fails, use simple replacement
+					// Extract just the host from apiBaseUrl
+					const apiHostMatch = apiBaseUrl.match(/^https?:\/\/([^\/]+)/);
+					if (apiHostMatch) {
+						return `${protocol}${apiHostMatch[1]}${path}`;
+					}
+				}
+			}
+		}
+		
+		// If it's a relative path, make it absolute using the API URL
+		if (filePath.startsWith('/')) {
+			try {
+				const apiUrlObj = new URL(apiBaseUrl);
+				return `${apiUrlObj.protocol}//${apiUrlObj.host}${filePath}`;
+			} catch {
+				return `${apiBaseUrl}${filePath}`;
+			}
+		}
+		
+		// Return original if we can't normalize
+		return filePath;
+	}
+}
+
+// Component to display images with authentication
+function ImageWithAuth({ fileId, filename, refundId, token, filePath }: { fileId: number; filename: string; refundId: number; token: string | null; filePath?: string }) {
+	const [imageSrc, setImageSrc] = useState<string>('');
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(false);
+
+	useEffect(() => {
+		if (!token) {
+			setError(true);
+			setLoading(false);
+			return;
+		}
+
+		const fetchImage = async () => {
+			try {
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				
+				// Always use API endpoint to avoid CORS issues with storage URLs
+				// The API endpoint properly handles authentication and CORS headers
+				const url = `${apiUrl}/api/admin/refunds/${refundId}/download-attachment/${encodeURIComponent(filename)}`;
+
+				const response = await fetch(url, {
+					headers: {
+						'Authorization': `Bearer ${token}`
+					}
+				});
+
+				if (!response.ok) {
+					throw new Error('Failed to fetch image');
+				}
+
+				// Always use blob URL for API responses
+				const blob = await response.blob();
+				const blobUrl = window.URL.createObjectURL(blob);
+				setImageSrc(blobUrl);
+				setLoading(false);
+			} catch (err) {
+				console.error('Error loading image:', err);
+				setError(true);
+				setLoading(false);
+			}
+		};
+
+		fetchImage();
+
+		// Cleanup
+		return () => {
+			if (imageSrc && imageSrc.startsWith('blob:')) {
+				window.URL.revokeObjectURL(imageSrc);
+			}
+		};
+	}, [fileId, filename, refundId, token, filePath]);
+
+	if (loading) {
+		return (
+			<div className="w-full h-32 bg-gray-100 flex items-center justify-center">
+				<Typography variant="caption" color="text.secondary">Loading...</Typography>
+			</div>
+		);
+	}
+
+	if (error || !imageSrc) {
+		return (
+			<div className="w-full h-32 bg-gray-100 flex items-center justify-center">
+				<FuseSvgIcon className="text-gray-400">heroicons-outline:photograph</FuseSvgIcon>
+			</div>
+		);
+	}
+
+	return (
+		<img
+			src={imageSrc}
+			alt={filename}
+			className="w-full h-32 object-cover"
+		/>
+	);
+}
+
+
 function RefundRequestsTable() {
 	const { data: session } = useSession();
 	const { data, isLoading, error } = useGetRefundRequestsQuery({});
 	const [requestMoreDetails] = useRequestMoreDetailsMutation();
 	const [approveRefund] = useApproveRefundMutation();
 	const [rejectRefund] = useRejectRefundMutation();
-	
+
 	const [viewDetailsDialogOpen, setViewDetailsDialogOpen] = useState(false);
 	const [requestDetailsDialogOpen, setRequestDetailsDialogOpen] = useState(false);
 	const [approveDialogOpen, setApproveDialogOpen] = useState(false);
 	const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+	const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+	const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
 	const [selectedRefund, setSelectedRefund] = useState<RefundRequest | null>(null);
 	const [selectedRefundId, setSelectedRefundId] = useState<number | null>(null);
 	const { data: fullRefundData } = useGetRefundRequestQuery(selectedRefundId as number, { skip: !selectedRefundId });
@@ -47,27 +197,27 @@ function RefundRequestsTable() {
 	const [rejectionReason, setRejectionReason] = useState('');
 
 	const refundRequests = data?.data ?? [];
-	
+
 	// Use full refund data if available, otherwise use selected refund
 	const displayRefund = selectedRefundId && fullRefundData?.data ? fullRefundData.data : selectedRefund;
-	
+
 	// Get authentication token from session or localStorage
 	const getAuthToken = () => {
 		if (typeof window === 'undefined') return null;
-		
+
 		// Try session first (NextAuth)
 		const sessionToken = (session as any)?.accessAuthToken || (session as any)?.accessToken;
 		if (sessionToken) return sessionToken;
-		
+
 		// Fallback to localStorage
-		return localStorage.getItem('token') || 
-			localStorage.getItem('auth_token') || 
+		return localStorage.getItem('token') ||
+			localStorage.getItem('auth_token') ||
 			localStorage.getItem('access_token');
 	};
 
 	const handleRequestMoreDetails = async () => {
 		if (!selectedRefund || !adminQuestion.trim()) return;
-		
+
 		try {
 			await requestMoreDetails({
 				id: selectedRefund.id,
@@ -85,7 +235,7 @@ function RefundRequestsTable() {
 
 	const handleApprove = async () => {
 		if (!displayRefund) return;
-		
+
 		try {
 			await approveRefund({
 				id: displayRefund.id,
@@ -102,17 +252,55 @@ function RefundRequestsTable() {
 
 	const handleReject = async () => {
 		if (!selectedRefund || !rejectionReason.trim()) return;
-		
+
+		// Check if refund can be rejected (must be pending status)
+		if (selectedRefund.status !== 'pending') {
+			alert(`This refund request cannot be rejected. Current status: ${selectedRefund.status.toUpperCase()}. Only pending refund requests can be rejected.`);
+			return;
+		}
+
+		// Validate minimum length (backend requires min 10 characters)
+		if (rejectionReason.trim().length < 10) {
+			alert('Rejection reason must be at least 10 characters long.');
+			return;
+		}
+
+		// Validate maximum length (backend requires max 1000 characters)
+		if (rejectionReason.trim().length > 1000) {
+			alert('Rejection reason must be less than 1000 characters.');
+			return;
+		}
+
 		try {
 			await rejectRefund({
 				id: selectedRefund.id,
-				admin_notes: rejectionReason
+				admin_notes: rejectionReason.trim()
 			}).unwrap();
 			setRejectDialogOpen(false);
 			setSelectedRefund(null);
 			setRejectionReason('');
-		} catch (err) {
+		} catch (err: any) {
 			console.error('Failed to reject refund:', err);
+			console.error('Error details:', JSON.stringify(err, null, 2));
+			
+			// Show user-friendly error message
+			let errorMessage = 'Failed to reject refund. Please try again.';
+			
+			if (err?.data) {
+				if (err.data.message) {
+					errorMessage = err.data.message;
+				} else if (err.data.errors) {
+					// Show validation errors
+					const errorMessages = Object.values(err.data.errors).flat().join('\n');
+					errorMessage = errorMessages || errorMessage;
+				} else if (err.data.status === 400) {
+					errorMessage = err.data.message || 'This refund request cannot be rejected. It may have already been processed or is in an invalid state.';
+				}
+			} else if (err?.message) {
+				errorMessage = err.message;
+			}
+			
+			alert(errorMessage);
 		}
 	};
 
@@ -249,7 +437,7 @@ function RefundRequestsTable() {
 					columns={columns}
 					renderRowActionMenuItems={({ closeMenu, row }) => {
 						const refund = row.original;
-						
+
 						return [
 							<MenuItem
 								key="view-details"
@@ -345,11 +533,12 @@ function RefundRequestsTable() {
 									<Typography>
 										<strong>Reason:</strong> {displayRefund.reason?.replace(/_/g, ' ')}
 									</Typography>
-									<Typography>
-										<strong>Status:</strong> <Chip 
-											label={displayRefund.status.toUpperCase()} 
-											color={getStatusColor(displayRefund.status) as any} 
-											size="small" 
+									<Typography component="div">
+										<strong>Status:</strong> <Chip
+											label={displayRefund.status.toUpperCase()}
+											color={getStatusColor(displayRefund.status) as any}
+											size="small"
+											sx={{ ml: 1, verticalAlign: 'middle' }}
 										/>
 									</Typography>
 									<Typography>
@@ -385,104 +574,147 @@ function RefundRequestsTable() {
 											Responded: {new Date(displayRefund.customer_responded_at).toLocaleString()}
 										</Typography>
 									)}
-									
+
 									{/* Attachments */}
 									{displayRefund.attachment_files && displayRefund.attachment_files.length > 0 && (
 										<div className="mt-3 pt-3 border-t border-blue-300">
 											<Typography variant="subtitle2" fontWeight="bold" className="mb-2">
 												Attachments ({displayRefund.attachment_files.length}):
 											</Typography>
-											<div className="flex flex-col gap-2">
+											<div className="flex flex-wrap gap-3">
 												{displayRefund.attachment_files.map((file: any) => {
 													// Get token from session or localStorage
 													const token = getAuthToken();
-													
-													// Always append token if it exists and the path contains /files/ or /api/files/
-													let fileUrl = file.path;
-													if (token && file.path) {
-														// Check if this is an API file route - be more permissive
-														const isApiFileRoute = file.path.includes('/api/files/') || 
-															file.path.includes('/files/') ||
-															file.path.match(/\/files\/\d+/) ||
-															file.path.includes('127.0.0.1:8000/api/files/') ||
-															file.path.includes('localhost') && file.path.includes('/files/');
-														
-														if (isApiFileRoute) {
-															const separator = file.path.includes('?') ? '&' : '?';
-															fileUrl = `${file.path}${separator}token=${encodeURIComponent(token)}`;
-														}
-													}
-													
-													// Debug logging - always log to help debug
-													console.log('File URL Debug:', {
-														fileId: file.id,
-														originalPath: file.path,
-														hasToken: !!token,
-														tokenLength: token?.length || 0,
-														finalUrl: fileUrl
-													});
-													
-													// Debug logging
-													console.log('File URL generation:', {
-														originalPath: file.path,
-														hasToken: !!token,
-														tokenPreview: token ? token.substring(0, 10) + '...' : 'none',
-														finalUrl: fileUrl
-													});
-													
-													const handleFileClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+													const isImage = file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+
+													const handleFileClick = async (e: React.MouseEvent) => {
 														e.preventDefault();
+														
 														if (!token) {
 															alert('Authentication required. Please log in again.');
 															return;
 														}
-														
+
 														try {
-															const url = fileUrl.includes('?') ? fileUrl : `${fileUrl}?token=${encodeURIComponent(token)}`;
+															const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+															let url = '';
+															
+															// Normalize file path if available
+															const normalizedPath = normalizeFileUrl(file.path);
+															
+															if (normalizedPath) {
+																// Add token to normalized path
+																const separator = normalizedPath.includes('?') ? '&' : '?';
+																url = `${normalizedPath}${separator}token=${encodeURIComponent(token)}`;
+																
+																// For images, try direct URL first
+																if (isImage) {
+																	setPreviewImageUrl(url);
+																	setImagePreviewOpen(true);
+																	return;
+																} else {
+																	// For other files, try to download via fetch first, then fallback to direct
+																	try {
+																		const response = await fetch(url, {
+																			headers: {
+																				'Authorization': `Bearer ${token}`
+																			}
+																		});
+																		
+																		if (response.ok) {
+																			const blob = await response.blob();
+																			const blobUrl = window.URL.createObjectURL(blob);
+																			const link = document.createElement('a');
+																			link.href = blobUrl;
+																			link.download = file.filename || 'download';
+																			document.body.appendChild(link);
+																			link.click();
+																			document.body.removeChild(link);
+																			window.URL.revokeObjectURL(blobUrl);
+																			return;
+																		}
+																	} catch (fetchError) {
+																		// Fallback to direct URL
+																		window.open(url, '_blank');
+																		return;
+																	}
+																}
+															}
+															
+															// Fallback to API endpoint if no path or if direct failed
+															const filename = encodeURIComponent(file.filename || 'file');
+															url = `${apiUrl}/api/admin/refunds/${displayRefund.id}/download-attachment/${filename}`;
+
 															const response = await fetch(url, {
 																headers: {
 																	'Authorization': `Bearer ${token}`
 																}
 															});
-															
+
 															if (!response.ok) {
 																throw new Error('Failed to fetch file');
 															}
-															
+
 															const blob = await response.blob();
-															const downloadUrl = window.URL.createObjectURL(blob);
-															const link = document.createElement('a');
-															link.href = downloadUrl;
-															link.download = file.filename || 'download';
-															document.body.appendChild(link);
-															link.click();
-															document.body.removeChild(link);
-															window.URL.revokeObjectURL(downloadUrl);
+															const blobUrl = window.URL.createObjectURL(blob);
+
+															if (isImage) {
+																setPreviewImageUrl(blobUrl);
+																setImagePreviewOpen(true);
+															} else {
+																const link = document.createElement('a');
+																link.href = blobUrl;
+																link.download = file.filename || 'download';
+																document.body.appendChild(link);
+																link.click();
+																document.body.removeChild(link);
+																window.URL.revokeObjectURL(blobUrl);
+															}
 														} catch (error) {
-															console.error('Error downloading file:', error);
-															alert('Failed to download file. Please try again.');
+															console.error('Error fetching file:', error);
+															alert('Failed to load file. Please try again.');
 														}
 													};
-													
-													return (
-														<div key={file.id} className="flex items-center gap-2 p-2 bg-white rounded border">
-															<FuseSvgIcon className="text-blue-600">heroicons-outline:paper-clip</FuseSvgIcon>
-															<a
-																href={fileUrl}
+
+													// Render image thumbnail or file link
+													if (isImage) {
+														return (
+															<div
+																key={file.id}
 																onClick={handleFileClick}
-																target="_blank"
-																rel="noopener noreferrer"
-																className="text-blue-600 hover:underline flex-1 cursor-pointer"
+																className="cursor-pointer border-2 border-blue-200 rounded-lg overflow-hidden hover:border-blue-400 transition-all shadow-sm hover:shadow-md"
+																style={{ width: '150px' }}
 															>
-																{file.filename}
-															</a>
-															{file.size && (
-																<Typography variant="caption" color="text.secondary">
-																	{(parseInt(file.size) / 1024).toFixed(1)} KB
+															<ImageWithAuth
+																fileId={file.id}
+																filename={file.filename}
+																refundId={displayRefund.id}
+																token={token}
+																filePath={file.path}
+															/>
+																<div className="p-2 bg-white">
+																	<Typography variant="caption" className="text-gray-600 block truncate">
+																		{file.filename}
+																	</Typography>
+																</div>
+															</div>
+														);
+													} else {
+														return (
+															<a
+																key={file.id}
+																href="#"
+																onClick={handleFileClick}
+																className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer"
+																style={{ minWidth: '150px' }}
+															>
+																<FuseSvgIcon className="text-gray-600">heroicons-outline:document</FuseSvgIcon>
+																<Typography variant="body2" className="text-gray-700 truncate flex-1">
+																	{file.filename}
 																</Typography>
-															)}
-														</div>
-													);
+															</a>
+														);
+													}
 												})}
 											</div>
 										</div>
@@ -515,22 +747,22 @@ function RefundRequestsTable() {
 					}}>Close</Button>
 					{displayRefund && displayRefund.status === 'pending' && (
 						<>
-							<Button 
+							<Button
 								onClick={() => {
 									setViewDetailsDialogOpen(false);
 									setApproveDialogOpen(true);
-								}} 
-								variant="contained" 
+								}}
+								variant="contained"
 								color="primary"
 							>
 								Approve
 							</Button>
-							<Button 
+							<Button
 								onClick={() => {
 									setViewDetailsDialogOpen(false);
 									setRejectDialogOpen(true);
-								}} 
-								variant="outlined" 
+								}}
+								variant="outlined"
 								color="error"
 							>
 								Reject
@@ -581,9 +813,9 @@ function RefundRequestsTable() {
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setRequestDetailsDialogOpen(false)}>Cancel</Button>
-					<Button 
-						onClick={handleRequestMoreDetails} 
-						variant="contained" 
+					<Button
+						onClick={handleRequestMoreDetails}
+						variant="contained"
 						color="primary"
 						disabled={!adminQuestion.trim()}
 					>
@@ -613,7 +845,7 @@ function RefundRequestsTable() {
 							<Typography>
 								<strong>Request #:</strong> {displayRefund.request_number}
 							</Typography>
-							
+
 							{/* Show customer's additional information if provided */}
 							{displayRefund.customer_additional_info && (
 								<div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
@@ -637,23 +869,16 @@ function RefundRequestsTable() {
 												{displayRefund.attachment_files.map((file: any) => {
 													// Get token from session or localStorage
 													const token = getAuthToken();
+
+													// Normalize file path and append token if needed
+													const normalizedPath = normalizeFileUrl(file.path);
+													let fileUrl = normalizedPath || file.path || '';
 													
-													// Always append token if it exists and the path contains /files/ or /api/files/
-													let fileUrl = file.path;
-													if (token && file.path) {
-														// Check if this is an API file route - be more permissive
-														const isApiFileRoute = file.path.includes('/api/files/') || 
-															file.path.includes('/files/') ||
-															file.path.match(/\/files\/\d+/) ||
-															file.path.includes('127.0.0.1:8000/api/files/') ||
-															file.path.includes('localhost') && file.path.includes('/files/');
-														
-														if (isApiFileRoute) {
-															const separator = file.path.includes('?') ? '&' : '?';
-															fileUrl = `${file.path}${separator}token=${encodeURIComponent(token)}`;
-														}
+													if (token && fileUrl) {
+														const separator = fileUrl.includes('?') ? '&' : '?';
+														fileUrl = `${fileUrl}${separator}token=${encodeURIComponent(token)}`;
 													}
-													
+
 													// Debug logging - always log to help debug
 													console.log('File URL Debug:', {
 														fileId: file.id,
@@ -662,7 +887,7 @@ function RefundRequestsTable() {
 														tokenLength: token?.length || 0,
 														finalUrl: fileUrl
 													});
-													
+
 													// Debug logging
 													console.log('File URL generation:', {
 														originalPath: file.path,
@@ -670,41 +895,92 @@ function RefundRequestsTable() {
 														tokenPreview: token ? token.substring(0, 10) + '...' : 'none',
 														finalUrl: fileUrl
 													});
-													
+
 													const handleFileClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
 														e.preventDefault();
 														if (!token) {
 															alert('Authentication required. Please log in again.');
 															return;
 														}
-														
+
 														try {
-															const url = fileUrl.includes('?') ? fileUrl : `${fileUrl}?token=${encodeURIComponent(token)}`;
+															const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+															const isImage = file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+															
+															// Try using normalized file path first if available
+															const normalizedPath = normalizeFileUrl(file.path);
+															
+															if (normalizedPath) {
+																const separator = normalizedPath.includes('?') ? '&' : '?';
+																const url = `${normalizedPath}${separator}token=${encodeURIComponent(token)}`;
+																
+																if (isImage) {
+																	// For images, try direct URL
+																	setPreviewImageUrl(url);
+																	setImagePreviewOpen(true);
+																	return;
+																} else {
+																	// For other files, try fetch first, then fallback to direct
+																	try {
+																		const response = await fetch(url, {
+																			headers: {
+																				'Authorization': `Bearer ${token}`
+																			}
+																		});
+																		
+																		if (response.ok) {
+																			const blob = await response.blob();
+																			const blobUrl = window.URL.createObjectURL(blob);
+																			const link = document.createElement('a');
+																			link.href = blobUrl;
+																			link.download = file.filename || 'download';
+																			document.body.appendChild(link);
+																			link.click();
+																			document.body.removeChild(link);
+																			window.URL.revokeObjectURL(blobUrl);
+																			return;
+																		}
+																	} catch (fetchError) {
+																		// Fallback to direct URL or API endpoint
+																	}
+																}
+															}
+															
+															// Fallback to API endpoint
+															const filename = encodeURIComponent(file.filename || file.path?.split('/').pop() || 'file');
+															const url = `${apiUrl}/api/admin/refunds/${displayRefund.id}/download-attachment/${filename}`;
+
 															const response = await fetch(url, {
 																headers: {
 																	'Authorization': `Bearer ${token}`
 																}
 															});
-															
+
 															if (!response.ok) {
 																throw new Error('Failed to fetch file');
 															}
-															
+
 															const blob = await response.blob();
-															const downloadUrl = window.URL.createObjectURL(blob);
-															const link = document.createElement('a');
-															link.href = downloadUrl;
-															link.download = file.filename || 'download';
-															document.body.appendChild(link);
-															link.click();
-															document.body.removeChild(link);
-															window.URL.revokeObjectURL(downloadUrl);
+															const blobUrl = window.URL.createObjectURL(blob);
+
+															if (isImage) {
+																setPreviewImageUrl(blobUrl);
+																setImagePreviewOpen(true);
+															} else {
+																const link = document.createElement('a');
+																link.href = blobUrl;
+																link.download = file.filename || 'download';
+																document.body.appendChild(link);
+																link.click();
+																document.body.removeChild(link);
+																window.URL.revokeObjectURL(blobUrl);
+															}
 														} catch (error) {
 															console.error('Error downloading file:', error);
 															alert('Failed to download file. Please try again.');
 														}
 													};
-													
+
 													return (
 														<a
 															key={file.id}
@@ -723,7 +999,7 @@ function RefundRequestsTable() {
 									)}
 								</div>
 							)}
-							
+
 							{displayRefund.admin_question && (
 								<div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
 									<Typography variant="subtitle2" fontWeight="bold" className="mb-2">
@@ -734,7 +1010,7 @@ function RefundRequestsTable() {
 									</Typography>
 								</div>
 							)}
-							
+
 							<TextField
 								fullWidth
 								label="Admin Notes (Optional)"
@@ -768,6 +1044,11 @@ function RefundRequestsTable() {
 				<DialogContent>
 					{selectedRefund && (
 						<div className="space-y-4 pt-4">
+							{selectedRefund.status !== 'pending' && (
+								<Alert severity="warning" sx={{ mb: 2 }}>
+									This refund request has status: <strong>{selectedRefund.status.toUpperCase()}</strong>. Only pending refund requests can be rejected.
+								</Alert>
+							)}
 							<Typography>
 								<strong>Customer:</strong> {selectedRefund.user?.name}
 							</Typography>
@@ -777,6 +1058,9 @@ function RefundRequestsTable() {
 							<Typography>
 								<strong>Amount:</strong> £{formatAmount(selectedRefund.requested_amount)}
 							</Typography>
+							<Typography component="div">
+								<strong>Status:</strong> <Chip label={selectedRefund.status.toUpperCase()} color={getStatusColor(selectedRefund.status) as any} size="small" sx={{ ml: 1 }} />
+							</Typography>
 							<TextField
 								fullWidth
 								label="Rejection Reason"
@@ -785,7 +1069,11 @@ function RefundRequestsTable() {
 								value={rejectionReason}
 								onChange={(e) => setRejectionReason(e.target.value)}
 								required
-								placeholder="Please provide a reason for rejecting this refund request..."
+								placeholder="Please provide a reason for rejecting this refund request (minimum 10 characters)..."
+								helperText={`${rejectionReason.length}/1000 characters (minimum 10 required)`}
+								error={rejectionReason.trim().length > 0 && rejectionReason.trim().length < 10}
+								inputProps={{ maxLength: 1000 }}
+								disabled={selectedRefund.status !== 'pending'}
 								className="mt-4"
 							/>
 						</div>
@@ -793,15 +1081,61 @@ function RefundRequestsTable() {
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
-					<Button 
-						onClick={handleReject} 
-						variant="contained" 
+					<Button
+						onClick={handleReject}
+						variant="contained"
 						color="error"
-						disabled={!rejectionReason.trim()}
+						disabled={
+							selectedRefund?.status !== 'pending' ||
+							!rejectionReason.trim() || 
+							rejectionReason.trim().length < 10 || 
+							rejectionReason.trim().length > 1000
+						}
 					>
 						Reject
 					</Button>
 				</DialogActions>
+			</Dialog>
+
+			{/* Image Preview Modal */}
+			<Dialog
+				open={imagePreviewOpen}
+				onClose={() => {
+					setImagePreviewOpen(false);
+					if (previewImageUrl) {
+						window.URL.revokeObjectURL(previewImageUrl);
+					}
+					setPreviewImageUrl('');
+				}}
+				maxWidth="lg"
+				fullWidth
+			>
+				<DialogTitle>
+					Attachment Preview
+					<IconButton
+						onClick={() => {
+							setImagePreviewOpen(false);
+							if (previewImageUrl) {
+								window.URL.revokeObjectURL(previewImageUrl);
+							}
+							setPreviewImageUrl('');
+						}}
+						sx={{ position: 'absolute', right: 8, top: 8 }}
+					>
+						<FuseSvgIcon>heroicons-outline:x</FuseSvgIcon>
+					</IconButton>
+				</DialogTitle>
+				<DialogContent>
+					{previewImageUrl && (
+						<div className="flex items-center justify-center p-4">
+							<img
+								src={previewImageUrl}
+								alt="Attachment preview"
+								style={{ maxWidth: '100%', maxHeight: '80vh', objectFit: 'contain' }}
+							/>
+						</div>
+					)}
+				</DialogContent>
 			</Dialog>
 		</>
 	);

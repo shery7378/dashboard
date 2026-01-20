@@ -89,6 +89,8 @@ function RecentTransactionsWidget() {
 											);
 										}
 										case 'amount': {
+											// Use currency from row data if available, otherwise default to USD
+											const rowCurrency = (row as any)?.currency || 'USD';
 											return (
 												<TableCell
 													key={key}
@@ -98,7 +100,7 @@ function RecentTransactionsWidget() {
 													<Typography>
 														{value.toLocaleString('en-US', {
 															style: 'currency',
-															currency: 'USD'
+															currency: rowCurrency
 														})}
 													</Typography>
 												</TableCell>

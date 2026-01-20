@@ -11,6 +11,7 @@ import NavbarWrapperLayout3 from './components/NavbarWrapperLayout3';
 import RightSideLayout3 from './components/RightSideLayout3';
 import ToolbarLayout3 from './components/ToolbarLayout3';
 import { Layout3ConfigDefaultsType } from './Layout3Config';
+import NotificationPanel from '@/app/(control-panel)/apps/notifications/NotificationPanel';
 
 const Root = styled('div')(({ config }: { config: Layout3ConfigDefaultsType }) => ({
 	...(config.mode === 'boxed' && {
@@ -94,6 +95,8 @@ function Layout3(props: Layout3Props) {
 			</div>
 
 			{config.rightSidePanel.display && <RightSideLayout3 />}
+			{/* Always render NotificationPanel so it works regardless of rightSidePanel setting */}
+			<NotificationPanel />
 			<FuseMessage />
 		</Root>
 	);

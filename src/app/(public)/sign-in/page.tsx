@@ -11,7 +11,10 @@ function Page() {
 	const { data: session, status } = useSession();
 
 	useEffect(() => {
-		console.log('SESSION', session, status);
+		console.log('SESSION FULL:', JSON.stringify(session, null, 2));
+		if (session?.user) {
+			console.log('SESSION ROLE:', session.user.role);
+		}
 	}, [session]);
 
 	return (

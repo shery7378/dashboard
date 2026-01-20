@@ -42,6 +42,7 @@ export function createDefaultStore(): EcommerceStore {
 		products_count: null,
 		offers_pickup: false,
 		offers_delivery: false,
+		delivery_radius: null,
 		created_at: '',
 		updated_at: '',
 		deleted_at: null,

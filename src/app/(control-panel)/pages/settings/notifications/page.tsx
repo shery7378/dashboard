@@ -39,6 +39,10 @@ import {
   useGetAdminNotificationProviderSettingsQuery,
   useSendNotificationTestMutation,
 } from "./NotificationsProviderAdminApi";
+import {
+  useGetAdminNotificationSettingsQuery,
+  useUpdateAdminNotificationSettingsMutation,
+} from "./NotificationsAdminApi";
 
 /* -------------------------------------------------------------------------- */
 /* TYPES */
@@ -122,6 +126,16 @@ export default function NotificationSettingsPage() {
     refetchOnMountOrArgChange: true,
   });
 
+  // Add notification settings hooks
+  const {
+    data: notificationSettingsData,
+    isLoading: isLoadingNotificationSettings,
+    refetch: refetchNotificationSettings,
+  } = useGetAdminNotificationSettingsQuery();
+
+  const [updateNotificationSettings, { isLoading: isUpdatingNotificationSettings }] =
+    useUpdateAdminNotificationSettingsMutation();
+
   /* ---------------------------- FETCH PREFILL VALUES --------------------------- */
   useEffect(() => {
     const d = providerData?.data;
@@ -145,6 +159,15 @@ export default function NotificationSettingsPage() {
       twilio_active: d.sms_provider === "twilio",
     });
   }, [providerData]);
+
+  // Load notification settings (enabled/disabled toggles) from API
+  useEffect(() => {
+    const settings = notificationSettingsData?.data;
+    if (settings) {
+      setGlobalEmailEnabled(settings.email_enabled ?? true);
+      setGlobalSMSEnabled(settings.sms_enabled ?? false);
+    }
+  }, [notificationSettingsData]);
 
   /* ------------------------------ ERROR HANDLING ------------------------------ */
   useEffect(() => {
@@ -359,7 +382,29 @@ export default function NotificationSettingsPage() {
                         </Box>
                         <Switch
                           checked={globalEmailEnabled}
-                          onChange={(e) => setGlobalEmailEnabled(e.target.checked)}
+                          disabled={isUpdatingNotificationSettings}
+                          onChange={async (e) => {
+                            const newValue = e.target.checked;
+                            setGlobalEmailEnabled(newValue);
+                            try {
+                              const settings = notificationSettingsData?.data;
+                              // If enabling email, also enable master switch. If disabling, keep master as is (or disable if both are off)
+                              const masterEnabled = newValue 
+                                ? true 
+                                : (settings?.sms_enabled ? true : (settings?.enabled ?? true));
+                              await updateNotificationSettings({
+                                enabled: masterEnabled,
+                                email_enabled: newValue,
+                                sms_enabled: settings?.sms_enabled ?? false,
+                              }).unwrap();
+                              setMessage("Email notifications " + (newValue ? "enabled" : "disabled") + " successfully!");
+                              await refetchNotificationSettings();
+                            } catch (err: any) {
+                              setError(err?.data?.message || "Failed to update email notification settings.");
+                              // Revert on error
+                              setGlobalEmailEnabled(!newValue);
+                            }
+                          }}
                           color="primary"
                           size="medium"
                         />
@@ -400,7 +445,29 @@ export default function NotificationSettingsPage() {
                         </Box>
                         <Switch
                           checked={globalSMSEnabled}
-                          onChange={(e) => setGlobalSMSEnabled(e.target.checked)}
+                          disabled={isUpdatingNotificationSettings}
+                          onChange={async (e) => {
+                            const newValue = e.target.checked;
+                            setGlobalSMSEnabled(newValue);
+                            try {
+                              const settings = notificationSettingsData?.data;
+                              // If enabling SMS, also enable master switch. If disabling, keep master as is (or disable if both are off)
+                              const masterEnabled = newValue 
+                                ? true 
+                                : (settings?.email_enabled ? true : (settings?.enabled ?? true));
+                              await updateNotificationSettings({
+                                enabled: masterEnabled,
+                                email_enabled: settings?.email_enabled ?? true,
+                                sms_enabled: newValue,
+                              }).unwrap();
+                              setMessage("SMS notifications " + (newValue ? "enabled" : "disabled") + " successfully!");
+                              await refetchNotificationSettings();
+                            } catch (err: any) {
+                              setError(err?.data?.message || "Failed to update SMS notification settings.");
+                              // Revert on error
+                              setGlobalSMSEnabled(!newValue);
+                            }
+                          }}
                           color="info"
                           size="medium"
                         />

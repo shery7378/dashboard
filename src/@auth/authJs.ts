@@ -52,7 +52,11 @@ export const providers: Provider[] = [
           id: data.user.id,
           email: data.user.email,
           name: data.user.name,
-          role: Array.isArray(data.user.roles) ? data.user.roles : [data.user.roles || 'guest'],
+          role: Array.isArray(data.user.roles)
+            ? data.user.roles
+            : (data.user.roles && typeof data.user.roles === 'object'
+              ? Object.values(data.user.roles)
+              : [data.user.roles || 'guest']),
           accessAuthToken: data.token
         };
       } catch (error) {
@@ -145,33 +149,33 @@ const config = {
 
         // Only try to fetch from database if we have an access token
         if (session.accessAuthToken) {
-        try {
-          /**
-           * Get the session user from database
-           */
-          const response = await authGetDbUserByEmail(session.user.email, session.accessAuthToken);
+          try {
+            /**
+             * Get the session user from database
+             */
+            const response = await authGetDbUserByEmail(session.user.email, session.accessAuthToken);
 
             // Check if response is OK and has content before parsing
             if (response.ok) {
               // Check if response has content before parsing JSON
               const contentType = response.headers.get('content-type');
-              
+
               if (contentType && contentType.includes('application/json')) {
                 try {
                   // Read response text - handle empty responses
                   const text = await response.text();
-                  
+
                   if (text && text.trim() !== '') {
                     try {
                       const userDbData = JSON.parse(text) as User;
                       // Merge database data with defaults
-          session.db = {
+                      session.db = {
                         ...defaultDbUser,
-            ...userDbData,
+                        ...userDbData,
                         role: session.user.role || (Array.isArray(userDbData.role) ? userDbData.role : [userDbData.role || 'guest']),
                         displayName: session.user.name || userDbData.displayName || defaultDbUser.displayName,
                       };
-          return session;
+                      return session;
                     } catch (parseError) {
                       console.warn('Failed to parse user data JSON, using defaults:', parseError);
                     }
@@ -189,14 +193,14 @@ const config = {
             } else {
               // If response is not OK, check if it's 404 (user not found)
               const errorStatus = response.status;
-          if (errorStatus === 404) {
+              if (errorStatus === 404) {
                 try {
-            const newUserResponse = await authCreateDbUser({
-              email: session.user.email,
+                  const newUserResponse = await authCreateDbUser({
+                    email: session.user.email,
                     role: session.user.role || ['admin'],
-              displayName: session.user.name,
-              photoURL: session.user.image
-            });
+                    displayName: session.user.name,
+                    photoURL: session.user.image
+                  });
 
                   if (newUserResponse.ok) {
                     try {
@@ -206,12 +210,12 @@ const config = {
                         if (text && text.trim() !== '') {
                           try {
                             const newUser = JSON.parse(text) as User;
-            session.db = {
+                            session.db = {
                               ...defaultDbUser,
-              ...newUser,
+                              ...newUser,
                               role: session.user.role || (Array.isArray(newUser.role) ? newUser.role : ['admin']),
                             };
-            return session;
+                            return session;
                           } catch (parseError) {
                             console.warn('Failed to parse new user JSON, using defaults:', parseError);
                           }
@@ -223,7 +227,7 @@ const config = {
                       }
                     } catch (readError) {
                       console.warn('Failed to read new user response, using defaults:', readError);
-        }
+                    }
                   } else {
                     console.warn('User creation failed with status:', newUserResponse.status);
                   }

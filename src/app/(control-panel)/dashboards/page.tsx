@@ -25,7 +25,7 @@ export default async function DashboardsPage() {
         redirect('/dashboards/seller');
     } else if (role === 'supplier') {
         // Suppliers use the same dashboard as sellers
-        redirect('/dashboards/seller');
+        redirect('/dashboards/supplier');
     } else {
         redirect('/sign-in');
     }

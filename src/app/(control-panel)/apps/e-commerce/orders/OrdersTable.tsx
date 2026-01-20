@@ -47,7 +47,12 @@ function OrdersTable() {
 				accessorKey: 'price',
 				header: 'Total',
 				size: 64,
-				Cell: ({ row }) => `£${parseFloat(row.original.price).toFixed(2)}`
+				Cell: ({ row }) => {
+					const rawPrice = row.original.price;
+					const priceValue = rawPrice?.toString().replace(/[£$,\s]/g, '') || '0';
+					const formatted = `£${parseFloat(priceValue).toFixed(2)}`;
+					return formatted;
+				}
 			},
 			{
 				accessorKey: 'payment_status',

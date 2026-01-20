@@ -10,6 +10,7 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import { useGetSalesQuery, useGetTopProductsQuery } from '../../reports/apis/AnalyticsApi';
 import axios from 'axios';
+import useUser from '@auth/useUser';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
@@ -47,6 +48,8 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 };
 
 export default function SellerAnalyticsApp() {
+  const { data: user } = useUser();
+  const isSupplier = user?.role?.includes('supplier');
   const [defaultCurrency, setDefaultCurrency] = useState<string>('GBP'); // Default to GBP
   const [currencySymbol, setCurrencySymbol] = useState<string>('£');
 
@@ -65,7 +68,7 @@ export default function SellerAnalyticsApp() {
           withCredentials: true,
           headers: { 'Accept': 'application/json' }
         });
-        
+
         if (response.data?.default_currency) {
           const currency = response.data.default_currency;
           setDefaultCurrency(currency);
@@ -120,7 +123,9 @@ export default function SellerAnalyticsApp() {
     <FusePageSimple
       header={
         <Box sx={{ px: { xs: 2, md: 4 }, py: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Seller Analytics</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>
+            {isSupplier ? 'Supplier Analytics' : 'Seller Analytics'}
+          </Typography>
           <Typography color="text.secondary">Sales, top products, and performance</Typography>
         </Box>
       }
@@ -264,6 +269,9 @@ export default function SellerAnalyticsApp() {
     />
   );
 }
+
+
+
 
 
 

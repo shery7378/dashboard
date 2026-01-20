@@ -32,7 +32,22 @@ function ProductsTableForHome() {
   const [singleDeleteId, setSingleDeleteId] = useState<number | null>(null);
 
   const productList: EcommerceProduct[] = useMemo(() => {
-    return products?.products?.data?.map((product) => ProductModel(product)) ?? [];
+    // API returns { data: EcommerceProduct[], pagination: {...} }
+    const mapped = products?.data?.map((product) => {
+      const model = ProductModel(product);
+      // Debug: log first product to see structure
+      if (products.data.indexOf(product) === 0) {
+        console.log('🔍 First product raw data:', {
+          raw: product,
+          model: model,
+          tags: product.tags,
+          product_attributes: product.product_attributes,
+          attributes: (product as any).attributes,
+        });
+      }
+      return model;
+    }) ?? [];
+    return mapped;
   }, [products]);
 
   const columns = useMemo<MRT_ColumnDef<EcommerceProduct>[]>(() => [
@@ -68,84 +83,138 @@ function ProductsTableForHome() {
     {
       accessorKey: 'categories',
       header: 'Category',
-      accessorFn: (row) => (
-        <div className="flex flex-wrap space-x-0.5">
-          {Array.isArray(row.main_category?.children) && row.main_category?.children.length > 0 ? (
-            <>
-              <Chip key={row.main_category.id} className="text-sm" size="small" color="default" label={row.main_category.name} />
-              {row.subcategories?.map((sub: any) => (
-                <Chip key={sub.id} className="text-sm" size="small" color="default" label={sub.name} />
-              ))}
-            </>
-          ) : '-'}
-        </div>
-      )
+      Cell: ({ row }) => {
+        const product = row.original;
+        const categories = product.main_category 
+          ? [product.main_category, ...(product.subcategories || [])]
+          : (Array.isArray(product.categories) ? product.categories : []);
+        
+        return (
+          <div className="flex flex-wrap space-x-0.5">
+            {categories.length > 0 ? (
+              categories.map((cat: any, idx: number) => (
+                <Chip 
+                  key={cat?.id || cat?.name || idx} 
+                  className="text-sm" 
+                  size="small" 
+                  color="default" 
+                  label={cat?.name || cat || '-'} 
+                />
+              ))
+            ) : '-'}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'tags',
       header: 'Tags',
-      accessorFn: (row) => (
-        <div className="flex flex-wrap space-x-0.5 space-y-0.5">
-          {Array.isArray(row.tags) && row.tags.length > 0
-            ? row.tags.map((tag: any) => (
-              <Chip
-                key={tag.id ?? tag.name}
-                className="text-sm"
-                size="small"
-                color="primary"
-                label={tag.name ?? tag}
-              />
-            ))
-            : '-'}
-        </div>
-      )
+      Cell: ({ row }) => {
+        const product = row.original;
+        // Try multiple possible paths for tags
+        const tags = product.tags || (product as any).tag_ids || [];
+        
+        // Handle both array of objects and array of strings/IDs
+        const tagList = Array.isArray(tags) ? tags : [];
+        
+        return (
+          <div className="flex flex-wrap space-x-0.5 space-y-0.5">
+            {tagList.length > 0
+              ? tagList.map((tag: any, idx: number) => {
+                  // Handle different tag formats
+                  const tagName = typeof tag === 'string' ? tag : (tag?.name || tag?.label || tag);
+                  const tagId = tag?.id || idx;
+                  
+                  if (!tagName) return null;
+                  
+                  return (
+                    <Chip
+                      key={tagId}
+                      className="text-sm"
+                      size="small"
+                      color="primary"
+                      label={tagName}
+                    />
+                  );
+                })
+              : '-'}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'product_attributes',
       header: 'Attributes',
-      accessorFn: (row) => (
-        <div className="flex flex-wrap space-x-0.5 space-y-0.5">
-          {Array.isArray(row.product_attributes) && row.product_attributes.length > 0
-            ? row.product_attributes.map((attr: any) => (
-              <Chip
-                key={`${attr.id}`} // Using unique key to avoid duplicate key warnings
-                className="text-sm"
-                size="small"
-                color="default"
-                label={`${attr.attribute_name}: ${attr.attribute_value || attr.value || '-'}`}
-                sx={{
-                  ...(attr.attribute_name === 'Color' && attr.attribute_value
-                    ? {
-                      backgroundColor: `${attr.attribute_value} !important`,
-                      '& .MuiChip-label': {
-                        color: `${getContrastColor(attr.attribute_value.toLowerCase())} `, // Ensure text is readable on colored background
-                      },
-                    }
-                    : {}),
-                }}
-              />
-            ))
-            : '-'}
-        </div>
-      )
+      Cell: ({ row }) => {
+        const product = row.original;
+        // Try multiple possible paths for attributes
+        const attributes = product.product_attributes || (product as any).attributes || [];
+        
+        // Also check variants for attributes
+        const variants = (product as any).product_variants || (product as any).variants || [];
+        let variantAttrs: any[] = [];
+        if (variants.length > 0) {
+          variants.forEach((variant: any) => {
+            if (variant.attributes && Array.isArray(variant.attributes)) {
+              variantAttrs.push(...variant.attributes);
+            }
+          });
+        }
+        
+        // Combine product attributes and variant attributes
+        const allAttributes = [...attributes, ...variantAttrs];
+        
+        return (
+          <div className="flex flex-wrap space-x-0.5 space-y-0.5">
+            {allAttributes.length > 0
+              ? allAttributes.map((attr: any, idx: number) => {
+                  // Handle different attribute formats
+                  const attrName = attr?.attribute_name || attr?.name || 'Attribute';
+                  const attrValue = attr?.attribute_value || attr?.value || '-';
+                  const attrId = attr?.id || idx;
+                  
+                  return (
+                    <Chip
+                      key={attrId}
+                      className="text-sm"
+                      size="small"
+                      color="default"
+                      label={`${attrName}: ${attrValue}`}
+                      sx={{
+                        ...(attrName === 'Color' && attrValue && attrValue !== '-'
+                          ? {
+                            backgroundColor: `${attrValue} !important`,
+                            '& .MuiChip-label': {
+                              color: `${getContrastColor(attrValue.toLowerCase())} `,
+                            },
+                          }
+                          : {}),
+                      }}
+                    />
+                  );
+                })
+              : '-'}
+          </div>
+        );
+      }
     },
     {
       accessorKey: 'priceTaxIncl',
       header: 'Price',
-      accessorFn: (row) => `$${parseFloat(row.price_tax_excl).toFixed(2)}`
+      Cell: ({ row }) => `£${parseFloat(String(row.original.price_tax_excl || row.original.price || 0)).toFixed(2)}`
     },
     {
       accessorKey: 'quantity',
       header: 'Quantity',
-      accessorFn: (row) => (
+      Cell: ({ row }) => (
         <div className="flex items-center space-x-2">
-          <span>{row.quantity}</span>
+          <span>{row.original.quantity}</span>
           <i
             className={clsx(
               'inline-block w-2 h-2 rounded-sm',
-              row.quantity <= 5 && 'bg-red-500',
-              row.quantity > 5 && row.quantity <= 25 && 'bg-orange-500',
-              row.quantity > 25 && 'bg-green-500'
+              row.original.quantity <= 5 && 'bg-red-500',
+              row.original.quantity > 5 && row.original.quantity <= 25 && 'bg-orange-500',
+              row.original.quantity > 25 && 'bg-green-500'
             )}
           />
         </div>
@@ -154,9 +223,9 @@ function ProductsTableForHome() {
     {
       accessorKey: 'active',
       header: 'Active',
-      accessorFn: (row) => (
+      Cell: ({ row }) => (
         <div className="flex items-center">
-          {row.active ? (
+          {row.original.active ? (
             <FuseSvgIcon className="text-green-500" size={20}>heroicons-outline:check-circle</FuseSvgIcon>
           ) : (
             <FuseSvgIcon className="text-red-500" size={20}>heroicons-outline:minus-circle</FuseSvgIcon>

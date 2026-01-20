@@ -60,6 +60,27 @@ function StoreContactTab() {
 					<FormControlLabel control={<Switch {...field} checked={field.value} />} label="Offers Delivery" />
 				)}
 			/>
+
+			{/* Delivery Radius - only show if delivery is enabled */}
+			{watch('offers_delivery') && (
+				<Controller
+					name="delivery_radius"
+					control={control}
+					render={({ field }) => (
+						<TextField
+							{...field}
+							label="Delivery Radius (km)"
+							fullWidth
+							variant="outlined"
+							type="number"
+							inputProps={{ min: 0, step: 0.1 }}
+							error={!!errors.delivery_radius}
+							helperText={errors?.delivery_radius?.message as string || "Enter the delivery radius in kilometers"}
+							value={field.value ?? ''}
+						/>
+					)}
+				/>
+			)}
 		</div>
 	);
 }

@@ -45,8 +45,8 @@ export default function FlashSalesPage() {
               product.price_tax_excl != null && product.price_tax_excl !== ''
                 ? product.price_tax_excl
                 : product.price_tax_incl != null && product.price_tax_incl !== ''
-                ? product.price_tax_incl
-                : product.price;
+                  ? product.price_tax_incl
+                  : product.price;
 
             const originalPrice = Number(rawPrice || 0);
             let discountedPrice = originalPrice;
@@ -78,7 +78,42 @@ export default function FlashSalesPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  const [currencyConfig, setCurrencyConfig] = useState({ code: 'USD', symbol: '$' });
+
+  const CURRENCY_SYMBOLS: Record<string, string> = {
+    USD: '$', GBP: '£', EUR: '€', JPY: '¥', CNY: '¥', INR: '₹', AUD: 'A$', CAD: 'C$', CHF: 'CHF',
+    SEK: 'kr', NZD: 'NZ$', MXN: '$', SGD: 'S$', HKD: 'HK$', NOK: 'kr', TRY: '₺', RUB: '₽',
+    ZAR: 'R', BRL: 'R$', AED: 'د.إ', SAR: '﷼', PKR: '₨', BDT: '৳', THB: '฿', MYR: 'RM',
+    IDR: 'Rp', PHP: '₱', VND: '₫', KRW: '₩', NGN: '₦'
+  };
+
+  function extractCurrencyCode(value: any): string {
+    if (!value) return 'USD';
+    const str = String(value).trim();
+    if (/^[A-Z]{3}$/.test(str)) return str;
+    const serializedMatch = str.match(/s:\d+:"([A-Z]{3})"/i);
+    if (serializedMatch && serializedMatch[1]) return serializedMatch[1].toUpperCase();
+    const codeMatch = str.match(/\b([A-Z]{3})\b/);
+    if (codeMatch && codeMatch[1]) return codeMatch[1];
+    return 'USD';
+  }
+
+  async function loadCurrency() {
+    try {
+      const res = await apiFetch("/api/currencies/rates");
+      if (res?.default_currency) {
+        const code = extractCurrencyCode(res.default_currency);
+        setCurrencyConfig({ code, symbol: CURRENCY_SYMBOLS[code] || code });
+      }
+    } catch (e) {
+      console.error("Failed to fetch currency rates", e);
+    }
+  }
+
+  useEffect(() => {
+    load();
+    loadCurrency();
+  }, []);
 
   async function remove(id: number) {
     if (!confirm("Delete flash sale?")) return;
@@ -97,11 +132,15 @@ export default function FlashSalesPage() {
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(price);
+    try {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currencyConfig.code,
+        minimumFractionDigits: 2,
+      }).format(price);
+    } catch (e) {
+      return `${currencyConfig.symbol}${Number(price).toFixed(2)}`;
+    }
   };
 
   return (
@@ -152,7 +191,7 @@ export default function FlashSalesPage() {
                 {items.map((x: any) => {
                   const isExpanded = expandedRows.has(x.id);
                   const products = x.products || [];
-                  
+
                   return (
                     <React.Fragment key={x.id}>
                       <TableRow hover>
@@ -176,10 +215,10 @@ export default function FlashSalesPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Chip 
-                            size="small" 
+                          <Chip
+                            size="small"
                             label={
-                              x.discount_type === 'percent' 
+                              x.discount_type === 'percent'
                                 ? `${x.discount_value}% OFF`
                                 : `${formatPrice(parseFloat(x.discount_value))} OFF`
                             }
@@ -195,9 +234,9 @@ export default function FlashSalesPage() {
                           </Typography>
                         </TableCell>
                         <TableCell>
-                          <Chip 
-                            size="small" 
-                            color="info" 
+                          <Chip
+                            size="small"
+                            color="info"
                             label={`${products.length} ${products.length === 1 ? 'item' : 'items'}`}
                             onClick={() => products.length > 0 && toggleRow(x.id)}
                             sx={{ cursor: products.length > 0 ? 'pointer' : 'default' }}
@@ -229,10 +268,10 @@ export default function FlashSalesPage() {
                                   <TableBody>
                                     {products.map((product: any) => {
                                       const savings = product.originalPrice - product.discountedPrice;
-                                      const savingsPercent = product.originalPrice > 0 
+                                      const savingsPercent = product.originalPrice > 0
                                         ? ((savings / product.originalPrice) * 100).toFixed(1)
                                         : 0;
-                                      
+
                                       return (
                                         <TableRow key={product.id}>
                                           <TableCell>
@@ -241,9 +280,9 @@ export default function FlashSalesPage() {
                                             </Typography>
                                           </TableCell>
                                           <TableCell align="right">
-                                            <Typography 
-                                              variant="body2" 
-                                              sx={{ 
+                                            <Typography
+                                              variant="body2"
+                                              sx={{
                                                 textDecoration: 'line-through',
                                                 color: 'text.secondary'
                                               }}
@@ -252,8 +291,8 @@ export default function FlashSalesPage() {
                                             </Typography>
                                           </TableCell>
                                           <TableCell align="right">
-                                            <Typography 
-                                              variant="body2" 
+                                            <Typography
+                                              variant="body2"
                                               fontWeight={600}
                                               color="primary"
                                             >
@@ -261,8 +300,8 @@ export default function FlashSalesPage() {
                                             </Typography>
                                           </TableCell>
                                           <TableCell align="right">
-                                            <Chip 
-                                              size="small" 
+                                            <Chip
+                                              size="small"
                                               label={`${formatPrice(savings)} (${savingsPercent}%)`}
                                               color="success"
                                             />

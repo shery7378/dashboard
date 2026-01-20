@@ -53,6 +53,15 @@ function CategoriesTable() {
 
 	const categories = categoriesRes?.data ?? [];
 
+	// Create a lookup map for parent category names
+	const parentCategoryMap = useMemo(() => {
+		const map = new Map<string, string>();
+		categories.forEach((category) => {
+			map.set(category.id, category.name);
+		});
+		return map;
+	}, [categories]);
+
 	const columns = useMemo<MRT_ColumnDef<EcommerceCategory>[]>(
 		() => [
 			{
@@ -61,11 +70,34 @@ function CategoriesTable() {
 				enableSorting: false,
 				size: 64,
 				Cell: ({ row }) => {
-					const img = row.original.image
-						? row.original.image.startsWith('http')
-							? row.original.image
-							: `${process.env.NEXT_PUBLIC_API_URL}/${row.original.image}`
-						: '/assets/images/apps/ecommerce/product-image-placeholder.png';
+					const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+					let img: string | null = null;
+					
+					// Check image_url first (from API response)
+					if (row.original.image_url) {
+						if (row.original.image_url.startsWith('http://') || row.original.image_url.startsWith('https://')) {
+							img = row.original.image_url;
+						} else if (row.original.image_url.startsWith('/')) {
+							img = `${apiBaseUrl}${row.original.image_url}`;
+						} else {
+							img = row.original.image_url;
+						}
+					} else if (row.original.image) {
+						// Fall back to image field
+						if (row.original.image.startsWith('http://') || row.original.image.startsWith('https://') || row.original.image.startsWith('data:')) {
+							img = row.original.image;
+						} else if (row.original.image.startsWith('/')) {
+							img = `${apiBaseUrl}${row.original.image}`;
+						} else {
+							// Relative path - assume it's in storage
+							img = `${apiBaseUrl}/storage/${row.original.image}`;
+						}
+					}
+					
+					if (!img) {
+						img = '/assets/images/apps/ecommerce/product-image-placeholder.png';
+					}
+					
 					return (
 						<Avatar
 							variant="rounded"
@@ -106,8 +138,15 @@ function CategoriesTable() {
 			},
 			{
 				accessorKey: 'parent_id',
-				header: 'Parent ID',
-				Cell: ({ row }) => row.original.parent_id ?? '—',
+				header: 'Parent Category',
+				Cell: ({ row }) => {
+					// Show parent category name if parent_id exists, otherwise show dash
+					if (row.original.parent_id) {
+						const parentName = parentCategoryMap.get(row.original.parent_id);
+						return parentName || row.original.parent_id;
+					}
+					return '—';
+				},
 			},
 			{
 				accessorKey: 'created_at',
@@ -118,7 +157,7 @@ function CategoriesTable() {
 						: '—',
 			},
 		],
-		[]
+		[parentCategoryMap]
 	);
 
 	useEffect(() => {
@@ -192,8 +231,7 @@ function CategoriesTable() {
 				state={{ pagination, rowSelection }}
 				onPaginationChange={setPagination}
 				onRowSelectionChange={setRowSelection}
-				enableExpanding
-				getSubRows={(row) => row.children ?? []}
+				enableExpanding={false}
 				getRowId={(row) => row.id.toString()}
 				enableRowSelection={(row) => true}
 				enableMultiRowSelection
