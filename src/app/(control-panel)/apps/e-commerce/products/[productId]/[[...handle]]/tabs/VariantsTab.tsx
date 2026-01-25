@@ -18,7 +18,10 @@ const formatVariant = (variant, attributeOptions) => {
   const apiBase = process.env.NEXT_PUBLIC_API_URL ?? '';
   const attributeMap = new Map();
 
-  variant.attributes.forEach((attr) => {
+  // Ensure attributes is always an array
+  const variantAttributes = Array.isArray(variant.attributes) ? variant.attributes : [];
+  
+  variantAttributes.forEach((attr) => {
     const match = attributeOptions.find((opt) => opt.id === attr.attribute_id);
     const key = attr.attribute_name;
 
@@ -94,24 +97,16 @@ function VariantsTab() {
   const attributeOptions = attributeData?.data || [];
 
   // State for managing variants array
-  const [variants, setVariants] = useState(() =>
-    productVariants.length > 0
-      ? productVariants.map((variant) => formatVariant(variant, attributeOptions))
-      : [
-        {
-          variant_id: '',
-          variant_name: '',
-          variant_slug: '',
-          variant_sku: '',
-          variant_quantity: '',
-          variant_price_tax_excl: '',
-          variant_extra_shipping_fee: '',
-          variant_attributes: [],
-          extraVariantFields: {},
-          variant_image: '',
-        },
-      ]
-  );
+  // Initialize with empty array - will be populated by sync effect when productVariants loads
+  const [variants, setVariants] = useState(() => {
+    // Only initialize with productVariants if they exist and attributeOptions are available
+    // Otherwise, wait for sync effect to handle it
+    if (productVariants.length > 0 && attributeOptions.length > 0) {
+      return productVariants.map((variant) => formatVariant(variant, attributeOptions));
+    }
+    // Return empty array initially - sync effect will populate it
+    return [];
+  });
 
   // State for dynamic fields
   const [dynamicFieldsMap, setDynamicFieldsMap] = useState({});
@@ -148,14 +143,31 @@ function VariantsTab() {
 
   // Sync variants with productVariants
   useEffect(() => {
-    console.log('Sync useEffect triggered', { productVariants, attributeOptions, didSyncVariants: didSyncVariants.current });
-    if (!attributeOptions.length || !Array.isArray(productVariants) || didSyncVariants.current || isEqual(productVariants, prevProductVariants.current)) {
-      console.log('Sync useEffect skipped');
+    console.log('Sync useEffect triggered', { 
+      productVariants, 
+      productVariantsLength: productVariants?.length,
+      attributeOptionsLength: attributeOptions?.length,
+      didSyncVariants: didSyncVariants.current,
+      isEqual: isEqual(productVariants, prevProductVariants.current)
+    });
+    
+    // IMPORTANT: Allow syncing even if attributeOptions is empty
+    // Variants should be displayed even without attributes loaded
+    if (!Array.isArray(productVariants) || didSyncVariants.current || isEqual(productVariants, prevProductVariants.current)) {
+      console.log('Sync useEffect skipped', {
+        isArray: Array.isArray(productVariants),
+        didSync: didSyncVariants.current,
+        isEqual: isEqual(productVariants, prevProductVariants.current)
+      });
       return;
     }
 
+    // If productVariants has items, format them (even if attributeOptions is empty)
     const formattedVariants = productVariants.length > 0
-      ? productVariants.map((variant) => formatVariant(variant, attributeOptions))
+      ? productVariants.map((variant) => {
+          console.log('Formatting variant:', variant);
+          return formatVariant(variant, attributeOptions || []);
+        })
       : [
         {
           variant_id: '',
@@ -171,7 +183,7 @@ function VariantsTab() {
         },
       ];
 
-    console.log('Setting variants:', formattedVariants);
+    console.log('Setting variants:', formattedVariants, 'Count:', formattedVariants.length);
     setVariants(formattedVariants);
 
     formattedVariants.forEach((variant, index) => {
@@ -185,11 +197,26 @@ function VariantsTab() {
     prevProductVariants.current = productVariants;
   }, [productVariants, attributeOptions, setValue]);
 
-  // Reset didSyncVariants when productId changes
+  // Reset didSyncVariants when productId changes or when productVariants loads
   useEffect(() => {
     console.log('Product ID changed:', productId);
     didSyncVariants.current = false;
+    prevProductVariants.current = [];
   }, [productId]);
+  
+  // Reset didSyncVariants when productVariants changes from empty to non-empty
+  useEffect(() => {
+    const wasEmpty = !prevProductVariants.current || prevProductVariants.current.length === 0;
+    const isNotEmpty = Array.isArray(productVariants) && productVariants.length > 0;
+    
+    if (wasEmpty && isNotEmpty) {
+      console.log('Product variants loaded - resetting sync flag', {
+        previousCount: prevProductVariants.current?.length || 0,
+        currentCount: productVariants.length
+      });
+      didSyncVariants.current = false;
+    }
+  }, [productVariants]);
 
   // Handle adding new variant
   const addVariant = () => {
