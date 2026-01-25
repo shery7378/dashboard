@@ -24,7 +24,7 @@ const Root = styled('div')(({ theme }) => ({
 		backgroundColor: theme.vars.palette.divider,
 		height: 144
 	},
-	'& .seller': {
+	'& .vendor': {
 		backgroundColor: theme.vars.palette.primary.dark,
 		color: theme.palette.getContrastText(theme.palette.primary.dark),
 		marginRight: -88,
@@ -109,7 +109,7 @@ function InvoiceTab(props: InvoiceTabProps) {
 								)}
 							</div>
 
-							<div className="seller flex items-center p-4">
+							<div className="vendor flex items-center p-4">
 								<img
 									className="w-20"
 									src="/assets/images/logo/logo.svg"

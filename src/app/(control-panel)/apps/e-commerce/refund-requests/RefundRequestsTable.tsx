@@ -685,13 +685,13 @@ function RefundRequestsTable() {
 																className="cursor-pointer border-2 border-blue-200 rounded-lg overflow-hidden hover:border-blue-400 transition-all shadow-sm hover:shadow-md"
 																style={{ width: '150px' }}
 															>
-															<ImageWithAuth
-																fileId={file.id}
-																filename={file.filename}
-																refundId={displayRefund.id}
-																token={token}
+																<ImageWithAuth
+																	fileId={file.id}
+																	filename={file.filename}
+																	refundId={displayRefund.id}
+																	token={token}
 																filePath={file.path}
-															/>
+																/>
 																<div className="p-2 bg-white">
 																	<Typography variant="caption" className="text-gray-600 block truncate">
 																		{file.filename}

@@ -2,13 +2,13 @@
 'use client';
 
 import GlobalStyles from '@mui/material/GlobalStyles';
-import VendorsHeader from './VendorsHeader';
-import VendorsTable from './VendorsTable';
+import vendorsHeader from './vendorsHeader';
+import vendorsTable from './vendorsTable';
 
 /**
  * The products page.
  */
-function Vendors() {
+function vendors() {
     return (
         <>
             <GlobalStyles
@@ -19,11 +19,11 @@ function Vendors() {
                 })}
             />
             <div className="w-full h-full flex flex-col px-4">
-                <VendorsHeader />
-                <VendorsTable />
+                <vendorsHeader />
+                <vendorsTable />
             </div>
         </>
     );
 }
 
-export default Vendors;
+export default vendors;

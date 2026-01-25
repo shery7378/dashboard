@@ -39,9 +39,9 @@ function OrdersTable() {
 				Cell: ({ row }) => row.original.user?.name ?? '—'
 			},
 			{
-				accessorKey: 'seller.name',
-				header: 'Seller',
-				Cell: ({ row }) => row.original.seller?.name ?? row.original.store?.name ?? '—'
+				accessorKey: 'vendor.name',
+				header: 'Vendor',
+				Cell: ({ row }) => row.original.vendor?.name ?? row.original.store?.name ?? '—'
 			},
 			{
 				accessorKey: 'price',

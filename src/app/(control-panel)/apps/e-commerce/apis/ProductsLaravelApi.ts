@@ -69,12 +69,12 @@ const ProductsLaravelApi = api
                 invalidatesTags: ['eCommerce_product', 'eCommerce_products'],
             }),
 
-            // Get products from other vendors (for import)
-            getOtherVendorsProducts: build.query<GetOtherVendorsProductsApiResponse, GetOtherVendorsProductsApiArg>({
+            // Get products from other sellers (for import)
+            getOtherSellersProducts: build.query<GetOtherSellersProductsApiResponse, GetOtherSellersProductsApiArg>({
                 query: ({ page = 1, perPage = 20, search, categoryId, includeOwn } = {}) => ({
                     url: `/api/products/other-vendors`,
-                    params: { 
-                        page, 
+                    params: {
+                        page,
                         per_page: perPage,
                         ...(search && { search }),
                         ...(categoryId && { category_id: categoryId }),
@@ -85,27 +85,27 @@ const ProductsLaravelApi = api
             }),
 
             // Import a product from another vendor
-        importProduct: build.mutation<ImportProductApiResponse, ImportProductApiArg>({
-            query: ({ productId, paymentMethod, quantity, creditDays, paymentIntentId, importFromOwn }) => ({
-                url: `/api/products/${productId}/import`,
-                method: 'POST',
-                body: {
-                    payment_method: paymentMethod || 'instant',
-                    quantity: quantity || 1,
-                    ...(paymentMethod === 'credit' && creditDays && { credit_days: creditDays }),
-                    ...(paymentMethod === 'instant' && paymentIntentId && { payment_intent_id: paymentIntentId }),
-                    ...(importFromOwn && { import_from_own: true }),
-                },
+            importProduct: build.mutation<ImportProductApiResponse, ImportProductApiArg>({
+                query: ({ productId, paymentMethod, quantity, creditDays, paymentIntentId, importFromOwn }) => ({
+                    url: `/api/products/${productId}/import`,
+                    method: 'POST',
+                    body: {
+                        payment_method: paymentMethod || 'instant',
+                        quantity: quantity || 1,
+                        ...(paymentMethod === 'credit' && creditDays && { credit_days: creditDays }),
+                        ...(paymentMethod === 'instant' && paymentIntentId && { payment_intent_id: paymentIntentId }),
+                        ...(importFromOwn && { import_from_own: true }),
+                    },
+                }),
+                invalidatesTags: ['eCommerce_product', 'eCommerce_products'],
             }),
-            invalidatesTags: ['eCommerce_product', 'eCommerce_products'],
-        }),
 
             // Get products from suppliers (Wholesale Catalog)
             getSupplierProducts: build.query<GetSupplierProductsApiResponse, GetSupplierProductsApiArg>({
                 query: ({ page = 1, perPage = 20, search, categoryId, inStock } = {}) => ({
                     url: `/api/products/suppliers`,
-                    params: { 
-                        page, 
+                    params: {
+                        page,
                         per_page: perPage,
                         ...(search && { search }),
                         ...(categoryId && { category_id: categoryId }),
@@ -173,7 +173,7 @@ export type DeleteECommerceProductsApiResponse = {
 };
 export type DeleteECommerceProductsApiArg = string[];
 
-export type GetOtherVendorsProductsApiResponse = {
+export type GetOtherSellersProductsApiResponse = {
     products?: {
         data: EcommerceProduct[];
         meta: {
@@ -200,10 +200,10 @@ export type GetOtherVendorsProductsApiResponse = {
         last_page: number;
     };
 };
-export type GetOtherVendorsProductsApiArg = { 
-    page?: number; 
-    perPage?: number; 
-    search?: string; 
+export type GetOtherSellersProductsApiArg = {
+    page?: number;
+    perPage?: number;
+    search?: string;
     categoryId?: string;
     includeOwn?: boolean; // Include own products for importing from old listings
 };
@@ -330,7 +330,7 @@ export const {
     useUpdateECommerceProductMutation,
     useDeleteECommerceProductMutation,
     useDeleteECommerceProductsMutation,
-    useGetOtherVendorsProductsQuery,
+    useGetOtherSellersProductsQuery,
     useImportProductMutation,
     useGetSupplierProductsQuery,
 } = ProductsLaravelApi;

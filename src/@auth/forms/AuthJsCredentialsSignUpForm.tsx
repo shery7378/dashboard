@@ -24,7 +24,10 @@ export const schema = z
         email: z.string().email('You must enter a valid email').nonempty('You must enter an email'),
         phone: z.string().regex(/^\+?[1-9]\d{1,14}$/, 'You must enter a valid phone number').nonempty('You must enter a phone number'),
         city: z.string().nonempty('You must enter a city'),
+        zipCode: z.string().nonempty('You must enter a zip code'),
         address: z.string().nonempty('You must enter an address'),
+        latitude: z.number().nullable().optional(),
+        longitude: z.number().nullable().optional(),
         kycDocument: z.any().optional(), // Made optional
         emailVerificationCode: z.string().nonempty('You must enter a verification code'),
         password: z
@@ -52,7 +55,10 @@ const defaultValues = {
     email: '',
     phone: '',
     city: '',
+    zipCode: '',
     address: '',
+    latitude: null,
+    longitude: null,
     kycDocument: null,
     emailVerificationCode: '',
     password: '',
@@ -62,7 +68,7 @@ const defaultValues = {
 };
 
 function AuthJsCredentialsSignUpForm() {
-    const { control, formState, handleSubmit, setError, watch, clearErrors } = useForm<FormType>({
+    const { control, formState, handleSubmit, setError, watch, clearErrors, setValue } = useForm<FormType>({
         mode: 'onChange',
         defaultValues,
         resolver: zodResolver(schema),
@@ -233,7 +239,11 @@ function AuthJsCredentialsSignUpForm() {
                     email: formData.email,
                     phone: formData.phone,
                     city: formData.city,
+                    zip_code: formData.zipCode,
+                    postal_code: formData.zipCode,
                     address: formData.address,
+                    latitude: formData.latitude,
+                    longitude: formData.longitude,
                     kycDocument: kycDocumentBase64,
                     code: formData.emailVerificationCode,
                     password: formData.password,
@@ -370,6 +380,7 @@ function AuthJsCredentialsSignUpForm() {
                 <Step4
                     control={control}
                     errors={errors}
+					setValue={setValue}
                     handleNextStep={handleNextStep}
                     handleBackStep={handleBackStep}
                 />

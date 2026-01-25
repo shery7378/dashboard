@@ -1,3 +1,3 @@
-import SellerDashboardApp from '../seller/SellerDashboardApp';
+import VendorDashboardApp from '../vendor/VendorDashboardApp';
 
-export default SellerDashboardApp;
+export default VendorDashboardApp;

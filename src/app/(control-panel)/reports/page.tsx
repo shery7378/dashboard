@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { useGetSalesQuery, useGetVendorPerformanceQuery, useGetSalesHeatmapQuery } from './apis/AnalyticsApi';
+import { useGetSalesQuery, useGetvendorPerformanceQuery, useGetSalesHeatmapQuery } from './apis/AnalyticsApi';
 import { Card, CardContent, CardHeader, Typography, Box, Table, TableHead, TableRow, TableCell, TableBody, TableContainer, Paper, Stack, Avatar } from '@mui/material';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
@@ -50,7 +50,7 @@ export default function ReportsPage() {
   const [currencySymbol, setCurrencySymbol] = useState<string>('£');
 
   const { data: salesData } = useGetSalesQuery({ interval: 'day' });
-  const { data: vendorPerf } = useGetVendorPerformanceQuery({ limit: 10 });
+  const { data: vendorPerf } = useGetvendorPerformanceQuery({ limit: 10 });
   const { data: heatmap } = useGetSalesHeatmapQuery({});
 
   const sales = Array.isArray(salesData?.data) ? salesData.data : [];
@@ -94,7 +94,7 @@ export default function ReportsPage() {
   // Aggregates for KPIs - use validated sales data
   const totalSales = validSales.reduce((sum, s) => sum + (Number(s.total_sales) || 0), 0);
   const totalOrders = validSales.reduce((sum, s) => sum + (Number(s.orders) || 0), 0);
-  const topVendor = vendors[0];
+  const topvendor = vendors[0];
 
   const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: defaultCurrency, maximumFractionDigits: 0 });
   const compactCurrency = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
@@ -135,16 +135,16 @@ export default function ReportsPage() {
   ];
 
   // Prepare chart data - filter out vendors with no name or zero sales
-  const validVendors = vendors.filter((v) => v.vendor_name && Number(v.total_sales) > 0);
+  const validvendors = vendors.filter((v) => v.vendor_name && Number(v.total_sales) > 0);
   
   const barSeries = [
     {
       name: 'Sales',
-      data: validVendors.map((v) => Number(v.total_sales) || 0),
+      data: validvendors.map((v) => Number(v.total_sales) || 0),
     },
   ];
 
-  const barCategories = validVendors.map((v) => v.vendor_name || 'Unknown Seller');
+  const barCategories = validvendors.map((v) => v.vendor_name || 'Unknown Vendor');
 
   // Heatmap totals
   const totalHeatOrders = heat.reduce((sum: number, h: any) => sum + (Number(h.orders) || 0), 0);
@@ -212,9 +212,9 @@ export default function ReportsPage() {
                   <EmojiEventsIcon />
                 </Avatar>
                 <Box>
-                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.85)' }}>Top Seller</Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'common.white' }}>{topVendor?.vendor_name || '—'}</Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>{topVendor ? currency.format(Number(topVendor.total_sales)) : ''}</Typography>
+                  <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.85)' }}>Top Vendor</Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: 'common.white' }}>{topvendor?.vendor_name || '—'}</Typography>
+                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.9)' }}>{topvendor ? currency.format(Number(topvendor.total_sales)) : ''}</Typography>
                 </Box>
               </Stack>
             </CardContent>
@@ -333,7 +333,7 @@ export default function ReportsPage() {
         <Box>
           <Card sx={{ height: '100%', boxShadow: 6, borderRadius: 3 }}>
             <CardHeader
-              title="Top Sellers"
+              title="Top Vendors"
               subheader="By total sales"
               titleTypographyProps={{ sx: { fontWeight: 700 } }}
               subheaderTypographyProps={{ sx: { color: 'text.secondary' } }}
@@ -341,7 +341,7 @@ export default function ReportsPage() {
             <CardContent>
               {vendors.length === 0 ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 320 }}>
-                  <Typography color="text.secondary">No seller data available</Typography>
+                  <Typography color="text.secondary">No vendor data available</Typography>
                 </Box>
               ) : (
                 <ReactApexChart

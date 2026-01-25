@@ -85,20 +85,20 @@ function ProductsTableForHome() {
       header: 'Category',
       Cell: ({ row }) => {
         const product = row.original;
-        const categories = product.main_category 
+        const categories = product.main_category
           ? [product.main_category, ...(product.subcategories || [])]
           : (Array.isArray(product.categories) ? product.categories : []);
-        
+
         return (
           <div className="flex flex-wrap space-x-0.5">
             {categories.length > 0 ? (
               categories.map((cat: any, idx: number) => (
-                <Chip 
-                  key={cat?.id || cat?.name || idx} 
-                  className="text-sm" 
-                  size="small" 
-                  color="default" 
-                  label={cat?.name || cat || '-'} 
+                <Chip
+                  key={cat?.id || cat?.name || idx}
+                  className="text-sm"
+                  size="small"
+                  color="default"
+                  label={cat?.name || cat || '-'}
                 />
               ))
             ) : '-'}
@@ -113,30 +113,30 @@ function ProductsTableForHome() {
         const product = row.original;
         // Try multiple possible paths for tags
         const tags = product.tags || (product as any).tag_ids || [];
-        
+
         // Handle both array of objects and array of strings/IDs
         const tagList = Array.isArray(tags) ? tags : [];
-        
+
         return (
           <div className="flex flex-wrap space-x-0.5 space-y-0.5">
             {tagList.length > 0
               ? tagList.map((tag: any, idx: number) => {
-                  // Handle different tag formats
-                  const tagName = typeof tag === 'string' ? tag : (tag?.name || tag?.label || tag);
-                  const tagId = tag?.id || idx;
-                  
-                  if (!tagName) return null;
-                  
-                  return (
-                    <Chip
-                      key={tagId}
-                      className="text-sm"
-                      size="small"
-                      color="primary"
-                      label={tagName}
-                    />
-                  );
-                })
+                // Handle different tag formats
+                const tagName = typeof tag === 'string' ? tag : (tag?.name || tag?.label || tag);
+                const tagId = tag?.id || idx;
+
+                if (!tagName) return null;
+
+                return (
+                  <Chip
+                    key={tagId}
+                    className="text-sm"
+                    size="small"
+                    color="primary"
+                    label={tagName}
+                  />
+                );
+              })
               : '-'}
           </div>
         );
@@ -149,7 +149,7 @@ function ProductsTableForHome() {
         const product = row.original;
         // Try multiple possible paths for attributes
         const attributes = product.product_attributes || (product as any).attributes || [];
-        
+
         // Also check variants for attributes
         const variants = (product as any).product_variants || (product as any).variants || [];
         let variantAttrs: any[] = [];
@@ -160,39 +160,39 @@ function ProductsTableForHome() {
             }
           });
         }
-        
+
         // Combine product attributes and variant attributes
         const allAttributes = [...attributes, ...variantAttrs];
-        
+
         return (
           <div className="flex flex-wrap space-x-0.5 space-y-0.5">
             {allAttributes.length > 0
               ? allAttributes.map((attr: any, idx: number) => {
-                  // Handle different attribute formats
-                  const attrName = attr?.attribute_name || attr?.name || 'Attribute';
-                  const attrValue = attr?.attribute_value || attr?.value || '-';
-                  const attrId = attr?.id || idx;
-                  
-                  return (
-                    <Chip
-                      key={attrId}
-                      className="text-sm"
-                      size="small"
-                      color="default"
-                      label={`${attrName}: ${attrValue}`}
-                      sx={{
-                        ...(attrName === 'Color' && attrValue && attrValue !== '-'
-                          ? {
-                            backgroundColor: `${attrValue} !important`,
-                            '& .MuiChip-label': {
-                              color: `${getContrastColor(attrValue.toLowerCase())} `,
-                            },
-                          }
-                          : {}),
-                      }}
-                    />
-                  );
-                })
+                // Handle different attribute formats
+                const attrName = attr?.attribute_name || attr?.name || 'Attribute';
+                const attrValue = attr?.attribute_value || attr?.value || '-';
+                const attrId = attr?.id || idx;
+
+                return (
+                  <Chip
+                    key={attrId}
+                    className="text-sm"
+                    size="small"
+                    color="default"
+                    label={`${attrName}: ${attrValue}`}
+                    sx={{
+                      ...(attrName === 'Color' && attrValue && attrValue !== '-'
+                        ? {
+                          backgroundColor: `${attrValue} !important`,
+                          '& .MuiChip-label': {
+                            color: `${getContrastColor(attrValue.toLowerCase())} `,
+                          },
+                        }
+                        : {}),
+                    }}
+                  />
+                );
+              })
               : '-'}
           </div>
         );

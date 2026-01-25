@@ -1,10 +1,9 @@
 'use client';
 
 import FusePageSimple from '@fuse/core/FusePageSimple';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { styled } from '@mui/material/styles';
 import * as React from 'react';
-import FuseLoading from '@fuse/core/FuseLoading';
 import FuseTabs from 'src/components/tabs/FuseTabs';
 import FuseTab from 'src/components/tabs/FuseTab';
 import ProjectDashboardAppHeader from './ProjectDashboardAppHeader';
@@ -25,15 +24,24 @@ const Root = styled(FusePageSimple)(({ theme }) => ({
  */
 function ProjectDashboardApp() {
 	const { isLoading } = useGetProjectDashboardWidgetsQuery();
+	const [showContent, setShowContent] = useState(false);
 
 	const [tabValue, setTabValue] = useState('home');
 
+	// Add timeout to prevent infinite loading (show content after 5 seconds even if still loading)
+	useEffect(() => {
+		if (!isLoading) {
+			setShowContent(true);
+		} else {
+			const timer = setTimeout(() => {
+				setShowContent(true);
+			}, 5000); // 5 second timeout
+			return () => clearTimeout(timer);
+		}
+	}, [isLoading]);
+
 	function handleTabChange(event: React.SyntheticEvent, value: string) {
 		setTabValue(value);
-	}
-
-	if (isLoading) {
-		return <FuseLoading />;
 	}
 
 	return (

@@ -9,7 +9,7 @@ function BasicInfoTab() {
 
 	const userType = useWatch({ control, name: 'user_type' });
 	const isCustomer = userType === 'customer';
-	const isSellerOrSupplier = userType === 'seller' || userType === 'supplier';
+	const isVendorOrSupplier = userType === 'vendor' || userType === 'supplier';
 
 	return (
 		<div className="space-y-6">
@@ -29,13 +29,13 @@ function BasicInfoTab() {
 						required
 					>
 						<MenuItem value="customer">Customer</MenuItem>
-						<MenuItem value="seller">Seller</MenuItem>
+						<MenuItem value="vendor">Vendor</MenuItem>
 						<MenuItem value="supplier">Supplier</MenuItem>
 					</TextField>
 				)}
 			/>
 
-			{/* ---------- SELLER / SUPPLIER FIELDS ---------- */}
+			{/* ---------- VENDOR / SUPPLIER FIELDS ---------- */}
 			{isSellerOrSupplier && (
 				<>
 					<Controller

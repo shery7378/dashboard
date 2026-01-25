@@ -10,7 +10,7 @@ import { useGetProjectDashboardWidgetsQuery } from '../../vendor/ProjectDashboar
 import WidgetDataType, { RangeType } from '../../vendor/tabs/home/widgets/types/WidgetDataType';
 
 /**
- * The Seller SummaryWidget widget.
+ * The Vendor SummaryWidget widget.
  * Shows Pending Orders with time range selector.
  */
 function SummaryWidget() {

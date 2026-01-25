@@ -122,7 +122,8 @@ function Category() {
 		// console.log('📝 form:', form);
 	}
 
-	if (isLoading) {
+	// Only show loading if we're actually loading an existing category (not creating new)
+	if (isLoading && categoryId !== 'new') {
 		return <FuseLoading />;
 	}
 

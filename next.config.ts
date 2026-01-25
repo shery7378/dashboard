@@ -65,6 +65,31 @@ const nextConfig: NextConfig = {
 			},
 		];
 	},
+
+	// Rewrites for API proxy to avoid CORS issues
+	async rewrites() {
+		const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://vendor.multikonnect.test';
+		return [
+			{
+				source: '/api/admin/maps-radius-settings',
+				destination: `${backendUrl}/api/admin/maps-radius-settings`
+			}
+		];
+	},
+	async redirects() {
+		return [
+			{
+				source: '/dashboards/vendor',
+				destination: '/dashboards/seller',
+				permanent: true,
+			},
+			{
+				source: '/dashboards/vendor-analytics',
+				destination: '/dashboards/seller-analytics',
+				permanent: true,
+			},
+		];
+	},
 	webpack: (config) => {
 		if (config.module && config.module.rules) {
 			config.module.rules.push({

@@ -163,7 +163,7 @@ export default function SellerReportsPage() {
           WebkitTextFillColor: 'transparent',
         }}
       >
-        Seller Reports & Analytics
+        Vendor Reports & Analytics
       </Typography>
 
       {/* KPI CARDS */}

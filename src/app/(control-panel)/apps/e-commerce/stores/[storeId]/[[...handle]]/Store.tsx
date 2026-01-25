@@ -40,6 +40,7 @@ const schema = z.object({
 	latitude: z.number().optional(),
 	longitude: z.number().optional(),
 	delivery_radius: z.number().optional(),
+	delivery_slots: z.array(z.string()).optional(),
 });
 
 function Store() {
@@ -74,7 +75,10 @@ function Store() {
 		}
 	}, [store, storeId, reset]);
 
-	if (isLoading) return <FuseLoading />;
+	// Only show loading if we're actually loading an existing store (not creating new)
+	if (isLoading && storeId !== 'new') {
+		return <FuseLoading />;
+	}
 
 	if (isError && storeId !== 'new') {
 		return (

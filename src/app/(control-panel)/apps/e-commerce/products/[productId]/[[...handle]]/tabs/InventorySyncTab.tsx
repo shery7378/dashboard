@@ -41,7 +41,7 @@ interface InventorySyncTabProps {
 
 /**
  * Inventory Sync Tab Component
- * Allows suppliers and vendors to manage inventory synchronization
+ * Allows suppliers and sellers to manage inventory synchronization
  */
 function InventorySyncTab({ productId, userRole: propUserRole }: InventorySyncTabProps) {
     const { enqueueSnackbar } = useSnackbar();

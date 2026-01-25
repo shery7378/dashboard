@@ -1,9 +1,9 @@
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
+import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { memo } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import FuseLoading from '@fuse/core/FuseLoading';
 import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
 import WidgetDataType from './types/WidgetDataType';
 
@@ -14,12 +14,20 @@ function OverdueWidget() {
 	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
 	const widget = widgets?.overdue as WidgetDataType;
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
-
-	if (!widget) {
-		return null;
+	if (isLoading || !widget) {
+		return (
+			<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
+				<div className="flex items-center justify-between px-2 pt-2">
+					<Skeleton variant="text" width={140} height={28} sx={{ ml: 1 }} />
+					<Skeleton variant="circular" width={32} height={32} />
+				</div>
+				<div className="text-center mt-4">
+					<Skeleton variant="text" sx={{ mx: 'auto' }} width={160} height={72} />
+					<Skeleton variant="text" sx={{ mx: 'auto' }} width={120} />
+				</div>
+				<Skeleton variant="text" sx={{ mx: 'auto' }} width={180} />
+			</Paper>
+		);
 	}
 
 	const { data, title } = widget;

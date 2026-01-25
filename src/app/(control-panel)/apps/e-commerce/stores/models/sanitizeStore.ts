@@ -8,6 +8,20 @@ import { createDefaultStore } from './StoreModel';
 export function sanitizeStore(data: Partial<EcommerceStore>): EcommerceStore {
 	const defaults = createDefaultStore();
 
+	const normalizedDeliverySlots: string[] = (() => {
+		const raw: any = (data as any).delivery_slots;
+		if (Array.isArray(raw)) {
+			return raw.map((s) => String(s).trim()).filter(Boolean);
+		}
+		if (typeof raw === 'string') {
+			return raw
+				.split(/[,\n]/g)
+				.map((s) => s.trim())
+				.filter(Boolean);
+		}
+		return [];
+	})();
+
 	return {
 		...defaults,
 		...data,
@@ -32,6 +46,7 @@ export function sanitizeStore(data: Partial<EcommerceStore>): EcommerceStore {
 		offers_pickup: data.offers_pickup ?? false,
 		offers_delivery: data.offers_delivery ?? false,
 		delivery_radius: data.delivery_radius ?? null,
+		delivery_slots: normalizedDeliverySlots,
 		active: data.active ?? false,
 		user: data.user ?? {
 			id: '',

@@ -30,7 +30,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useTranslation } from 'react-i18next';
-import { useGetOtherVendorsProductsQuery, useImportProductMutation, EcommerceProduct } from '../apis/ProductsLaravelApi';
+import { useGetOtherSellersProductsQuery, useImportProductMutation, EcommerceProduct } from '../apis/ProductsLaravelApi';
 import { useSnackbar } from 'notistack';
 import './i18n';
 
@@ -50,7 +50,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
   const [sortBy, setSortBy] = useState<'latest' | 'name' | 'price'>('latest');
   const [importingId, setImportingId] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useGetOtherVendorsProductsQuery({
+  const { data, isLoading, error } = useGetOtherSellersProductsQuery({
     page,
     perPage: 12,
     search: search || undefined,
@@ -61,7 +61,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
   const products = useMemo(() => {
     // Handle ProductCollection response structure: { products: { data: [...], meta: {...} } }
     let productList = data?.products?.data ?? data?.data ?? [];
-    
+
     // Sort products
     if (sortBy === 'name') {
       productList = [...productList].sort((a, b) => a.name.localeCompare(b.name));
@@ -72,7 +72,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
         return priceA - priceB;
       });
     }
-    
+
     return productList;
   }, [data, sortBy]);
 
@@ -87,7 +87,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
 
   const handleImport = async (productId: string | number | undefined) => {
     if (!productId) {
-      enqueueSnackbar('Invalid product ID', { 
+      enqueueSnackbar('Invalid product ID', {
         variant: 'error',
         anchorOrigin: { vertical: 'top', horizontal: 'right' }
       });
@@ -95,7 +95,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
     }
 
     const idString = String(productId);
-    
+
     // If mode is 'select', find the product and call onProductSelect callback
     if (mode === 'select' && onProductSelect) {
       const product = products.find((p: EcommerceProduct) => String(p.id) === idString);
@@ -104,29 +104,29 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
         onClose();
         return;
       } else {
-        enqueueSnackbar('Product not found', { 
+        enqueueSnackbar('Product not found', {
           variant: 'error',
           anchorOrigin: { vertical: 'top', horizontal: 'right' }
         });
         return;
       }
     }
-    
+
     // Default mode: import product (create new product)
     setImportingId(idString);
     try {
-      const result = await importProduct({ 
+      const result = await importProduct({
         productId: idString,
         paymentMethod: 'instant',
         quantity: 1,
         importFromOwn: false
       }).unwrap();
-      
+
       // If import returns product data and we have a callback, populate the form
       if (result.data?.product && onProductSelect) {
         // Use the imported product data to populate the form with ALL fields
         onProductSelect(result.data.product);
-        enqueueSnackbar('Product imported and form populated with all details', { 
+        enqueueSnackbar('Product imported and form populated with all details', {
           variant: 'success',
           anchorOrigin: { vertical: 'top', horizontal: 'right' }
         });
@@ -135,13 +135,13 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
         // If only product_id is returned, try to fetch the full product
         // Note: This would require importing useGetECommerceProductQuery
         // For now, just show success message
-        enqueueSnackbar(result.message || t('product_imported_successfully'), { 
+        enqueueSnackbar(result.message || t('product_imported_successfully'), {
           variant: 'success',
           anchorOrigin: { vertical: 'top', horizontal: 'right' }
         });
         // Don't close modal, let user continue importing
       } else {
-        enqueueSnackbar(result.message || t('product_imported_successfully'), { 
+        enqueueSnackbar(result.message || t('product_imported_successfully'), {
           variant: 'success',
           anchorOrigin: { vertical: 'top', horizontal: 'right' }
         });
@@ -150,12 +150,12 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
       setImportingId(null);
     } catch (error: any) {
       const errorMessage = error?.data?.message || error?.data?.error || error?.message || t('failed_to_import_product');
-      enqueueSnackbar(errorMessage, { 
+      enqueueSnackbar(errorMessage, {
         variant: 'error',
         anchorOrigin: { vertical: 'top', horizontal: 'right' }
       });
       setImportingId(null);
-      
+
       // Log detailed error in development
       if (process.env.NODE_ENV === 'development') {
         console.error('Product import error:', {
@@ -175,10 +175,10 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
   };
 
   return (
-    <Dialog 
-      open={open} 
-      onClose={onClose} 
-      maxWidth="lg" 
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="lg"
       fullWidth
       PaperProps={{
         sx: {
@@ -187,7 +187,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
         }
       }}
     >
-      <DialogTitle sx={{ 
+      <DialogTitle sx={{
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         color: 'white',
         pb: 2,
@@ -197,13 +197,13 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
           <Box display="flex" alignItems="center" gap={1}>
             <FuseSvgIcon sx={{ fontSize: 28 }}>heroicons-outline:arrow-down-tray</FuseSvgIcon>
             <Typography variant="h5" fontWeight="bold">
-              {t('import_product_from_other_vendors')}
+              {t('import_product_from_other_sellers')}
             </Typography>
           </Box>
-          <IconButton 
-            onClick={onClose} 
+          <IconButton
+            onClick={onClose}
             size="small"
-            sx={{ 
+            sx={{
               color: 'white',
               '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' }
             }}
@@ -237,8 +237,8 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
               ),
               endAdornment: searchInput && (
                 <InputAdornment position="end">
-                  <IconButton 
-                    size="small" 
+                  <IconButton
+                    size="small"
                     onClick={() => {
                       setSearchInput('');
                       setSearch('');
@@ -274,8 +274,8 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
         </Box>
 
         {error && (
-          <Alert 
-            severity="error" 
+          <Alert
+            severity="error"
             sx={{ mb: 2 }}
             action={
               <Button color="inherit" size="small" onClick={() => window.location.reload()}>
@@ -328,8 +328,8 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                 Found {pagination?.total || products.length} products
               </Typography>
               {search && (
-                <Chip 
-                  label={`Search: "${search}"`} 
+                <Chip
+                  label={`Search: "${search}"`}
                   onDelete={() => {
                     setSearch('');
                     setSearchInput('');
@@ -347,7 +347,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                   if (!product.id && process.env.NODE_ENV === 'development') {
                     console.warn('Product missing ID:', product);
                   }
-                  
+
                   const imageUrl = product.featured_image?.url
                     ? `${process.env.NEXT_PUBLIC_API_URL}/${product.featured_image.url}`
                     : '/assets/images/apps/ecommerce/product-image-placeholder.png';
@@ -355,7 +355,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                   const isImporting = importingId === productId;
                   const priceTaxIncl = parseFloat((product.price_tax_incl || product.price || 0).toString());
                   const comparedPrice = parseFloat((product.compared_price || 0).toString());
-                  
+
                   // Show strike-through if compared price is higher than current price
                   const showStrike = comparedPrice > 0 && comparedPrice > priceTaxIncl;
 
@@ -367,11 +367,11 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ duration: 0.3, delay: index * 0.05 }}
                       >
-                        <Card 
+                        <Card
                           elevation={2}
-                          sx={{ 
-                            height: '100%', 
-                            display: 'flex', 
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
                             flexDirection: 'column',
                             borderRadius: 3,
                             overflow: 'hidden',
@@ -387,7 +387,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                           }}
                         >
                           {/* Image Section with Overlay */}
-                          <Box 
+                          <Box
                             position="relative"
                             sx={{
                               height: 280,
@@ -399,7 +399,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                               component="img"
                               image={imageUrl}
                               alt={product.name}
-                              sx={{ 
+                              sx={{
                                 height: '100%',
                                 width: '100%',
                                 objectFit: 'cover',
@@ -409,7 +409,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                                 }
                               }}
                             />
-                            
+
                             {/* Gradient Overlay */}
                             <Box
                               sx={{
@@ -508,10 +508,10 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                           <CardContent sx={{ flexGrow: 1, p: 2.5, pb: 1 }}>
                             {/* Product Name */}
                             <Tooltip title={product.name} arrow>
-                              <Typography 
-                                variant="h6" 
-                                component="h3" 
-                                sx={{ 
+                              <Typography
+                                variant="h6"
+                                component="h3"
+                                sx={{
                                   mb: 1.5,
                                   fontWeight: 700,
                                   fontSize: '1.1rem',
@@ -529,9 +529,9 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                             </Tooltip>
 
                             {/* Store Info */}
-                            <Box 
-                              display="flex" 
-                              alignItems="center" 
+                            <Box
+                              display="flex"
+                              alignItems="center"
                               gap={1}
                               mb={2}
                               sx={{
@@ -574,10 +574,10 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                                 </Typography>
                                 <Box display="flex" flexWrap="wrap" gap={0.5}>
                                   {product.tags.slice(0, 3).map((tag: any) => (
-                                    <Chip 
-                                      key={tag.id} 
-                                      label={tag.name} 
-                                      size="small" 
+                                    <Chip
+                                      key={tag.id}
+                                      label={tag.name}
+                                      size="small"
                                       sx={{
                                         height: 24,
                                         fontSize: '0.7rem',
@@ -591,7 +591,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                                     />
                                   ))}
                                   {product.tags.length > 3 && (
-                                    <Chip 
+                                    <Chip
                                       label={`+${product.tags.length - 3}`}
                                       size="small"
                                       sx={{
@@ -655,7 +655,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                               onClick={() => {
                                 if (!productId) {
                                   console.error('Product ID is missing:', product);
-                                  enqueueSnackbar('Product ID is missing. Cannot import.', { 
+                                  enqueueSnackbar('Product ID is missing. Cannot import.', {
                                     variant: 'error',
                                     anchorOrigin: { vertical: 'top', horizontal: 'right' }
                                   });
@@ -674,7 +674,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                                 )
                               }
                               sx={{
-                                background: isImporting 
+                                background: isImporting
                                   ? 'linear-gradient(135deg, #9e9e9e 0%, #757575 100%)'
                                   : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                                 '&:hover': {
@@ -693,17 +693,17 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                                 transition: 'all 0.3s ease',
                               }}
                             >
-                              {isImporting 
+                              {isImporting
                                 ? (mode === 'select' ? 'Selecting...' : t('importing'))
                                 : (mode === 'select' ? 'Use This Product' : 'Import Product')
                               }
                             </Button>
-                            <Typography 
-                              variant="caption" 
-                              color="text.secondary" 
-                              sx={{ 
-                                display: 'block', 
-                                textAlign: 'center', 
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: 'block',
+                                textAlign: 'center',
                                 mt: 1,
                                 fontSize: '0.7rem',
                                 fontStyle: 'italic'
@@ -740,7 +740,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
           <Typography variant="body2" color="text.secondary">
             {pagination && `Page ${page} of ${pagination.last_page}`}
           </Typography>
-          <Button 
+          <Button
             onClick={onClose}
             variant="outlined"
             sx={{ minWidth: 100 }}

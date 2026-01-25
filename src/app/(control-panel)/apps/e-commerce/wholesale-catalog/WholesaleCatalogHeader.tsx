@@ -96,7 +96,7 @@ function WholesaleCatalogHeader() {
                         label={
                             <Box display="flex" alignItems="center" gap={0.5}>
                                 <FuseSvgIcon sx={{ fontSize: 16 }}>heroicons-outline:lock-closed</FuseSvgIcon>
-                                Vendor Only
+                                vendor Only
                             </Box>
                         }
                         sx={{

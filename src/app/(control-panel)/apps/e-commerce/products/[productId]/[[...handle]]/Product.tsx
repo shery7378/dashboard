@@ -46,11 +46,11 @@ const schema = z.object({
 		.positive('Invalid store selected')
 		.nullable()
 		.refine((val) => val !== null, { message: 'You must select a store' }),
-	name: z.string().min(5, 'The product name must be at least 5 characters').nonempty('You must enter a product name'),
+	name: z.string().min(5, 'The product name must be at least 5 characters').max(200, 'The product name must not exceed 200 characters').nonempty('You must enter a product name'),
 	description: z
 		.string()
 		.min(10, 'The description must be at least 10 characters')
-		.max(500, 'The description must not exceed 500 characters')
+		.max(2000, 'The description must not exceed 2000 characters')
 		.nonempty('You must enter a description')
 		.trim(),
 	main_category: z
@@ -80,6 +80,18 @@ const schema = z.object({
 			})
 		)
 		.min(1, 'At least one image is required'),
+	// SEO fields with character limits
+	meta_title: z.string().max(70, 'SEO title must not exceed 70 characters').optional(),
+	meta_description: z.string().max(160, 'Meta description must not exceed 160 characters').optional(),
+	meta_keywords: z.string().max(255, 'Meta keywords must not exceed 255 characters').optional(),
+	// Additional fields with limits
+	condition_notes: z.string().max(500, 'Condition notes must not exceed 500 characters').optional(),
+	box_contents: z.string().max(1000, 'Box contents must not exceed 1000 characters').optional(),
+	warranty: z.string().max(200, 'Warranty information must not exceed 200 characters').optional(),
+	slug: z.string().max(100, 'Slug must not exceed 100 characters').optional(),
+	// Delivery and store fields
+	store_postcode: z.string().max(20, 'Store postcode must not exceed 20 characters').optional(),
+	delivery_slots: z.string().max(50, 'Delivery slots must not exceed 50 characters').optional(),
 	// price_tax_excl: z
 	// 	.number({
 	// 		required_error: 'Price is required',
@@ -106,10 +118,6 @@ function Product() {
 	if (routeParams.handle && Array.isArray(routeParams.handle) && routeParams.handle.length > 0) {
 		// If productId is actually a slug (not numeric), we might need to handle differently
 		// But typically productId should be numeric
-		// Only log in development to avoid console noise
-		if (process.env.NODE_ENV === 'development') {
-			console.log('Route has handle segments:', routeParams.handle);
-		}
 		// Ensure productId is extracted correctly - if handle contains the actual ID, use it
 		// Otherwise, productId from routeParams should be correct
 	}
@@ -119,13 +127,6 @@ function Product() {
 	const numericId = productId ? String(productId).split('/')[0] : '';
 	productId = numericId || productId;
 
-	// Debug: Log route params to understand the structure
-	console.log('Product route params:', { 
-		originalProductId: routeParams.productId, 
-		extractedProductId: productId,
-		handle: routeParams.handle,
-		fullParams: routeParams 
-	});
 
 	const {
 		data: product,
@@ -139,38 +140,6 @@ function Product() {
 		refetchOnMountOrArgChange: true,
 	});
 
-	// Debug: Log API query state
-	if (productId && productId !== 'new') {
-		console.log('Product query state:', { 
-			productId, 
-			isLoading, 
-			isError, 
-			hasData: !!product,
-			productData: product?.data ? { id: product.data.id, name: product.data.name } : null,
-			error: error ? {
-				status: (error as any)?.status,
-				data: (error as any)?.data,
-				message: (error as any)?.message || (error as any)?.error,
-				originalStatus: (error as any)?.originalStatus
-			} : null,
-			apiUrl: `/api/products/${productId}`,
-			fullResponse: product
-		});
-		
-		// If we get a 404, try to get more details
-		if (isError && error) {
-			const errorStatus = (error as any)?.status || (error as any)?.originalStatus;
-			if (errorStatus === 404) {
-				console.error('Product 404 - Possible reasons:', {
-					productId,
-					productIdType: typeof productId,
-					productIdNumeric: isNaN(Number(productId)) ? 'Not numeric' : Number(productId),
-					errorData: (error as any)?.data,
-					suggestion: 'Product might not exist, be inactive, or require authentication'
-				});
-			}
-		}
-	}
 
 	const [tabValue, setTabValue] = useState('basic-info');
 
@@ -205,11 +174,9 @@ function Product() {
 			// Set store_id from session if available
 			if (sessionStoreId) {
 				defaultValues.store_id = Number(sessionStoreId);
-				console.log('✅ Setting store_id in Product.tsx from session:', sessionStoreId);
 			}
 			reset(defaultValues);
 		} else if (product) {
-			console.log(product.data, 'product');
 			// Reset form with fresh product data, including updated images
 			const sanitized = sanitizeProduct(product.data);
 			reset(sanitized);
@@ -223,7 +190,6 @@ function Product() {
 		if (productId === 'new' && sessionStoreId && !watch('store_id')) {
 			const numericStoreId = Number(sessionStoreId);
 			if (!isNaN(numericStoreId) && numericStoreId > 0) {
-				console.log('✅ Setting store_id immediately in Product.tsx:', numericStoreId);
 				setValue('store_id', numericStoreId, { shouldValidate: true });
 			}
 		}
@@ -242,8 +208,8 @@ function Product() {
 		setTabValue(value);
 	}
 
-	if (isLoading) {
-		// console.log('first loading');
+	// Only show loading if we're actually loading an existing product (not creating new)
+	if (isLoading && productId !== 'new') {
 		return <FuseLoading />;
 	}
 
@@ -259,17 +225,6 @@ function Product() {
 		                          errorMessage.includes('NetworkError') ||
 		                          errorMessage.includes('Network request failed');
 		const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'Not configured';
-		
-		console.error('Product not found error:', {
-			productId,
-			errorStatus,
-			errorData,
-			errorMessage,
-			apiUrl: `/api/products/${productId}`,
-			apiBaseUrl,
-			isConnectionError,
-			fullError: error
-		});
 		
 		return (
 			<motion.div

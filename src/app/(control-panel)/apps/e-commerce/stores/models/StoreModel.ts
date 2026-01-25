@@ -43,6 +43,7 @@ export function createDefaultStore(): EcommerceStore {
 		offers_pickup: false,
 		offers_delivery: false,
 		delivery_radius: null,
+		delivery_slots: [],
 		created_at: '',
 		updated_at: '',
 		deleted_at: null,

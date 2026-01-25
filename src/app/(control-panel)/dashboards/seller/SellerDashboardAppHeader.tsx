@@ -14,9 +14,9 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 
 /**
- * The SellerDashboardAppHeader component.
+ * The VendorDashboardAppHeader component.
  */
-function SellerDashboardAppHeader() {
+function VendorDashboardAppHeader() {
 	const { data: user, isGuest } = useUser();
 
 	const [openStoreDialog, setOpenStoreDialog] = useState(false);
@@ -116,5 +116,5 @@ function SellerDashboardAppHeader() {
 	);
 }
 
-export default SellerDashboardAppHeader;
+export default VendorDashboardAppHeader;
 

@@ -17,7 +17,7 @@ export default function KycApprovalsPage() {
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const { data: docsData, isFetching: docsLoading } = useGetKycDocumentsQuery({ submissionId: docSubmissionId as number }, { skip: docSubmissionId == null });
   const [kybOpen, setKybOpen] = useState(false);
-  const [kybVendor, setKybVendor] = useState<{ id: number; name: string } | null>(null);
+  const [kybvendor, setKybvendor] = useState<{ id: number; name: string } | null>(null);
   const [kybName, setKybName] = useState('');
   const [kybEmail, setKybEmail] = useState('');
   const [kybError, setKybError] = useState<string | null>(null);
@@ -58,8 +58,8 @@ export default function KycApprovalsPage() {
   }
 
   async function onStartKyb() {
-    if (!kybVendor || !kybVendor.id) {
-      setKybError('Vendor ID is required');
+    if (!kybvendor || !kybvendor.id) {
+      setKybError('vendor ID is required');
       return;
     }
     
@@ -68,7 +68,7 @@ export default function KycApprovalsPage() {
     try {
       // Prepare payload - ensure reference_id is always a string
       const payload: { reference_id: string; name?: string; email?: string } = {
-        reference_id: String(kybVendor.id)
+        reference_id: String(kybvendor.id)
       };
       
       if (kybName && kybName.trim()) {
@@ -91,7 +91,7 @@ export default function KycApprovalsPage() {
       setSnackbarSeverity('success');
       setSnackbarOpen(true);
       setKybOpen(false);
-      setKybVendor(null);
+      setKybvendor(null);
       setKybName('');
       setKybEmail('');
       refetch();
@@ -259,7 +259,7 @@ export default function KycApprovalsPage() {
                   <TableHead>
                     <TableRow>
                       <TableCell>ID</TableCell>
-                      <TableCell>Vendor</TableCell>
+                      <TableCell>vendor</TableCell>
                       <TableCell>
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <span>Status</span>
@@ -299,7 +299,7 @@ export default function KycApprovalsPage() {
                           <TableCell>{new Date(s.submitted_at || s.created_at).toLocaleString()}</TableCell>
                           <TableCell align="right">
                             <Stack direction="row" spacing={1} justifyContent="flex-end">
-                              <Button size="small" variant="text" onClick={() => { setKybVendor({ id: s.vendor_id, name: s.vendor_name }); setKybName(s.vendor_name || ''); setKybEmail(''); setKybError(null); setKybOpen(true); }}>
+                              <Button size="small" variant="text" onClick={() => { setKybvendor({ id: s.vendor_id, name: s.vendor_name }); setKybName(s.vendor_name || ''); setKybEmail(''); setKybError(null); setKybOpen(true); }}>
                                 Start KYB
                               </Button>
                               <Button size="small" variant="outlined" onClick={() => setDocSubmissionId(s.id)}>
@@ -393,8 +393,8 @@ export default function KycApprovalsPage() {
               </Dialog>
 
               {/* Start KYB Dialog */}
-              <Dialog open={kybOpen} onClose={() => { if (!startingKyb) { setKybOpen(false); setKybError(null); setKybVendor(null); setKybName(''); setKybEmail(''); } }} maxWidth="sm" fullWidth>
-                <DialogTitle>Start KYB for {kybVendor?.name || 'Vendor'}</DialogTitle>
+              <Dialog open={kybOpen} onClose={() => { if (!startingKyb) { setKybOpen(false); setKybError(null); setKybvendor(null); setKybName(''); setKybEmail(''); } }} maxWidth="sm" fullWidth>
+                <DialogTitle>Start KYB for {kybvendor?.name || 'vendor'}</DialogTitle>
                 <DialogContent dividers>
                   <Stack spacing={2}>
                     {kybError && (
@@ -402,14 +402,14 @@ export default function KycApprovalsPage() {
                         {kybError}
                       </Alert>
                     )}
-                    <TextField label="Reference ID (vendor_id)" value={kybVendor?.id ?? ''} InputProps={{ readOnly: true }} />
+                    <TextField label="Reference ID (vendor_id)" value={kybvendor?.id ?? ''} InputProps={{ readOnly: true }} />
                     <TextField label="Business/Contact Name (optional)" value={kybName} onChange={(e) => setKybName(e.target.value)} disabled={startingKyb} />
                     <TextField label="Email (optional)" type="email" value={kybEmail} onChange={(e) => setKybEmail(e.target.value)} disabled={startingKyb} />
                   </Stack>
                 </DialogContent>
                 <DialogActions>
-                  <Button onClick={() => { setKybOpen(false); setKybError(null); setKybVendor(null); setKybName(''); setKybEmail(''); }} disabled={startingKyb}>Cancel</Button>
-                  <Button variant="contained" onClick={onStartKyb} disabled={startingKyb || !kybVendor}>
+                  <Button onClick={() => { setKybOpen(false); setKybError(null); setKybvendor(null); setKybName(''); setKybEmail(''); }} disabled={startingKyb}>Cancel</Button>
+                  <Button variant="contained" onClick={onStartKyb} disabled={startingKyb || !kybvendor}>
                     {startingKyb ? <CircularProgress size={20} /> : 'Start'}
                   </Button>
                 </DialogActions>

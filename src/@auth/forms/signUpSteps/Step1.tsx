@@ -33,7 +33,7 @@ export default function Step1({
                 render={({ field }) => (
                     <FormControl component="fieldset" className="mb-2" error={!!errors.role}>
                         <RadioGroup {...field} row>
-                            <FormControlLabel value="vendor" control={<Radio />} label="Vendor" />
+                            <FormControlLabel value="Seller" control={<Radio />} label="seller" />
                             <FormControlLabel value="supplier" control={<Radio />} label="Supplier" />
                         </RadioGroup>
                         {errors.role && <FormHelperText>{errors.role.message}</FormHelperText>}

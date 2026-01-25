@@ -19,7 +19,7 @@ import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
 import { useSnackbar } from 'notistack';
 import Link from '@fuse/core/Link';
 
-function VendorsTable() {
+function vendorsTable() {
     const isMountedRef = useIsMounted();
     const { enqueueSnackbar } = useSnackbar();
 
@@ -43,7 +43,7 @@ function VendorsTable() {
     });
 
 
-    // Fetch sellers with pagination
+    // Fetch vendors with pagination
     const { data: profilesRes, isLoading, error } = useGetProfilesByRoleQuery({
         role: 'vendor',
         page: pagination.pageIndex + 1, // Convert to 1-based indexing for API
@@ -70,7 +70,7 @@ function VendorsTable() {
                     <Avatar
                         variant="rounded"
                         src={img}
-                        alt={row.original.user?.name || 'Seller'}
+                        alt={row.original.user?.name || 'Vendor'}
                         sx={{ width: 40, height: 40 }}
                     />
                 );
@@ -78,7 +78,7 @@ function VendorsTable() {
         },
         {
             accessorKey: 'user.name',
-            header: 'Seller Name',
+            header: 'Vendor Name',
             Cell: ({ row }) => (
                 <Typography
                     component={Link}
@@ -100,7 +100,7 @@ function VendorsTable() {
             accessorKey: 'user.roles',
             header: 'Role',
             Cell: ({ row }) => (
-                <>{row.original.user?.roles?.join(', ') || 'Seller'}</>
+                <>{row.original.user?.roles?.join(', ') || 'Vendor'}</>
             ),
         },
         {
@@ -143,10 +143,10 @@ function VendorsTable() {
     useEffect(() => {
         if (!isMountedRef.current) return;
         if (profilesRes) {
-            console.log('Fetched Seller Profiles:', profilesRes);
+            console.log('Fetched Vendor Profiles:', profilesRes);
         }
         if (error) {
-            console.error('Failed to load Seller Profiles:', error);
+            console.error('Failed to load Vendor Profiles:', error);
         }
     }, [profilesRes, error, isMountedRef]);
 
@@ -162,8 +162,8 @@ function VendorsTable() {
             if (succeeded > 0) {
                 const message =
                     succeeded === 1
-                        ? 'Seller deleted successfully'
-                        : `${succeeded} sellers deleted successfully`;
+                        ? 'Vendor deleted successfully'
+                        : `${succeeded} vendors deleted successfully`;
                 enqueueSnackbar(message, { variant: 'success' });
                 setSuccessMessage(message);
                 setSuccessDialogOpen(true);
@@ -203,7 +203,7 @@ function VendorsTable() {
     };
 
     if (isLoading) return <FuseLoading />;
-    if (error) return <Typography color="error">Failed to load Sellers</Typography>;
+    if (error) return <Typography color="error">Failed to load Vendors</Typography>;
 
     return (
         <Paper
@@ -294,4 +294,4 @@ function VendorsTable() {
     );
 }
 
-export default VendorsTable;
+export default vendorsTable;

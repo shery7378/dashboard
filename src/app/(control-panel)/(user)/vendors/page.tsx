@@ -1,13 +1,13 @@
-import Vendors from './Vendors';
+import vendors from './vendors';
 import AuthGuard from '@auth/AuthGuard';
 import authRoles from '@auth/authRoles';
 
-const VendorsPage = () => {
+const vendorsPage = () => {
     return (
         <AuthGuard auth={authRoles.admin} mode="inline">
-            <Vendors />
+            <vendors />
         </AuthGuard>
     );
 };
 
-export default VendorsPage;
+export default vendorsPage;

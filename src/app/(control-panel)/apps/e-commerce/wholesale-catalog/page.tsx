@@ -26,10 +26,10 @@ function WholesaleCatalogPage() {
         const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
 
         // Check if user is vendor or admin
-        const isVendor = roles.includes('vendor');
+        const isvendor = roles.includes('vendor');
         const isAdmin = roles.includes('admin');
 
-        if (!isVendor && !isAdmin) {
+        if (!isvendor && !isAdmin) {
             // Redirect non-vendors to their dashboard
             // If supplier, go to supplier dashboard
             if (roles.includes('supplier')) {
@@ -47,10 +47,10 @@ function WholesaleCatalogPage() {
     const user = session?.user || session?.db;
     const userRoles = user?.role || session?.db?.role || [];
     const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
-    const isVendor = roles.includes('vendor');
+    const isvendor = roles.includes('vendor');
     const isAdmin = roles.includes('admin');
 
-    if (!isVendor && !isAdmin) {
+    if (!isvendor && !isAdmin) {
         return null; // Will redirect
     }
 

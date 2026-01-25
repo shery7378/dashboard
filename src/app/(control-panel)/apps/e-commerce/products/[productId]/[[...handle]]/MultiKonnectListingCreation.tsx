@@ -43,6 +43,7 @@ import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
 import Divider from '@mui/material/Divider';
 import { useSnackbar } from 'notistack';
+import React from 'react';
 
 interface ListingStep {
 	id: number;
@@ -68,7 +69,7 @@ function MultiKonnectListingCreation() {
 	const { data: session } = useSession();
 	const navigate = useNavigate();
 	const { enqueueSnackbar } = useSnackbar();
-	
+
 	// Get user roles to hide import button for suppliers and admins
 	const user = session?.user || session?.db;
 	const userRoles = user?.role || session?.db?.role || [];
@@ -76,7 +77,7 @@ function MultiKonnectListingCreation() {
 	const isSupplier = roles.includes('supplier');
 	const isAdmin = roles.includes('admin');
 	const showImportFromVendor = !isSupplier && !isAdmin;
-	
+
 	const [currentStep, setCurrentStep] = useState(1);
 	const [mpidSearch, setMpidSearch] = useState('');
 	const [mpidMatched, setMpidMatched] = useState(false);
@@ -130,6 +131,12 @@ function MultiKonnectListingCreation() {
 	const [selectedColorForImage, setSelectedColorForImage] = useState<string | null>(null);
 	const [colorImageDialogOpen, setColorImageDialogOpen] = useState(false);
 	const [seoTone, setSeoTone] = useState<string>('Neutral');
+	const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+	const [isGeneratingBullets, setIsGeneratingBullets] = useState(false);
+	const [isWritingDescription, setIsWritingDescription] = useState(false);
+	const [isValidating, setIsValidating] = useState(false);
+	const [isSavingDraft, setIsSavingDraft] = useState(false);
+	const [isPublishing, setIsPublishing] = useState(false);
 	const sectionRefs = useRef<{ [key: number]: HTMLElement | null }>({});
 	const observerRef = useRef<IntersectionObserver | null>(null);
 	const prevProductTitleRef = useRef<string>('');
@@ -148,26 +155,16 @@ function MultiKonnectListingCreation() {
 	// Ensure galleryImages is always an array - defensive programming
 	// Use useMemo to ensure reactivity when gallery_images changes
 	const galleryImages: any[] = useMemo(() => {
-		console.log('galleryImages useMemo triggered, galleryImagesRaw:', galleryImagesRaw);
 		if (!galleryImagesRaw) {
-			console.log('galleryImagesRaw is falsy, returning empty array');
 			return [];
 		}
 		if (!Array.isArray(galleryImagesRaw)) {
-			console.log('galleryImagesRaw is not an array:', typeof galleryImagesRaw);
 			return [];
 		}
 		const filtered = galleryImagesRaw.filter((img: any) => {
 			const hasUrl = img && img.url && typeof img.url === 'string' && img.url.length > 0;
-			if (!hasUrl) {
-				console.log('Filtered out image:', img);
-			}
 			return hasUrl;
 		});
-		console.log('galleryImages computed:', filtered.length, 'images out of', galleryImagesRaw.length);
-		if (filtered.length > 0) {
-			console.log('First filtered image:', filtered[0]);
-		}
 		return filtered;
 	}, [galleryImagesRaw]);
 	const description = watch('description') || '';
@@ -204,16 +201,8 @@ function MultiKonnectListingCreation() {
 
 	// Debug admin fees data
 	useEffect(() => {
-		console.log('=== ADMIN FEES DATA DEBUG ===');
-		console.log('adminFeesData:', adminFeesData);
-		console.log('adminFeesData?.data:', adminFeesData?.data);
-		console.log('isLoadingAdminFees:', isLoadingAdminFees);
-		console.log('adminFeesError:', adminFeesError);
 		if (adminFeesData?.data) {
-			console.log('standard_product_fee:', adminFeesData.data.standard_product_fee);
-			console.log('standard_product_fee_type:', adminFeesData.data.standard_product_fee_type);
 		}
-		console.log('===========================');
 	}, [adminFeesData, isLoadingAdminFees, adminFeesError]);
 
 	// Admin-configurable fee settings - per product, stored in extraFields
@@ -221,12 +210,7 @@ function MultiKonnectListingCreation() {
 	// Get fees from extraFields (product-specific) or use admin defaults
 	const getProductFees = useCallback(() => {
 		// Debug logging
-		console.log('getProductFees called:', {
-			extraFields,
-			adminFeesData,
-			adminFeesDataData: adminFeesData?.data
-		});
-		
+
 		// If product has specific fees set, use those
 		if (extraFields?.commissionRate !== undefined || extraFields?.promoFee !== undefined) {
 			// If commissionRate is explicitly set to undefined/null, check admin default first
@@ -236,7 +220,6 @@ function MultiKonnectListingCreation() {
 				const adminFees = adminFeesData?.data;
 				if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
 					commissionRate = adminFees.standard_product_fee / 100;
-					console.log('Using admin fee from extraFields check:', commissionRate);
 				} else {
 					commissionRate = 0; // Will be updated when admin fees load
 				}
@@ -246,29 +229,21 @@ function MultiKonnectListingCreation() {
 				promoFee: extraFields.promoFee ?? 0,
 			};
 		}
-		
+
 		// Otherwise, use admin-set standard product fee if it's a percentage
 		const adminFees = adminFeesData?.data;
-		console.log('Checking admin fees:', {
-			adminFees,
-			hasData: !!adminFees,
-			feeType: adminFees?.standard_product_fee_type,
-			feeValue: adminFees?.standard_product_fee
-		});
-		
+
 		if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
 			// Convert percentage to decimal (e.g., 2% -> 0.02)
 			const adminCommissionRate = adminFees.standard_product_fee / 100;
-			console.log('Using admin fee:', adminCommissionRate, 'from', adminFees.standard_product_fee);
 			return {
 				commissionRate: adminCommissionRate,
 				promoFee: 0,
 			};
 		}
-		
+
 		// Default fees only if admin has loaded but doesn't have percentage type set
 		// Otherwise wait for admin fees to load (will return 0 initially, then update when loaded)
-		console.log('Returning 0 - no admin fees or not percentage type');
 		return {
 			commissionRate: 0, // Will be updated when admin fees load
 			promoFee: 0,
@@ -286,16 +261,12 @@ function MultiKonnectListingCreation() {
 	// Update feeSettings when extraFields or admin fees data changes
 	useEffect(() => {
 		const productFees = getProductFees();
-		console.log('=== FEE SETTINGS UPDATE ===');
-		console.log('Calculated productFees:', productFees);
-		console.log('feeSettingsDialogOpen:', feeSettingsDialogOpen);
 		// Always update feeSettings with calculated fees
 		setFeeSettings(productFees);
 		// Only update tempFeeSettings if dialog is not open (to avoid overriding user edits)
 		if (!feeSettingsDialogOpen) {
 			setTempFeeSettings(productFees);
 		}
-		console.log('==========================');
 	}, [getProductFees, feeSettingsDialogOpen, adminFeesData]);
 
 	// Update tempFeeSettings when feeSettings changes (but not when dialog is open to allow user edits)
@@ -337,7 +308,7 @@ function MultiKonnectListingCreation() {
 	// Fetch parent categories only for main category dropdown
 	const { data: parentCategoriesData } = useGetECommerceParentCategoriesQuery();
 	const categoryOptions = parentCategoriesData?.data || [];
-	
+
 	// Fetch all parent categories WITH children relationship for subcategory dropdown
 	// Use getAllCategories endpoint which returns parent categories with their children
 	const { data: allCategoriesData } = useGetECommerceAllCategoriesQuery();
@@ -345,11 +316,34 @@ function MultiKonnectListingCreation() {
 
 	// Get user's store_id from session
 	const userStoreId = user?.store_id || session?.db?.store_id || null;
-	
+
 	// Fetch store data to get postcode (skip query if no store_id)
 	const { data: storeData } = useGetECommerceStoreQuery(userStoreId || '', {
 		skip: !userStoreId, // Skip query if no store_id
 	});
+
+	// Normalize delivery slots from store (backend may return string[] or a comma-separated string)
+	const storeDeliverySlots: string[] = useMemo(() => {
+		const raw: any = storeData?.data?.delivery_slots;
+		if (Array.isArray(raw)) {
+			return raw.map((s) => String(s).trim()).filter(Boolean);
+		}
+		if (typeof raw === 'string') {
+			return raw
+				.split(/[,\n]/g)
+				.map((s) => s.trim())
+				.filter(Boolean);
+		}
+		return [];
+	}, [storeData]);
+
+	// Normalize delivery radius from store (backend may return number or numeric string)
+	const storeDeliveryRadius: number | null = useMemo(() => {
+		const raw: any = storeData?.data?.delivery_radius;
+		if (raw === null || raw === undefined || raw === '') return null;
+		const n = typeof raw === 'number' ? raw : Number(raw);
+		return Number.isFinite(n) ? n : null;
+	}, [storeData]);
 
 	// Fetch and populate store postcode when store data is available
 	useEffect(() => {
@@ -361,6 +355,20 @@ function MultiKonnectListingCreation() {
 			setValue('store_postcode', storeData.data.zip_code, { shouldDirty: false });
 		}
 	}, [storeData, storePostcode, setValue]);
+
+	// Populate delivery slot from store settings if not set on the form
+	useEffect(() => {
+		if (storeDeliverySlots.length === 0) return;
+		if (!deliverySlots) {
+			setValue('delivery_slots', storeDeliverySlots[0], { shouldDirty: false });
+		}
+	}, [storeDeliverySlots, deliverySlots, setValue]);
+
+	// Always sync delivery radius from store settings (non-editable on listing)
+	useEffect(() => {
+		if (storeDeliveryRadius === null) return;
+		setValue('delivery_radius', storeDeliveryRadius, { shouldDirty: false });
+	}, [storeDeliveryRadius, setValue]);
 
 	// Calculate pricing intelligence dynamically
 	const pricingIntelligence = useMemo(() => {
@@ -404,19 +412,19 @@ function MultiKonnectListingCreation() {
 		};
 
 		const city = getCityFromPostcode(storePostcode);
-		
+
 		// Get base price from multiple sources - prioritize the most current/relevant price
 		// 1. Check variants state (local state, most up-to-date)
 		// 2. Check product_variants from form (form state)
 		// 3. Check main price_tax_excl (fallback)
 		let basePrice = 0;
-		
+
 		// First, try to get price from local variants state
 		const variantPrice = variants.find(v => {
 			const price = parseFloat(v.price?.toString() || '0');
 			return price > 0;
 		});
-		
+
 		if (variantPrice && variantPrice.price) {
 			basePrice = parseFloat(variantPrice.price.toString()) || 0;
 		} else if (Array.isArray(productVariants) && productVariants.length > 0) {
@@ -429,7 +437,7 @@ function MultiKonnectListingCreation() {
 				basePrice = parseFloat(formVariantWithPrice.price_tax_excl.toString()) || 0;
 			}
 		}
-		
+
 		// Fallback to main price field
 		if (basePrice <= 0 && priceTaxExcl) {
 			basePrice = parseFloat(priceTaxExcl.toString()) || 0;
@@ -452,7 +460,7 @@ function MultiKonnectListingCreation() {
 			return prices.sort((a, b) => a - b);
 		};
 
-		const recentPrices = basePrice > 0 
+		const recentPrices = basePrice > 0
 			? generateMockPrices(basePrice)
 			: [];
 
@@ -469,16 +477,16 @@ function MultiKonnectListingCreation() {
 
 		// Calculate fees using admin-configurable settings
 		const commission = basePrice > 0 ? basePrice * feeSettings.commissionRate : 0;
-		
-		// Shipping charge: set by vendor/seller (not admin)
+
+		// Shipping charge: set by vendor/vendor (not admin)
 		const hasSameDay = variants.some(v => v.sameDay) || false;
-		const shippingCharge = hasSameDay 
+		const shippingCharge = hasSameDay
 			? (parseFloat(shippingChargeSameDay.toString()) || 0)
 			: (parseFloat(shippingChargeRegular.toString()) || 0);
-		
+
 		// Promotional fees (if any promotions are enabled) - admin set
 		const promoFee = feeSettings.promoFee || 0;
-		
+
 		const totalFees = commission + shippingCharge + promoFee;
 		const netPrice = basePrice > 0 ? basePrice - totalFees : 0;
 
@@ -506,15 +514,15 @@ function MultiKonnectListingCreation() {
 			maximumFractionDigits: 0,
 		}).format(amount);
 	};
-	
+
 	// Fetch user's past products - exclude current product if editing
 	const { data: pastProductsData, isLoading: loadingPastProducts } = useGetECommerceProductsQuery({ page: 1, perPage: 100 });
 	// Handle different response formats and exclude current product
 	const pastProducts = useMemo(() => {
 		if (!pastProductsData) return [];
-		
+
 		let products: any[] = [];
-		
+
 		// Try different possible response structures
 		if (Array.isArray(pastProductsData)) {
 			products = pastProductsData;
@@ -525,19 +533,19 @@ function MultiKonnectListingCreation() {
 		} else if (pastProductsData.products && Array.isArray(pastProductsData.products)) {
 			products = pastProductsData.products;
 		}
-		
+
 		// Exclude current product if editing
 		if (productId && products.length > 0) {
 			products = products.filter((p: any) => String(p.id) !== String(productId));
 		}
-		
+
 		return products;
 	}, [pastProductsData, productId]);
-	
+
 	// Fetch other vendors' products (excludes current vendor's products)
-	const { data: otherVendorsData, isLoading: loadingOtherVendors } = useGetOtherVendorsProductsQuery({ 
-		page: 1, 
-		perPage: 50 
+	const { data: otherVendorsData, isLoading: loadingOtherVendors } = useGetOtherVendorsProductsQuery({
+		page: 1,
+		perPage: 50
 	});
 	const otherVendorsProducts = otherVendorsData?.products?.data || otherVendorsData?.data || [];
 
@@ -545,60 +553,60 @@ function MultiKonnectListingCreation() {
 	const listingScore = useMemo(() => {
 		let score = 0;
 		const maxScore = 100;
-		
+
 		// Product Identity (20 points)
 		if (productTitle && productTitle.length > 10) score += 10;
 		if (mpidMatched) score += 10;
-		
+
 		// Media (25 points)
 		if (Array.isArray(galleryImages)) {
 			if (galleryImages.length >= 1) score += 10;
 			if (galleryImages.length >= 4) score += 5;
 			if (galleryImages.length >= 8) score += 10;
 		}
-		
+
 		// Variants (20 points)
 		if (variants.length > 0) score += 10;
 		if (variants.length > 0 && variants.every(v => v.price && parseFloat(v.price) > 0)) score += 10;
-		
+
 		// Pricing (10 points)
 		if (priceTaxExcl && parseFloat(priceTaxExcl.toString()) > 0) score += 10;
-		
+
 		// Copy & SEO (15 points)
 		if (description && description.length > 50) score += 5;
 		if (seoTitle && seoTitle.length > 20 && seoTitle.length <= 70) score += 5;
 		if (metaDescription && metaDescription.length > 50 && metaDescription.length <= 160) score += 5;
-		
+
 		// Same-day & Delivery (10 points)
 		if (storePostcode && storePostcode.length > 0) score += 5;
 		if (deliverySlots && deliverySlots !== '12-3pm') score += 5;
-		
+
 		// QC & Policies (10 points)
 		if (condition && condition !== 'New') score += 3;
 		if (conditionNotes && conditionNotes.length > 10) score += 3;
 		if (boxContents && boxContents.length > 5) score += 4;
-		
+
 		return Math.min(maxScore, score);
 	}, [
-		productTitle, 
-		mpidMatched, 
-		galleryImages.length, 
-		variants, 
-		priceTaxExcl, 
-		description, 
-		seoTitle, 
-		metaDescription, 
-		storePostcode, 
-		deliverySlots, 
-		condition, 
-		conditionNotes, 
+		productTitle,
+		mpidMatched,
+		galleryImages.length,
+		variants,
+		priceTaxExcl,
+		description,
+		seoTitle,
+		metaDescription,
+		storePostcode,
+		deliverySlots,
+		condition,
+		conditionNotes,
 		boxContents
 	]);
 
 	// Update checklist based on form state - fully dynamic
 	const checklistItems = useMemo(() => {
 		const items = [];
-		
+
 		// Media checklist
 		if (!Array.isArray(galleryImages) || galleryImages.length < 8) {
 			items.push({
@@ -613,20 +621,12 @@ function MultiKonnectListingCreation() {
 				completed: true,
 			});
 		}
-		
+
 		// Same-day configuration
 		// Check if both store_postcode and delivery_slots are properly set
 		const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
 		const hasDeliverySlots = deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '';
-		
-		console.log('Same-day slots validation:', {
-			storePostcode,
-			deliverySlots,
-			hasStorePostcode,
-			hasDeliverySlots,
-			completed: hasStorePostcode && hasDeliverySlots
-		});
-		
+
 		if (!hasStorePostcode || !hasDeliverySlots) {
 			items.push({
 				id: 3,
@@ -640,7 +640,7 @@ function MultiKonnectListingCreation() {
 				completed: true,
 			});
 		}
-		
+
 		// Variants pricing
 		if (variants.length === 0) {
 			items.push({
@@ -661,7 +661,7 @@ function MultiKonnectListingCreation() {
 				completed: true,
 			});
 		}
-		
+
 		// SEO checklist
 		if (!seoTitle || seoTitle.length < 20 || seoTitle.length > 70) {
 			items.push({
@@ -676,7 +676,7 @@ function MultiKonnectListingCreation() {
 				completed: true,
 			});
 		}
-		
+
 		// Description checklist
 		if (!description || description.length < 50) {
 			items.push({
@@ -691,7 +691,7 @@ function MultiKonnectListingCreation() {
 				completed: true,
 			});
 		}
-		
+
 		return items;
 	}, [galleryImages.length, variants, storePostcode, deliverySlots, seoTitle, description, colorOptions, colorImages]);
 
@@ -709,7 +709,6 @@ function MultiKonnectListingCreation() {
 			case 5: // Same-day & stores
 				const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
 				const hasDeliverySlots = deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '';
-				console.log('Step 5 completion check:', { storePostcode, deliverySlots, hasStorePostcode, hasDeliverySlots });
 				return !!(hasStorePostcode && hasDeliverySlots);
 			case 6: // Copy & SEO
 				return !!(seoTitle && description && description.length >= 50);
@@ -744,41 +743,41 @@ function MultiKonnectListingCreation() {
 	useEffect(() => {
 		if (hasInitializedRef.current || isInitialized) return;
 		if (!productVariants || productVariants.length === 0) return;
-		
+
 		// Create a key to compare
 		const productVariantsKey = JSON.stringify(productVariants);
-		
+
 		// Only process if data has actually changed and hasn't been processed yet
 		if (productVariantsKey === prevProductVariantsRef.current) return;
-		
+
 		prevProductVariantsRef.current = productVariantsKey;
-		
+
 		// Load existing variants and extract storage/color options
 		const existingVariants: Variant[] = [];
 		const storages = new Set<string>();
 		const colors = new Set<string>();
-		
+
 		const loadedColorImages: Record<string, string> = {};
-		
+
 		productVariants.forEach((variant: any) => {
 			// Extract attributes from variant
 			const attributes = variant.attributes || [];
 			let storage = '';
 			let color = '';
-			
+
 			attributes.forEach((attr: any) => {
 				if (attr.attribute_name === 'Storage' || attr.attribute_name === 'storage') {
 					storage = attr.attribute_value || '';
 					if (storage) storages.add(storage);
 				}
 				if (attr.attribute_name === 'Color' || attr.attribute_name === 'color') {
-					color = Array.isArray(attr.attribute_value) 
-						? attr.attribute_value[0] 
+					color = Array.isArray(attr.attribute_value)
+						? attr.attribute_value[0]
 						: attr.attribute_value || '';
 					if (color) colors.add(color);
 				}
 			});
-			
+
 			const variantData: any = {
 				id: variant.id?.toString(),
 				storage: storage || variant.name?.split(' - ')[0] || '',
@@ -788,7 +787,7 @@ function MultiKonnectListingCreation() {
 				stock: variant.quantity?.toString() || variant.qty?.toString() || '',
 				sameDay: variant.same_day || false,
 			};
-			
+
 			// Add variant image if it exists
 			if (variant.image) {
 				variantData.image = variant.image;
@@ -797,33 +796,33 @@ function MultiKonnectListingCreation() {
 					loadedColorImages[color] = variant.image;
 				}
 			}
-			
+
 			existingVariants.push(variantData);
 		});
-		
+
 		setVariants(existingVariants);
 		setStorageOptions(Array.from(storages));
 		setColorOptions(Array.from(colors));
 		if (Object.keys(loadedColorImages).length > 0) {
 			setColorImages(loadedColorImages);
 		}
-		
+
 		hasInitializedRef.current = true;
 		setIsInitialized(true);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [productVariants]); // Only watch productVariants, not extraFields
-	
+
 	// Initialize offers from extraFields - separate useEffect to avoid loops
 	useEffect(() => {
 		if (hasInitializedRef.current && isInitialized) {
 			// Only load offers once after initialization
 			if (prevExtraFieldsRef.current !== '') return; // Already processed
-			
+
 			const extraFieldsKey = JSON.stringify(extraFields || {});
 			if (extraFieldsKey === '{}') return; // No data to process
-			
+
 			prevExtraFieldsRef.current = extraFieldsKey;
-			
+
 			// Load offers from extraFields
 			if (extraFields) {
 				setOffers({
@@ -833,7 +832,7 @@ function MultiKonnectListingCreation() {
 					tradeInAssist: extraFields.tradeInAssist || false,
 				});
 			}
-			
+
 			// Check for MPID match in extraFields
 			if (extraFields?.mpidMatched) {
 				setMpidMatched(true);
@@ -886,68 +885,55 @@ function MultiKonnectListingCreation() {
 	// Image upload handler - optimized to prevent multiple calls and fix stale closure
 	const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
 		const files = event.target.files;
-		
-		console.log('handleImageUpload called, files:', files, 'files.length:', files?.length);
-		
+
 		if (!files || files.length === 0) {
-			console.log('No files selected');
 			return;
 		}
-		
+
 		// Prevent multiple simultaneous uploads
 		if (isUploadingImage) {
-			console.log('Already uploading, ignoring');
 			event.target.value = '';
 			return;
 		}
-		
+
 		setIsUploadingImage(true);
-		
+
 		// Store files array before resetting input
 		const filesArray = Array.from(files);
-		console.log('Files array:', filesArray.length, 'files');
-		
+
 		// Reset input to allow same file to be selected again (after storing files)
 		event.target.value = '';
-		
+
 		try {
 			// Get current gallery images from form to avoid stale closure
 			const currentGalleryImagesRaw = watch('gallery_images');
 			// Ensure it's always an array
 			const currentGalleryImages = Array.isArray(currentGalleryImagesRaw) ? currentGalleryImagesRaw : [];
 			const isFirstImage = currentGalleryImages.length === 0;
-			
-			console.log('Current gallery images:', currentGalleryImages.length);
-			
+
 			const imagePromises = filesArray.map((file, index) => {
-				console.log(`Processing file ${index + 1}/${filesArray.length}:`, file.name, 'Type:', file.type, 'Size:', file.size);
-				
+
 				return new Promise<{ url: string; is_featured: boolean }>((resolve, reject) => {
 					// Validate file type
 					if (!file.type.startsWith('image/')) {
-						console.error(`File ${file.name} is not an image, type: ${file.type}`);
 						reject(new Error(`File ${file.name} is not an image`));
 						return;
 					}
-					
+
 					// Validate file size (max 10MB)
 					if (file.size > 10 * 1024 * 1024) {
-						console.error(`File ${file.name} is too large: ${file.size} bytes`);
 						reject(new Error(`File ${file.name} is too large (max 10MB)`));
 						return;
 					}
-					
+
 					const reader = new FileReader();
 					reader.onload = () => {
 						const result = reader.result;
 						if (!result || typeof result !== 'string') {
-							console.error('FileReader result is not a string:', typeof result);
 							reject(new Error('Failed to read image file'));
 							return;
 						}
-						
-						console.log(`File ${file.name} read successfully, data URL length:`, result.length);
-						
+
 						const base64Image = {
 							url: result, // readAsDataURL already returns data URL
 							is_featured: isFirstImage && index === 0, // Only first image of first batch is featured
@@ -955,7 +941,6 @@ function MultiKonnectListingCreation() {
 						resolve(base64Image);
 					};
 					reader.onerror = (error) => {
-						console.error(`FileReader error for ${file.name}:`, error);
 						reject(new Error(`Failed to read file: ${file.name}`));
 					};
 					reader.readAsDataURL(file);
@@ -963,47 +948,41 @@ function MultiKonnectListingCreation() {
 			});
 
 			const results = await Promise.allSettled(imagePromises);
-			
+
 			// Filter successful results
 			const newImages = results
 				.filter((result): result is PromiseFulfilledResult<{ url: string; is_featured: boolean }> => result.status === 'fulfilled')
 				.map(result => result.value);
-			
+
 			// Log rejected results
 			const rejected = results.filter(result => result.status === 'rejected');
 			if (rejected.length > 0) {
-				console.warn('Some images failed to upload:', rejected.map(r => r.status === 'rejected' ? r.reason : ''));
 				rejected.forEach((r, idx) => {
 					if (r.status === 'rejected') {
 						console.error(`Image ${idx + 1} failed:`, r.reason);
 					}
 				});
 			}
-			
-			console.log('Successfully processed images:', newImages.length, 'out of', filesArray.length);
-			console.log('New images structure:', newImages);
-			
+
 			if (newImages.length === 0) {
 				alert('No images were successfully uploaded. Please check the console for errors.');
 				setIsUploadingImage(false);
 				return;
 			}
-			
+
 			// Get latest gallery images directly from watch (not functional update)
 			// Re-read to get the most current value after async operations
 			const latestGalleryImagesRaw = watch('gallery_images');
 			const latestImages = Array.isArray(latestGalleryImagesRaw) ? latestGalleryImagesRaw : [];
 			const updatedImages = [...latestImages, ...newImages];
-			
+
 			// Ensure all images have valid url strings
 			const validImages = updatedImages.filter((img: any) => img && img.url && typeof img.url === 'string' && img.url.length > 0);
-			
-			console.log('Previous images:', latestImages.length, 'New:', newImages.length, 'Total:', validImages.length);
-			console.log('Updated images:', validImages);
-			
+
+
 			// Set the value directly (not using functional update)
 			setValue('gallery_images', validImages, { shouldDirty: true, shouldValidate: true });
-			
+
 		} catch (error) {
 			console.error('Error uploading images:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
@@ -1062,7 +1041,7 @@ function MultiKonnectListingCreation() {
 			alert('Please upload an image first');
 			return;
 		}
-		
+
 		setProcessingImageIndex(imageIndex);
 		setImageProcessingMessage('Removing background...');
 		setImageProcessingDialogOpen(true);
@@ -1080,20 +1059,20 @@ function MultiKonnectListingCreation() {
 				// In production, use a proper background removal API like remove.bg
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				const data = imageData.data;
-				
+
 				// Simple algorithm: remove white/light backgrounds
 				for (let i = 0; i < data.length; i += 4) {
 					const r = data[i];
 					const g = data[i + 1];
 					const b = data[i + 2];
 					const brightness = (r + g + b) / 3;
-					
+
 					// If pixel is very light (background), make it transparent
 					if (brightness > 240) {
 						data[i + 3] = 0; // Set alpha to 0 (transparent)
 					}
 				}
-				
+
 				ctx.putImageData(imageData, 0, 0);
 			});
 
@@ -1135,10 +1114,10 @@ function MultiKonnectListingCreation() {
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				const data = imageData.data;
-				
+
 				// Find bounding box of non-transparent/non-white content
 				let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-				
+
 				for (let y = 0; y < canvas.height; y++) {
 					for (let x = 0; x < canvas.width; x++) {
 						const idx = (y * canvas.width + x) * 4;
@@ -1147,7 +1126,7 @@ function MultiKonnectListingCreation() {
 						const b = data[idx + 2];
 						const a = data[idx + 3];
 						const brightness = (r + g + b) / 3;
-						
+
 						// Consider non-transparent and non-white pixels as content
 						if (a > 10 && brightness < 240) {
 							minX = Math.min(minX, x);
@@ -1157,34 +1136,34 @@ function MultiKonnectListingCreation() {
 						}
 					}
 				}
-				
+
 				// Add padding
 				const padding = 20;
 				minX = Math.max(0, minX - padding);
 				minY = Math.max(0, minY - padding);
 				maxX = Math.min(canvas.width, maxX + padding);
 				maxY = Math.min(canvas.height, maxY + padding);
-				
+
 				// Crop and center
 				const width = maxX - minX;
 				const height = maxY - minY;
 				const size = Math.max(width, height);
-				
+
 				const newCanvas = document.createElement('canvas');
 				newCanvas.width = size;
 				newCanvas.height = size;
 				const newCtx = newCanvas.getContext('2d');
 				if (!newCtx) return;
-				
+
 				// Fill with white background
 				newCtx.fillStyle = '#ffffff';
 				newCtx.fillRect(0, 0, size, size);
-				
+
 				// Center the cropped image
 				const offsetX = (size - width) / 2;
 				const offsetY = (size - height) / 2;
 				newCtx.drawImage(img, minX, minY, width, height, offsetX, offsetY, width, height);
-				
+
 				// Replace canvas content
 				canvas.width = size;
 				canvas.height = size;
@@ -1243,7 +1222,7 @@ function MultiKonnectListingCreation() {
 					ctx.drawImage(img, 0, 0);
 					ctx.restore();
 				});
-				
+
 				spinImages.push({
 					url: processedUrl,
 					is_featured: i === 0,
@@ -1301,11 +1280,11 @@ function MultiKonnectListingCreation() {
 				ctx.lineWidth = 2;
 				ctx.textAlign = 'center';
 				ctx.textBaseline = 'middle';
-				
+
 				const watermarkText = 'MultiKonnect';
 				const x = canvas.width / 2;
 				const y = canvas.height - 40;
-				
+
 				ctx.strokeText(watermarkText, x, y);
 				ctx.fillText(watermarkText, x, y);
 				ctx.restore();
@@ -1349,20 +1328,20 @@ function MultiKonnectListingCreation() {
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				const data = imageData.data;
-				
+
 				// Enhance: adjust brightness, contrast, and saturation
 				for (let i = 0; i < data.length; i += 4) {
 					// Brightness adjustment (+10%)
 					data[i] = Math.min(255, data[i] * 1.1);     // R
 					data[i + 1] = Math.min(255, data[i + 1] * 1.1); // G
 					data[i + 2] = Math.min(255, data[i + 2] * 1.1); // B
-					
+
 					// Contrast adjustment
 					const factor = 1.2;
 					data[i] = Math.min(255, Math.max(0, (data[i] - 128) * factor + 128));
 					data[i + 1] = Math.min(255, Math.max(0, (data[i + 1] - 128) * factor + 128));
 					data[i + 2] = Math.min(255, Math.max(0, (data[i + 2] - 128) * factor + 128));
-					
+
 					// Saturation boost
 					const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
 					const satFactor = 1.15;
@@ -1370,7 +1349,7 @@ function MultiKonnectListingCreation() {
 					data[i + 1] = Math.min(255, gray + (data[i + 1] - gray) * satFactor);
 					data[i + 2] = Math.min(255, gray + (data[i + 2] - gray) * satFactor);
 				}
-				
+
 				ctx.putImageData(imageData, 0, 0);
 			});
 
@@ -1480,7 +1459,7 @@ function MultiKonnectListingCreation() {
 		const updatedVariants = variants.filter(v => v.color !== colorToRemove);
 		setVariants(updatedVariants);
 	};
-	
+
 	const generateVariantsFromOptions = (storages: string[], colors: string[]) => {
 		const newVariants: Variant[] = [];
 		storages.forEach(storage => {
@@ -1542,51 +1521,47 @@ function MultiKonnectListingCreation() {
 		// Always ensure product_variants exists in form (even before initialization)
 		const currentProductVariants = watch('product_variants');
 		if (!Array.isArray(currentProductVariants)) {
-			console.log('Initializing product_variants to empty array');
 			setValue('product_variants', [], { shouldDirty: false });
 		}
-		
+
 		if (!isInitialized) {
 			return;
 		}
-		
+
 		// Always save variants to form, even if empty (backend might require the field to exist)
 		if (variants.length === 0) {
-			console.log('Saving empty variants array to form');
 			setValue('product_variants', [], { shouldDirty: true });
 			return;
 		}
-		
-		console.log('Saving variants to form:', variants.length, 'variants');
-		
+
 		// Create a string representation to compare (prevents unnecessary updates)
-		const variantsKey = JSON.stringify(variants.map(v => ({ 
-			storage: v.storage, 
-			color: v.color, 
-			price: v.price, 
+		const variantsKey = JSON.stringify(variants.map(v => ({
+			storage: v.storage,
+			color: v.color,
+			price: v.price,
 			stock: v.stock,
-			image: (v as any).image 
+			image: (v as any).image
 		})));
 		const colorImagesKey = JSON.stringify(colorImages);
 		const currentSlug = slug || '';
-		
+
 		// Only update if variants, colorImages, or slug actually changed
 		if (variantsKey !== prevVariantsRef.current || colorImagesKey !== prevColorImagesRef.current || currentSlug !== prevSlugRef.current) {
 			prevVariantsRef.current = variantsKey;
 			prevColorImagesRef.current = colorImagesKey;
 			prevSlugRef.current = currentSlug;
-			
+
 			// Convert variants to product_variants format for API
 			const productVariantsData = variants.map((variant, index) => {
 				const variantName = `${variant.storage} - ${variant.color}`;
 				const variantPrice = parseFloat(variant.price) || 0;
 				const variantStock = parseInt(variant.stock) || 0;
 				const variantSku = `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-');
-				
+
 				// Generate uid and uids (backend requires these fields)
 				const variantUid = variant.id ? `variant-${variant.id}` : `variant-${Date.now()}-${index}`;
 				const variantUids = variantUid;
-				
+
 				const variantData: any = {
 					id: variant.id || undefined,
 					name: variantName, // Required field
@@ -1610,18 +1585,17 @@ function MultiKonnectListingCreation() {
 					],
 					same_day: variant.sameDay || false,
 				};
-				
+
 				// Include variant image if it exists, or use per-color image
 				if ((variant as any).image) {
 					variantData.image = (variant as any).image;
 				} else if (colorImages[variant.color]) {
 					variantData.image = colorImages[variant.color];
 				}
-				
+
 				return variantData;
 			});
-			
-			console.log('Setting product_variants in form:', productVariantsData.length, 'variants');
+
 			setValue('product_variants', productVariantsData, { shouldDirty: true });
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1684,10 +1658,10 @@ function MultiKonnectListingCreation() {
 
 	const handleVariantImageUpload = (variantIndex: number, files: FileList | null) => {
 		if (!files || files.length === 0) return;
-		
+
 		const file = files[0];
 		const reader = new FileReader();
-		
+
 		reader.onloadend = () => {
 			const imageUrl = reader.result as string;
 			const updated = [...variants];
@@ -1695,7 +1669,7 @@ function MultiKonnectListingCreation() {
 			(updated[variantIndex] as any).image = imageUrl;
 			setVariants(updated);
 		};
-		
+
 		reader.readAsDataURL(file);
 	};
 
@@ -1708,15 +1682,15 @@ function MultiKonnectListingCreation() {
 	// Color image upload handler - optimized to prevent multiple calls and infinite loops
 	const handleColorImageUpload = useCallback((files: FileList | null) => {
 		if (!files || files.length === 0 || !selectedColorForImage) return;
-		
+
 		// Prevent multiple simultaneous uploads
 		if (isUploadingColorImage) return;
-		
+
 		setIsUploadingColorImage(true);
 		const file = files[0];
 		const colorName = selectedColorForImage; // Capture value to avoid stale closure
 		const reader = new FileReader();
-		
+
 		reader.onloadend = () => {
 			const imageUrl = reader.result as string;
 			setColorImages((prev) => {
@@ -1746,13 +1720,13 @@ function MultiKonnectListingCreation() {
 			setSelectedColorForImage(null);
 			setIsUploadingColorImage(false);
 		};
-		
+
 		reader.onerror = () => {
 			console.error('Error reading color image file');
 			alert('Failed to upload image. Please try again.');
 			setIsUploadingColorImage(false);
 		};
-		
+
 		reader.readAsDataURL(file);
 	}, [selectedColorForImage, isUploadingColorImage]);
 
@@ -1778,18 +1752,21 @@ function MultiKonnectListingCreation() {
 			alert('Please enter a product title first (minimum 5 characters)');
 			return;
 		}
-		
+
+		setIsGeneratingTitle(true);
 		try {
 			// Generate SEO title based on product title and tone
 			const toneText = seoTone === 'Neutral' ? '' : ` (${seoTone.toLowerCase()} tone)`;
 			const suggested = `${productTitle} — QC-Verified, Same-Day Delivery${toneText}`;
-			
+
 			// Ensure it's within 70 characters
 			const finalTitle = suggested.length > 70 ? suggested.substring(0, 67) + '...' : suggested;
 			setValue('meta_title', finalTitle, { shouldDirty: true });
 		} catch (error) {
 			console.error('Error generating SEO title:', error);
 			alert('Failed to generate SEO title. Please try again.');
+		} finally {
+			setIsGeneratingTitle(false);
 		}
 	};
 
@@ -1798,7 +1775,8 @@ function MultiKonnectListingCreation() {
 			alert('Please enter a product title first (minimum 5 characters)');
 			return;
 		}
-		
+
+		setIsGeneratingBullets(true);
 		try {
 			// Generate bullet points based on product title and offers
 			const bullets = [
@@ -1809,7 +1787,7 @@ function MultiKonnectListingCreation() {
 				'7-day price-drop protection',
 				'Trade-in value check available',
 			];
-			
+
 			// Add offer-specific bullets
 			if (offers.accessoryShield) {
 				bullets[1] = '1-year AccessoryShield warranty included';
@@ -1823,12 +1801,14 @@ function MultiKonnectListingCreation() {
 			if (offers.tradeInAssist) {
 				bullets[5] = 'Free trade-in value check and assistance';
 			}
-			
+
 			const description = bullets.join('\n• ');
 			setValue('description', description, { shouldDirty: true });
 		} catch (error) {
 			console.error('Error generating bullets:', error);
 			alert('Failed to generate bullet points. Please try again.');
+		} finally {
+			setIsGeneratingBullets(false);
 		}
 	};
 
@@ -1837,16 +1817,17 @@ function MultiKonnectListingCreation() {
 			alert('Please enter a product title first (minimum 5 characters)');
 			return;
 		}
-		
+
+		setIsWritingDescription(true);
 		try {
 			// Generate description based on product title, tone, and offers
-			const toneStyle = seoTone === 'Professional' ? 'professional' : 
-							  seoTone === 'Casual' ? 'casual and friendly' :
-							  seoTone === 'Friendly' ? 'friendly and approachable' :
-							  seoTone === 'Formal' ? 'formal and detailed' : 'clear and informative';
-			
+			const toneStyle = seoTone === 'Professional' ? 'professional' :
+				seoTone === 'Casual' ? 'casual and friendly' :
+					seoTone === 'Friendly' ? 'friendly and approachable' :
+						seoTone === 'Formal' ? 'formal and detailed' : 'clear and informative';
+
 			let desc = `This ${productTitle} comes with full manufacturer warranty and original packaging. Includes all accessories, documentation, and SIM tool. Device has been QC-verified and tested.`;
-			
+
 			if (offers.accessoryShield) {
 				desc += ' Includes 1-year AccessoryShield warranty for added protection.';
 			}
@@ -1856,28 +1837,30 @@ function MultiKonnectListingCreation() {
 			if (offers.priceDropProtection) {
 				desc += ' 7-day price-drop protection ensures you get the best value.';
 			}
-			
+
 			desc += ' Fast same-day delivery available in select areas.';
-			
+
 			setValue('description', desc, { shouldDirty: true });
 		} catch (error) {
 			console.error('Error writing description:', error);
 			alert('Failed to generate description. Please try again.');
+		} finally {
+			setIsWritingDescription(false);
 		}
 	};
-	
+
 	// Save offers to extraFields - fixed infinite loop by using functional update
 	useEffect(() => {
 		if (!isInitialized) return;
-		
+
 		// Create a key to compare offers
 		const offersKey = JSON.stringify(offers);
-		
+
 		// Only update if offers actually changed
 		if (offersKey === prevOffersRef.current) return;
-		
+
 		prevOffersRef.current = offersKey;
-		
+
 		// Use functional update to get current value without triggering re-renders
 		setValue('extraFields', (prev: any) => ({
 			...prev,
@@ -1911,7 +1894,7 @@ function MultiKonnectListingCreation() {
 				const headerOffset = 60; // Header height
 				const elementPosition = element.getBoundingClientRect().top;
 				const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-				
+
 				window.scrollTo({
 					top: offsetPosition,
 					behavior: 'smooth'
@@ -1992,7 +1975,6 @@ function MultiKonnectListingCreation() {
 		const autoSaveTimer = setTimeout(() => {
 			// Trigger form validation and save state
 			// This would typically call an API to save draft
-			console.log('Auto-saving form state...');
 		}, 3000); // Increased to 3 seconds to reduce frequency
 
 		return () => clearTimeout(autoSaveTimer);
@@ -2000,14 +1982,16 @@ function MultiKonnectListingCreation() {
 	// Removed galleryImages and variants from dependencies to reduce re-runs
 
 	const handlePublishClick = () => {
+		setIsPublishing(true);
 		// Validate "New" condition requires at least one picture
 		if (condition === 'New' && (!galleryImages || galleryImages.length === 0)) {
-			enqueueSnackbar('New condition requires at least one picture. Please add at least one image before publishing.', { 
-				variant: 'error' 
+			enqueueSnackbar('New condition requires at least one picture. Please add at least one image before publishing.', {
+				variant: 'error'
 			});
 			// Scroll to media section
 			setCurrentStep(2);
 			handleStepClick(2);
+			setIsPublishing(false);
 			return;
 		}
 
@@ -2038,41 +2022,36 @@ function MultiKonnectListingCreation() {
 					],
 					same_day: variant.sameDay || false,
 				};
-				
+
 				if ((variant as any).image) {
 					variantData.image = (variant as any).image;
 				} else if (colorImages[variant.color]) {
 					variantData.image = colorImages[variant.color];
 				}
-				
+
 				return variantData;
 			});
-			
-			console.log('handlePublishClick: Saving variants to form before publish:', productVariantsData.length, 'variants');
 			setValue('product_variants', productVariantsData, { shouldDirty: true });
 		} else {
 			// Ensure empty array is set if no variants
-			console.log('handlePublishClick: Setting empty variants array');
 			setValue('product_variants', [], { shouldDirty: true });
 		}
-		
+
 		// Set active status to 1 (published) before submitting
 		setValue('active', 1, { shouldDirty: true });
-		
+
 		// Trigger validation to ensure form is valid before submitting
 		trigger().then((isValid) => {
-			console.log('handlePublishClick: Form validation result:', isValid);
-			
 			// Small delay to ensure setValue and validation complete before clicking submit button
 			setTimeout(() => {
 				// Try to find create button first (for new products)
 				let submitButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
-				
+
 				// If not found, try to find save button (for editing existing products)
 				if (!submitButton) {
 					submitButton = document.querySelector('[data-product-save-button]') as HTMLButtonElement;
 				}
-				
+
 				if (submitButton) {
 					// Check if button is disabled
 					if (submitButton.disabled) {
@@ -2082,6 +2061,7 @@ function MultiKonnectListingCreation() {
 							isValid,
 							formState: formState
 						});
+						setIsPublishing(false);
 					} else {
 						console.log('handlePublishClick: Clicking submit button', {
 							buttonType: submitButton.getAttribute('data-product-create-button') ? 'create' : 'save',
@@ -2089,6 +2069,8 @@ function MultiKonnectListingCreation() {
 							isValid
 						});
 						submitButton.click();
+						// Reset publishing state after a short delay
+						setTimeout(() => setIsPublishing(false), 1000);
 					}
 				} else {
 					console.error('handlePublishClick: Submit button not found', {
@@ -2096,12 +2078,14 @@ function MultiKonnectListingCreation() {
 						createButton: document.querySelector('[data-product-create-button]'),
 						saveButton: document.querySelector('[data-product-save-button]')
 					});
+					setIsPublishing(false);
 				}
 			}, 150); // Increased delay to ensure setValue completes
 		});
 	};
 
 	const handleSaveDraft = () => {
+		setIsSavingDraft(true);
 		// Ensure variants are saved to form before saving draft
 		if (variants.length > 0) {
 			const currentSlug = slug || '';
@@ -2128,30 +2112,48 @@ function MultiKonnectListingCreation() {
 					],
 					same_day: variant.sameDay || false,
 				};
-				
+
 				if ((variant as any).image) {
 					variantData.image = (variant as any).image;
 				} else if (colorImages[variant.color]) {
 					variantData.image = colorImages[variant.color];
 				}
-				
+
 				return variantData;
 			});
-			
+
 			setValue('product_variants', productVariantsData, { shouldDirty: true });
 		} else {
 			setValue('product_variants', [], { shouldDirty: true });
 		}
-		
+
 		// Set draft status and save
+		// ProductHeader's draft save uses active=0; status is used for create-flow relaxed validation.
+		setValue('active', 0, { shouldDirty: true });
 		setValue('status', 'draft', { shouldDirty: true });
-		
-		// Small delay to ensure setValue completes before clicking create button
+
+		// Small delay to ensure setValue completes before clicking save draft button
 		setTimeout(() => {
-			const addButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
-			if (addButton) {
-				addButton.click();
+			// Prefer clicking the dedicated draft button (this runs ProductHeader.handleSaveAsDraft and redirects)
+			let saveButton = document.querySelector('[data-product-draft-button]') as HTMLButtonElement;
+
+			// Fallback: click the normal save button (for existing products)
+			if (!saveButton) {
+				saveButton = document.querySelector('[data-product-save-button]') as HTMLButtonElement;
 			}
+
+			// If save button doesn't exist (new product), try the create button
+			if (!saveButton) {
+				saveButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
+			}
+
+			if (saveButton) {
+				saveButton.click();
+			} else {
+				console.error('Neither save nor create button found');
+			}
+			// Reset saving state after a short delay
+			setTimeout(() => setIsSavingDraft(false), 1000);
 		}, 100);
 	};
 
@@ -2167,68 +2169,71 @@ function MultiKonnectListingCreation() {
 	// Watch category values for validation
 	const mainCategory = watch('main_category');
 	const subcategory = watch('subcategory');
-	
+
 	// Calculate missing required fields
 	const missingFields = useMemo(() => {
 		const missing: Array<{ field: string; section: string; step: number }> = [];
-		
+
 		// Product Identity (Step 1)
 		if (!productTitle || productTitle.length < 5) {
 			missing.push({ field: 'Product Name (min 5 characters)', section: 'Product Identity', step: 1 });
 		}
-		
+
 		// Check main_category - must be an object with an id property
-		const hasValidMainCategory = mainCategory && 
-			typeof mainCategory === 'object' && 
-			mainCategory.id !== null && 
-			mainCategory.id !== undefined && 
+		const hasValidMainCategory = mainCategory &&
+			typeof mainCategory === 'object' &&
+			mainCategory.id !== null &&
+			mainCategory.id !== undefined &&
 			mainCategory.id !== '';
 		if (!hasValidMainCategory) {
 			missing.push({ field: 'Main Category', section: 'Product Identity', step: 1 });
 		}
-		
+
 		// Subcategory is now optional, so no validation needed
-		
+
 		// Media (Step 2)
 		if (!galleryImages || galleryImages.length === 0) {
 			missing.push({ field: 'At least one Product Image', section: 'Media', step: 2 });
 		}
-		
+
 		// Description (Step 6 - Copy & SEO)
 		if (!description || description.length < 10) {
 			missing.push({ field: 'Description (min 10 characters)', section: 'Copy & SEO', step: 6 });
 		}
-		
+
 		// Variants (Step 3)
 		if (variants.length > 0) {
 			variants.forEach((variant, idx) => {
 				if (!variant.price || parseFloat(variant.price) <= 0) {
-					missing.push({ 
-						field: `Variant ${idx + 1} (${variant.storage} ${variant.color}): Price`, 
-						section: 'Variants', 
-						step: 3 
+					missing.push({
+						field: `Variant ${idx + 1} (${variant.storage} ${variant.color}): Price`,
+						section: 'Variants',
+						step: 3
 					});
 				}
 				if (variant.stock === '' || variant.stock === undefined || parseInt(variant.stock) < 0) {
-					missing.push({ 
-						field: `Variant ${idx + 1} (${variant.storage} ${variant.color}): Stock`, 
-						section: 'Variants', 
-						step: 3 
+					missing.push({
+						field: `Variant ${idx + 1} (${variant.storage} ${variant.color}): Stock`,
+						section: 'Variants',
+						step: 3
 					});
 				}
 			});
 		}
-		
+
 		return missing;
 	}, [productTitle, description, galleryImages, variants, mainCategory, subcategory]);
 
 	const handleRunValidation = () => {
+		setIsValidating(true);
 		// Trigger form validation
 		const form = document.querySelector('form');
 		if (form) {
 			const event = new Event('submit', { bubbles: true, cancelable: true });
 			form.dispatchEvent(event);
 		}
+		// Reset validation state after a short delay
+		setTimeout(() => setIsValidating(false), 1000);
 	};
 
 	// Barcode scanning handler
@@ -2260,7 +2265,7 @@ function MultiKonnectListingCreation() {
 		if (template.price_tax_excl) setValue('price_tax_excl', template.price_tax_excl, { shouldDirty: true });
 		if (template.price_tax_incl) setValue('price_tax_incl', template.price_tax_incl, { shouldDirty: true });
 		if (template.sku) setValue('sku', template.sku, { shouldDirty: true });
-		
+
 		// Handle categories
 		if (template.categories && template.categories.length > 0) {
 			const mainCategory = template.categories.find((cat: any) => !cat.parent_id);
@@ -2270,24 +2275,24 @@ function MultiKonnectListingCreation() {
 				setValue('subcategory_ids', subcategories.map((cat: any) => cat.id), { shouldDirty: true });
 			}
 		}
-		
+
 		if (template.gallery_images) {
 			const galleryImages = Array.isArray(template.gallery_images) ? template.gallery_images : [];
 			setValue('gallery_images', galleryImages, { shouldDirty: true });
 		}
-		
+
 		if (template.product_variants && template.product_variants.length > 0) {
 			// Extract unique storage and color options from variants
 			const storageSet = new Set<string>();
 			const colorSet = new Set<string>();
-			
+
 			const templateVariants = template.product_variants.map((v: any) => {
 				const storage = v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '';
 				const color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
-				
+
 				if (storage) storageSet.add(storage);
 				if (color) colorSet.add(color);
-				
+
 				return {
 					id: v.id?.toString(),
 					storage,
@@ -2299,7 +2304,7 @@ function MultiKonnectListingCreation() {
 					image: v.image || (v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value),
 				};
 			});
-			
+
 			// Update storage and color options
 			if (storageSet.size > 0) {
 				setStorageOptions(Array.from(storageSet));
@@ -2307,7 +2312,7 @@ function MultiKonnectListingCreation() {
 			if (colorSet.size > 0) {
 				setColorOptions(Array.from(colorSet));
 			}
-			
+
 			setVariants(templateVariants);
 		}
 		setMasterTemplateDialogOpen(false);
@@ -2320,31 +2325,31 @@ function MultiKonnectListingCreation() {
 
 	const handleSelectPastListing = (product: any) => {
 		// Replace ALL form data with selected product data
-		
+
 		// Basic Information
 		setValue('name', product.name || '', { shouldDirty: true });
 		setValue('description', product.description || '', { shouldDirty: true });
 		setValue('sku', product.sku || '', { shouldDirty: true });
-		
+
 		// Pricing - Ensure prices are set properly
 		const basePriceTaxExcl = product.price_tax_excl || product.price || 0;
 		const basePriceTaxIncl = product.price_tax_incl || product.price || basePriceTaxExcl;
 		const baseComparedPrice = product.compared_price || product.compare_at_price || 0;
-		
+
 		setValue('price_tax_excl', basePriceTaxExcl, { shouldDirty: true });
 		setValue('price_tax_incl', basePriceTaxIncl, { shouldDirty: true });
 		setValue('compared_price', baseComparedPrice, { shouldDirty: true });
-		
+
 		// SEO Fields
 		setValue('meta_title', product.meta_title || '', { shouldDirty: true });
 		setValue('meta_description', product.meta_description || '', { shouldDirty: true });
 		setValue('meta_keywords', product.meta_keywords || '', { shouldDirty: true });
-		
+
 		// Categories - Handle both main_category and subcategories
 		if (product.categories && product.categories.length > 0) {
 			const mainCategory = product.categories.find((cat: any) => !cat.parent_id);
 			const subcategories = product.categories.filter((cat: any) => cat.parent_id);
-			
+
 			if (mainCategory) {
 				setValue('main_category_id', mainCategory.id, { shouldDirty: true });
 				setValue('main_category', { id: mainCategory.id, name: mainCategory.name }, { shouldDirty: true });
@@ -2354,12 +2359,12 @@ function MultiKonnectListingCreation() {
 				setValue('subcategory', subcategories.map((cat: any) => ({ id: cat.id, name: cat.name })), { shouldDirty: true });
 			}
 		}
-		
+
 		// Tags
 		if (product.tags && Array.isArray(product.tags)) {
 			setValue('tags', product.tags.map((tag: any) => ({ id: tag.id || tag, name: tag.name || tag })), { shouldDirty: true });
 		}
-		
+
 		// Helper function to convert image URL to proper format
 		const convertImageUrl = (img: any): string | null => {
 			// If image has a file ID, use the file serving route (preferred method)
@@ -2368,19 +2373,19 @@ function MultiKonnectListingCreation() {
 				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 				return `${apiUrl}/api/files/${fileId}`;
 			}
-			
+
 			let url = img.url || img.path || img;
-			
+
 			// Return null if URL is missing or not a string
 			if (!url || typeof url !== 'string' || url.length === 0) {
 				return null;
 			}
-			
+
 			// If already a full URL (http/https) or base64, return as-is
 			if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) {
 				return url;
 			}
-			
+
 			// If it's a relative storage path, convert to full URL (try to use it)
 			// Even if it's product-specific, we'll try it and let error handler deal with it if it fails
 			if (url.startsWith('storage/')) {
@@ -2389,37 +2394,37 @@ function MultiKonnectListingCreation() {
 				const pathWithoutStorage = url.replace(/^storage\//, '');
 				return `${apiUrl}/storage/${pathWithoutStorage}`;
 			}
-			
+
 			// If it's already a relative path (doesn't start with storage/), try to make it work
 			if (!url.startsWith('/') && !url.startsWith('http')) {
 				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 				return `${apiUrl}/${url}`;
 			}
-			
+
 			// Return as-is if it looks like a valid path
 			return url;
 		};
-		
+
 		// Images - Check multiple sources: gallery_images, images, media, base_image
 		let allImages: any[] = [];
-		
+
 		// Priority 1: gallery_images or images array
 		if (product.gallery_images && Array.isArray(product.gallery_images) && product.gallery_images.length > 0) {
 			allImages = product.gallery_images;
 		} else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
 			allImages = product.images;
 		}
-		
+
 		// Priority 2: Check media/files relationship (if images array is empty)
 		if (allImages.length === 0 && product.media && Array.isArray(product.media) && product.media.length > 0) {
 			allImages = product.media;
 		}
-		
+
 		// Priority 3: Check base_image (if still empty)
 		if (allImages.length === 0 && product.base_image) {
 			allImages = [product.base_image];
 		}
-		
+
 		// Convert and set images
 		if (allImages.length > 0) {
 			const galleryImages = allImages
@@ -2434,17 +2439,17 @@ function MultiKonnectListingCreation() {
 					};
 				})
 				.filter((img: any) => img !== null); // Remove invalid images
-			
+
 			// Also check featured_image - if it's different from gallery images, add it
 			if (product.featured_image) {
 				const featuredImgUrl = convertImageUrl(product.featured_image);
 				if (featuredImgUrl) {
 					// Check if featured image is already in gallery
-					const featuredInGallery = galleryImages.some((img: any) => 
-						img.url === featuredImgUrl || 
+					const featuredInGallery = galleryImages.some((img: any) =>
+						img.url === featuredImgUrl ||
 						(img.id && product.featured_image?.id === img.id)
 					);
-					
+
 					if (!featuredInGallery) {
 						galleryImages.unshift({
 							...(product.featured_image.id ? { id: product.featured_image.id } : {}),
@@ -2454,19 +2459,19 @@ function MultiKonnectListingCreation() {
 						});
 					} else {
 						// Mark the matching image as featured
-						const featuredIndex = galleryImages.findIndex((img: any) => 
-							img.url === featuredImgUrl || 
+						const featuredIndex = galleryImages.findIndex((img: any) =>
+							img.url === featuredImgUrl ||
 							(img.id && product.featured_image?.id === img.id)
 						);
 						if (featuredIndex >= 0) {
 							galleryImages[featuredIndex].is_featured = true;
 						}
 					}
-					
+
 					setValue('featured_image', featuredImgUrl, { shouldDirty: true });
 				}
 			}
-			
+
 			// Only set if we have at least one valid image
 			if (galleryImages.length > 0) {
 				// Ensure at least one image is marked as featured
@@ -2474,7 +2479,7 @@ function MultiKonnectListingCreation() {
 				if (!hasFeatured && galleryImages.length > 0) {
 					galleryImages[0].is_featured = true;
 				}
-				
+
 				setValue('gallery_images', galleryImages, { shouldDirty: true });
 			} else {
 				setValue('gallery_images', [], { shouldDirty: true });
@@ -2499,18 +2504,18 @@ function MultiKonnectListingCreation() {
 				setValue('gallery_images', [], { shouldDirty: true });
 			}
 		}
-		
+
 		// Stock & Inventory
 		setValue('quantity', product.quantity || product.qty || 0, { shouldDirty: true });
 		setValue('in_stock', (product.quantity || product.qty || 0) > 0, { shouldDirty: true });
-		
+
 		// QC & Policies
 		setValue('condition', product.condition || 'New', { shouldDirty: true });
 		setValue('condition_notes', product.condition_notes || '', { shouldDirty: true });
 		setValue('returns', product.returns || '', { shouldDirty: true });
 		setValue('warranty', product.warranty || '', { shouldDirty: true });
 		setValue('box_contents', product.box_contents || '', { shouldDirty: true });
-		
+
 		// Delivery & Shipping
 		setValue('store_postcode', product.store_postcode || '', { shouldDirty: true });
 		setValue('delivery_radius', product.delivery_radius || 5, { shouldDirty: true });
@@ -2519,25 +2524,25 @@ function MultiKonnectListingCreation() {
 		setValue('enable_pickup', product.enable_pickup || false, { shouldDirty: true });
 		setValue('shipping_charge_regular', product.shipping_charge_regular || 0, { shouldDirty: true });
 		setValue('shipping_charge_same_day', product.shipping_charge_same_day || 0, { shouldDirty: true });
-		
+
 		// Subscription
 		setValue('subscription_enabled', product.subscription_enabled || false, { shouldDirty: true });
 		setValue('subscription_frequencies', product.subscription_frequencies || '', { shouldDirty: true });
-		
+
 		// Trust & Compliance
 		setValue('kyc_tier', product.kyc_tier || 'Tier 0 - Email verified', { shouldDirty: true });
 		setValue('safe_selling_limit', product.safe_selling_limit || '£5,000 / day', { shouldDirty: true });
 		setValue('payout_lock', product.payout_lock || '48h post-delivery', { shouldDirty: true });
-		
+
 		// Helper function to find attribute value (case-insensitive)
 		const findAttributeValue = (attributes: any[], attributeName: string): string => {
 			if (!attributes || !Array.isArray(attributes)) return '';
-			
+
 			// Try exact match first (case-sensitive)
-			let attr = attributes.find((a: any) => 
+			let attr = attributes.find((a: any) =>
 				(a.attribute_name === attributeName || a.name === attributeName)
 			);
-			
+
 			// Try case-insensitive match
 			if (!attr) {
 				attr = attributes.find((a: any) => {
@@ -2545,30 +2550,27 @@ function MultiKonnectListingCreation() {
 					return attrName === attributeName.toLowerCase();
 				});
 			}
-			
+
 			// Return attribute value
 			return attr?.attribute_value || attr?.value || '';
 		};
-		
+
 		// Variants - Replace all variants with proper price handling
 		if (product.product_variants && product.product_variants.length > 0) {
-			console.log('Processing variants:', product.product_variants.length, 'variants found');
-			console.log('First variant structure:', JSON.stringify(product.product_variants[0], null, 2));
-			
 			// Extract unique storage and color options from variants
 			const storageSet = new Set<string>();
 			const colorSet = new Set<string>();
-			
+
 			// Get base product price as fallback
 			const basePrice = product.price_tax_excl || product.price || product.price_tax_incl || 0;
 			const baseCompareAtPrice = product.compared_price || 0;
-			
+
 			const pastVariants = product.product_variants.map((v: any) => {
 				// Try multiple sources for storage and color:
 				// 1. Direct properties on variant (some APIs return them directly)
 				let storage = (v.storage || '').trim();
 				let color = (v.color || '').trim();
-				
+
 				// 2. Variant attributes array (case-insensitive)
 				if (!storage || !color) {
 					const attrStorage = findAttributeValue(v.attributes || [], 'Storage');
@@ -2576,13 +2578,13 @@ function MultiKonnectListingCreation() {
 					if (!storage && attrStorage) storage = attrStorage.trim();
 					if (!color && attrColor) color = attrColor.trim();
 				}
-				
+
 				// 3. Product attributes filtered by variant_id
 				if ((!storage || !color) && product.product_attributes && Array.isArray(product.product_attributes)) {
-					const variantAttrs = product.product_attributes.filter((attr: any) => 
+					const variantAttrs = product.product_attributes.filter((attr: any) =>
 						attr.variant_id === v.id || attr.variant_id === String(v.id)
 					);
-					
+
 					if (!storage) {
 						const foundStorage = findAttributeValue(variantAttrs, 'Storage');
 						if (foundStorage) storage = foundStorage.trim();
@@ -2592,11 +2594,11 @@ function MultiKonnectListingCreation() {
 						if (foundColor) color = foundColor.trim();
 					}
 				}
-				
+
 				// 4. Try variant name parsing (e.g., "64GB - Black" or "Storage: 64GB, Color: Black" format)
 				if ((!storage || !color) && v.name) {
 					const nameStr = String(v.name);
-					
+
 					// Try "Storage - Color" format
 					if (nameStr.includes(' - ')) {
 						const nameParts = nameStr.split(' - ').map((p: string) => p.trim());
@@ -2605,7 +2607,7 @@ function MultiKonnectListingCreation() {
 							if (!color && nameParts[1]) color = nameParts[1].trim();
 						}
 					}
-					
+
 					// Try "Storage: X, Color: Y" format
 					if ((!storage || !color) && nameStr.includes(':')) {
 						const storageMatch = nameStr.match(/(?:Storage|storage)[:\s]+([^,]+)/i);
@@ -2614,33 +2616,31 @@ function MultiKonnectListingCreation() {
 						if (!color && colorMatch && colorMatch[1]) color = colorMatch[1].trim();
 					}
 				}
-				
+
 				// Add to sets if found (only add non-empty values)
 				if (storage && storage.trim()) {
 					storageSet.add(storage.trim());
-					console.log(`Variant ${v.id}: Found storage = "${storage.trim()}"`);
 				}
 				if (color && color.trim()) {
 					colorSet.add(color.trim());
-					console.log(`Variant ${v.id}: Found color = "${color.trim()}"`);
 				}
-				
+
 				if (!storage && !color) {
 					console.warn(`Variant ${v.id}: No storage or color found. Variant name: "${v.name}", Attributes:`, v.attributes);
 				}
-				
+
 				// Get price from variant, fallback to base product price
 				const variantPrice = v.price_tax_excl || v.price || v.price_tax_incl || basePrice;
 				const variantCompareAtPrice = v.compared_price || v.compared_price || baseCompareAtPrice;
-				
+
 				// Ensure price is a valid number (convert to string for form)
 				const priceStr = variantPrice ? (typeof variantPrice === 'number' ? variantPrice.toString() : String(variantPrice)) : basePrice.toString();
 				const compareAtStr = variantCompareAtPrice ? (typeof variantCompareAtPrice === 'number' ? variantCompareAtPrice.toString() : String(variantCompareAtPrice)) : '';
-				
+
 				// Get stock quantity
 				const stockQty = v.quantity || v.qty || 0;
 				const stockStr = stockQty ? (typeof stockQty === 'number' ? stockQty.toString() : String(stockQty)) : '0';
-				
+
 				return {
 					id: v.id?.toString(),
 					storage: storage || '', // Keep even if empty - user can fill later
@@ -2656,30 +2656,27 @@ function MultiKonnectListingCreation() {
 				const hasValidPrice = v.price && v.price !== '0' && v.price !== '';
 				return hasValidPrice;
 			});
-			
+
 			// Update storage and color options - ensure they're set even if variants are filtered out
 			const finalStorageOptions = Array.from(storageSet).filter(s => s && s.trim());
 			const finalColorOptions = Array.from(colorSet).filter(c => c && c.trim());
-			
+
 			if (finalStorageOptions.length > 0) {
 				setStorageOptions(finalStorageOptions);
-				console.log('Storage options set:', finalStorageOptions);
 			} else {
 				console.warn('No storage options found in variants');
 			}
-			
+
 			if (finalColorOptions.length > 0) {
 				setColorOptions(finalColorOptions);
-				console.log('Color options set:', finalColorOptions);
 			} else {
 				console.warn('No color options found in variants');
 			}
-			
+
 			// Only set variants if we have at least one valid variant with price and storage/color
 			if (pastVariants.length > 0) {
 				setVariants(pastVariants);
-				console.log('Variants set:', pastVariants.length, 'variants');
-				
+
 				// If variants exist, set base product price from first variant (or use base price)
 				if (pastVariants[0]?.price) {
 					const firstVariantPrice = parseFloat(pastVariants[0].price) || basePrice;
@@ -2687,11 +2684,11 @@ function MultiKonnectListingCreation() {
 						setValue('price_tax_excl', firstVariantPrice, { shouldDirty: true });
 					}
 				}
-				
+
 				// Ensure storage and color options are set from the variants we're keeping
 				const variantStorages = new Set(pastVariants.map((v: any) => v.storage).filter((s: string) => s && s.trim()));
 				const variantColors = new Set(pastVariants.map((v: any) => v.color).filter((c: string) => c && c.trim()));
-				
+
 				if (variantStorages.size > 0) {
 					setStorageOptions(Array.from(variantStorages));
 				}
@@ -2702,7 +2699,7 @@ function MultiKonnectListingCreation() {
 				// Clear variants if none are valid, but keep storage/color options if they were found
 				console.warn('No valid variants found - all variants were filtered out');
 				setVariants([]);
-				
+
 				// Only clear storage/color options if we didn't find any
 				if (finalStorageOptions.length === 0) {
 					setStorageOptions([]);
@@ -2713,27 +2710,26 @@ function MultiKonnectListingCreation() {
 			}
 		} else {
 			// Clear variants if product has none
-			console.log('No product variants found in product data');
 			setVariants([]);
 			setStorageOptions([]);
 			setColorOptions([]);
 		}
-		
+
 		// Product Attributes
 		if (product.product_attributes && Array.isArray(product.product_attributes)) {
 			setValue('product_attributes', product.product_attributes, { shouldDirty: true });
 		}
-		
+
 		// Extra Fields
 		if (product.extraFields) {
 			setValue('extraFields', product.extraFields, { shouldDirty: true });
 		}
-		
+
 		// Close dialog
 		setPastListingsDialogOpen(false);
-		
+
 		// Show success message
-		enqueueSnackbar('Product data loaded from past listing', { 
+		enqueueSnackbar('Product data loaded from past listing', {
 			variant: 'success',
 			anchorOrigin: { vertical: 'top', horizontal: 'right' }
 		});
@@ -2773,457 +2769,427 @@ function MultiKonnectListingCreation() {
 
 	return (
 		<div className="flex flex-col h-screen bg-[#f9fafb] overflow-hidden relative" style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif' }}>
-		{/* Hidden ProductHeader for form submission */}
-		<div className="absolute opacity-0 pointer-events-none -z-10">
-			<ProductHeader />
-		</div>
-
-		{/* Top Navigation Bar - Dark Navy Header */}
-		<header 
-			className="px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0 sticky top-0 z-50" 
-			style={{ 
-				backgroundColor: '#0f172a',
-				minHeight: '60px',
-				boxShadow: 'none',
-				borderBottom: 'none'
-			}}
-		>
-			<div className="flex items-center space-x-2 sm:space-x-3">
-				{/* Back Button */}
-				<IconButton
-					onClick={handleBack}
-					sx={{
-						color: '#ffffff',
-						padding: '8px',
-						marginRight: { xs: '4px', sm: '8px' }
-					}}
-				>
-					<FuseSvgIcon>heroicons-outline:arrow-left</FuseSvgIcon>
-				</IconButton>
-				
-				{/* Sidebar Toggle - Mobile */}
-				<IconButton
-					onClick={() => setSidebarOpen(!sidebarOpen)}
-					sx={{
-						color: '#ffffff',
-						padding: '8px',
-						marginRight: { xs: '4px', sm: '0' },
-						display: { xs: 'flex', lg: 'none' }
-					}}
-				>
-					<FuseSvgIcon>heroicons-outline:bars-3</FuseSvgIcon>
-				</IconButton>
-
-				{/* Orange Circle Logo */}
-				<div 
-					className="rounded-full flex-shrink-0 hidden sm:block"
-					style={{ 
-						backgroundColor: '#ff6536',
-						width: '8px',
-						height: '8px',
-						borderRadius: '50%',
-						marginRight: '8px'
-					}}
-				/>
-				{/* MultiKonnect Text */}
-				<Typography 
-					variant="h6" 
-					sx={{ 
-						fontSize: { xs: '14px', sm: '16px' }, 
-						fontWeight: 700,
-						color: '#ffffff',
-						letterSpacing: '0.01em',
-						lineHeight: 1.2,
-						marginRight: { xs: '8px', sm: '12px' }
-					}}
-				>
-					MultiKonnect
-				</Typography>
-				{/* Create Listing Button - Hidden on mobile */}
-				<Button
-					variant="text"
-					size="small"
-					className="hidden sm:flex"
-					sx={{
-						color: '#ffffff',
-						textTransform: 'none',
-						fontSize: '14px',
-						padding: '6px 16px',
-						minHeight: '32px',
-						fontWeight: 500,
-						borderRadius: '8px',
-						backgroundColor: 'transparent',
-						'&:hover': {
-							backgroundColor: 'rgba(255, 255, 255, 0.1)',
-						},
-					}}
-				>
-					Create Listing
-				</Button>
+			{/* Hidden ProductHeader for form submission */}
+			<div className="absolute opacity-0 pointer-events-none -z-10">
+				<ProductHeader />
 			</div>
-			<div className="flex items-center space-x-1 sm:space-x-2">
-				{/* Right Sidebar Toggle - Mobile */}
-				<IconButton
-					onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
-					sx={{
-						color: '#ffffff',
-						padding: '8px',
-						display: { xs: 'flex', lg: 'none' }
-					}}
-				>
-					<FuseSvgIcon>heroicons-outline:chart-bar</FuseSvgIcon>
-				</IconButton>
 
-				<Button 
-					variant="text" 
-					size="small"
-					onClick={handleSaveDraft}
-					className="hidden sm:flex"
-					sx={{
-						color: '#ffffff',
-						textTransform: 'none',
-						fontSize: { xs: '12px', sm: '14px' },
-						padding: { xs: '6px 12px', sm: '8px 16px' },
-						minHeight: '36px',
-						fontWeight: 500,
-						borderRadius: '8px',
-						backgroundColor: 'transparent',
-						'&:hover': {
-							backgroundColor: 'rgba(255, 255, 255, 0.1)',
-						},
-					}}
-				>
-					<span className="hidden md:inline">Save draft</span>
-					<span className="md:hidden">Save</span>
-				</Button>
-				<Button 
-					variant="text" 
-					size="small"
-					className="hidden sm:flex"
-					sx={{
-						color: '#ffffff',
-						textTransform: 'none',
-						fontSize: { xs: '12px', sm: '14px' },
-						padding: { xs: '6px 12px', sm: '8px 16px' },
-						minHeight: '36px',
-						fontWeight: 500,
-						borderRadius: '8px',
-						backgroundColor: 'transparent',
-						'&:hover': {
-							backgroundColor: 'rgba(255, 255, 255, 0.1)',
-						},
-					}}
-					onClick={handlePreviewClick}
-				>
-					Preview
-				</Button>
-				<Button 
-					variant="contained" 
-					size="small"
-					sx={{ 
-						backgroundColor: '#ff6536',
-						color: '#fff',
-						textTransform: 'none',
-						fontSize: { xs: '12px', sm: '14px' },
-						padding: { xs: '6px 16px', sm: '8px 20px' },
-						fontWeight: 600,
-						borderRadius: '8px',
-						minHeight: '36px',
-						boxShadow: 'none',
-						'&:hover': { 
-							backgroundColor: '#e55a2b',
+			{/* Top Navigation Bar - Dark Navy Header */}
+			<header
+				className="px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between flex-shrink-0 sticky top-0 z-50"
+				style={{
+					backgroundColor: '#0f172a',
+					minHeight: '60px',
+					boxShadow: 'none',
+					borderBottom: 'none'
+				}}
+			>
+				<div className="flex items-center space-x-2 sm:space-x-3">
+					{/* Back Button */}
+					<IconButton
+						onClick={handleBack}
+						sx={{
+							color: '#ffffff',
+							padding: '8px',
+							marginRight: { xs: '4px', sm: '8px' }
+						}}
+					>
+						<FuseSvgIcon>heroicons-outline:arrow-left</FuseSvgIcon>
+					</IconButton>
+
+					{/* Sidebar Toggle - Mobile */}
+					<IconButton
+						onClick={() => setSidebarOpen(!sidebarOpen)}
+						sx={{
+							color: '#ffffff',
+							padding: '8px',
+							marginRight: { xs: '4px', sm: '0' },
+							display: { xs: 'flex', lg: 'none' }
+						}}
+					>
+						<FuseSvgIcon>heroicons-outline:bars-3</FuseSvgIcon>
+					</IconButton>
+
+					{/* Orange Circle Logo */}
+					<div
+						className="rounded-full flex-shrink-0 hidden sm:block"
+						style={{
+							backgroundColor: '#ff6536',
+							width: '8px',
+							height: '8px',
+							borderRadius: '50%',
+							marginRight: '8px'
+						}}
+					/>
+					{/* MultiKonnect Text */}
+					<Typography
+						variant="h6"
+						sx={{
+							fontSize: { xs: '14px', sm: '16px' },
+							fontWeight: 700,
+							color: '#ffffff',
+							letterSpacing: '0.01em',
+							lineHeight: 1.2,
+							marginRight: { xs: '8px', sm: '12px' }
+						}}
+					>
+						MultiKonnect
+					</Typography>
+					{/* Create Listing Button - Hidden on mobile */}
+					<Button
+						variant="text"
+						size="small"
+						className="hidden sm:flex"
+						onClick={() => navigate('/apps/e-commerce/products/new')}
+						sx={{
+							color: '#ffffff',
+							textTransform: 'none',
+							fontSize: '14px',
+							padding: '6px 16px',
+							minHeight: '32px',
+							fontWeight: 500,
+							borderRadius: '8px',
+							backgroundColor: 'transparent',
+							'&:hover': {
+								backgroundColor: 'rgba(255, 255, 255, 0.1)',
+							},
+						}}
+					>
+						Create Listing
+					</Button>
+				</div>
+				<div className="flex items-center space-x-1 sm:space-x-2">
+					{/* Right Sidebar Toggle - Mobile */}
+					<IconButton
+						onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+						sx={{
+							color: '#ffffff',
+							padding: '8px',
+							display: { xs: 'flex', lg: 'none' }
+						}}
+					>
+						<FuseSvgIcon>heroicons-outline:chart-bar</FuseSvgIcon>
+					</IconButton>
+
+					<Button
+						variant="text"
+						size="small"
+						disabled={isSavingDraft}
+						onClick={handleSaveDraft}
+						className="hidden sm:flex"
+						startIcon={isSavingDraft ? <CircularProgress size={14} color="inherit" /> : null}
+						sx={{
+							color: '#ffffff',
+							textTransform: 'none',
+							fontSize: { xs: '12px', sm: '14px' },
+							padding: { xs: '6px 12px', sm: '8px 16px' },
+							minHeight: '36px',
+							fontWeight: 500,
+							borderRadius: '8px',
+							backgroundColor: 'transparent',
+							'&:hover': {
+								backgroundColor: 'rgba(255, 255, 255, 0.1)',
+							},
+							'&:disabled': {
+								opacity: 0.7,
+								cursor: 'not-allowed',
+							},
+						}}
+					>
+						<span className="hidden md:inline">{isSavingDraft ? 'Saving...' : 'Save draft'}</span>
+						<span className="md:hidden">{isSavingDraft ? 'Saving...' : 'Save'}</span>
+					</Button>
+					<Button
+						variant="text"
+						size="small"
+						className="hidden sm:flex"
+						disabled={isPublishing}
+						onClick={handlePreviewClick}
+						sx={{
+							color: '#ffffff',
+							textTransform: 'none',
+							fontSize: { xs: '12px', sm: '14px' },
+							padding: { xs: '6px 12px', sm: '8px 16px' },
+							minHeight: '36px',
+							fontWeight: 500,
+							borderRadius: '8px',
+							backgroundColor: 'transparent',
+							'&:hover': {
+								backgroundColor: 'rgba(255, 255, 255, 0.1)',
+							},
+							'&:disabled': {
+								opacity: 0.7,
+								cursor: 'not-allowed',
+							},
+						}}
+					>
+						Preview
+					</Button>
+					<Button
+						variant="contained"
+						size="small"
+						disabled={isPublishing}
+						onClick={handlePublishClick}
+						startIcon={isPublishing ? <CircularProgress size={14} color="inherit" /> : null}
+						sx={{
+							backgroundColor: '#ff6536',
+							color: '#fff',
+							textTransform: 'none',
+							fontSize: { xs: '12px', sm: '14px' },
+							padding: { xs: '6px 16px', sm: '8px 20px' },
+							fontWeight: 600,
+							borderRadius: '8px',
+							minHeight: '36px',
 							boxShadow: 'none',
-						},
-					}}
-					onClick={handlePublishClick}
-				>
-					Publish
-				</Button>
-			</div>
-		</header>
+							'&:hover': {
+								backgroundColor: '#e55a2b',
+								boxShadow: 'none',
+							},
+							'&:disabled': {
+								opacity: 0.7,
+								cursor: 'not-allowed',
+							},
+						}}
+					>
+						{isPublishing ? 'Publishing...' : 'Publish'}
+					</Button>
+				</div>
+			</header>
 
 			<div className="flex flex-1 overflow-hidden min-h-0 justify-center">
 				<div className="flex w-full max-w-[1920px] relative">
-				{/* Mobile Left Sidebar Overlay */}
-				{sidebarOpen && (
-					<div 
-						className="fixed inset-0 bg-black bg-opacity-50 z-[60] lg:hidden"
-						onClick={() => setSidebarOpen(false)}
-						style={{ top: '60px' }}
-					/>
-				)}
-				
-				{/* Left Sidebar - Listing Steps - Light Grey */}
-				<aside 
-					className={`fixed lg:static w-[280px] max-w-[85vw] lg:max-w-none border-r overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
-						sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-					}`}
-					style={{ 
-						backgroundColor: '#f8f9fa',
-						borderColor: '#e5e7eb',
-						borderRightWidth: '1px',
-						height: 'calc(100vh - 60px)',
-						top: '60px',
-						left: 0,
-						boxShadow: sidebarOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none'
-					}}
-				>
-					{/* Close button for mobile */}
-					<div className="lg:hidden flex justify-end p-2 border-b">
-						<IconButton
+					{/* Mobile Left Sidebar Overlay */}
+					{sidebarOpen && (
+						<div
+							className="fixed inset-0 bg-black bg-opacity-50 z-[60] lg:hidden"
 							onClick={() => setSidebarOpen(false)}
-							size="small"
-							sx={{ color: '#6b7280' }}
-						>
-							<FuseSvgIcon>heroicons-outline:x-mark</FuseSvgIcon>
-						</IconButton>
-					</div>
-					<div className="p-3 sm:p-4">
-						<div className="space-y-0.5">
-							{steps.map((step) => (
-								<a
-									key={step.id}
-									href={`#${step.id === 1 ? 'identity' : step.id === 2 ? 'media' : step.id === 3 ? 'variants' : ''}`}
-									onClick={(e) => {
-										e.preventDefault();
-										handleStepClick(step.id);
-										// Close sidebar on mobile after selecting a step
-										if (window.innerWidth < 1024) {
-											setSidebarOpen(false);
-										}
-									}}
-									className="flex items-start cursor-pointer transition-all no-underline"
-									style={{
-										color: 'inherit',
-										textDecoration: 'none',
-										padding: '10px 12px',
-										borderRadius: '6px',
-										backgroundColor: currentStep === step.id ? '#dbeafe' : 'transparent',
-										marginBottom: '1px',
-									}}
-								>
-									<span 
+							style={{ top: '60px' }}
+						/>
+					)}
+
+					{/* Left Sidebar - Listing Steps - Light Grey */}
+					<aside
+						className={`fixed lg:static w-[280px] max-w-[85vw] lg:max-w-none border-r overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+							}`}
+						style={{
+							backgroundColor: '#f8f9fa',
+							borderColor: '#e5e7eb',
+							borderRightWidth: '1px',
+							height: 'calc(100vh - 60px)',
+							top: '60px',
+							left: 0,
+							boxShadow: sidebarOpen ? '2px 0 8px rgba(0,0,0,0.1)' : 'none'
+						}}
+					>
+						{/* Close button for mobile */}
+						<div className="lg:hidden flex justify-end p-2 border-b">
+							<IconButton
+								onClick={() => setSidebarOpen(false)}
+								size="small"
+								sx={{ color: '#6b7280' }}
+							>
+								<FuseSvgIcon>heroicons-outline:x-mark</FuseSvgIcon>
+							</IconButton>
+						</div>
+						<div className="p-3 sm:p-4">
+							<div className="space-y-0.5">
+								{steps.map((step) => (
+									<a
+										key={step.id}
+										href={`#${step.id === 1 ? 'identity' : step.id === 2 ? 'media' : step.id === 3 ? 'variants' : ''}`}
+										onClick={(e) => {
+											e.preventDefault();
+											handleStepClick(step.id);
+											// Close sidebar on mobile after selecting a step
+											if (window.innerWidth < 1024) {
+												setSidebarOpen(false);
+											}
+										}}
+										className="flex items-start cursor-pointer transition-all no-underline"
 										style={{
-											fontSize: '13px',
-											fontWeight: 600,
-											color: currentStep === step.id ? '#2563eb' : '#6b7280',
-											marginRight: '8px',
-											minWidth: '20px',
-											lineHeight: '1.5'
+											color: 'inherit',
+											textDecoration: 'none',
+											padding: '10px 12px',
+											borderRadius: '6px',
+											backgroundColor: currentStep === step.id ? '#dbeafe' : 'transparent',
+											marginBottom: '1px',
 										}}
 									>
-										{step.id}.
-									</span>
-									<div style={{ flex: 1, minWidth: 0 }}>
-										<div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
-											<Typography
-												sx={{ 
-													fontSize: '13px', 
-													fontWeight: 500,
-													color: currentStep === step.id ? '#1e40af' : '#111827',
-													lineHeight: '1.5',
-												}}
-											>
-												{step.title}
-											</Typography>
-											{step.completed && (
-												<CheckCircleIcon 
-													sx={{ 
-														fontSize: '14px', 
-														color: '#10b981',
-														marginLeft: 'auto'
-													}} 
-												/>
-											)}
-										</div>
-										<Typography 
-											sx={{ 
-												fontSize: '11px', 
-												display: 'block', 
-												color: '#6b7280',
-												lineHeight: '1.4'
+										<span
+											style={{
+												fontSize: '13px',
+												fontWeight: 600,
+												color: currentStep === step.id ? '#2563eb' : '#6b7280',
+												marginRight: '8px',
+												minWidth: '20px',
+												lineHeight: '1.5'
 											}}
 										>
-											{step.description}
-										</Typography>
-									</div>
-								</a>
-							))}
-						</div>
-					</div>
-				</aside>
-
-				{/* Main Content Area */}
-				<main 
-					className={`flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
-						sidebarOpen || rightSidebarOpen ? 'lg:ml-0 lg:mr-0' : ''
-					}`}
-					style={{ 
-						backgroundColor: '#ffffff',
-						paddingTop: '16px',
-						paddingBottom: '16px',
-						height: 'calc(100vh - 60px)',
-						width: '100%'
-					}}
-				>
-					<div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-6">
-						{/* Product Identity Section - Step 1 */}
-						<section 
-							ref={(el) => setSectionRef(1, el)}
-							className="p-4 sm:p-6 rounded-xl border" 
-							id="identity"
-							data-step-id="1"
-							style={{
-								borderRadius: '12px',
-								border: '1px solid #e5e7eb',
-								backgroundColor: '#ffffff',
-								boxShadow: 'none',
-								scrollMarginTop: '80px',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
-								Product identity
-							</Typography>
-							<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px', margin: '2px 0 10px 0' }}>
-								Match to a Master Product (MPID) to lock canonical specs. You can still add merchant-specific notes.
-							</Typography>
-
-							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
-								<TextField
-									fullWidth
-									placeholder="Search name or GTIN/EAN/U"
-									variant="outlined"
-									value={mpidSearch}
-									onChange={(e) => handleMpidSearch(e.target.value)}
-									size="small"
-									sx={{
-										'& .MuiOutlinedInput-root': {
-											borderRadius: '12px',
-											fontSize: '14px',
-											height: '44px',
-										},
-									}}
-								/>
-								<Controller
-									name="name"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											fullWidth
-											label="Product Title"
-											placeholder="e.g., iPhone 16 Pro Max 256"
-											variant="outlined"
-											error={!!errors.name}
-											helperText={errors.name?.message as string}
-											size="small"
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-													height: '44px',
-												},
-											}}
-										/>
-									)}
-								/>
-								<Controller
-									name="slug"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											fullWidth
-											label="Slug / Handle"
-											variant="outlined"
-											disabled
-											helperText="auto-generates from title"
-											size="small"
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-													height: '44px',
-												},
-											}}
-										/>
-									)}
-								/>
-							</div>
-							<Typography variant="caption" className="text-gray-500 mb-3" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '6px' }}>
-								We'll suggest an SEO title later based on MPID + variants.
-							</Typography>
-
-							{/* Category Fields */}
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-								<Controller
-									name="main_category"
-									control={control}
-									render={({ field }) => (
-										<Autocomplete
-											{...field}
-											options={categoryOptions}
-											getOptionLabel={(option) => option.name || ''}
-											isOptionEqualToValue={(option, value) => option.id === value.id}
-											value={field.value || null}
-											onChange={(event, newValue) => {
-												field.onChange(newValue);
-												setValue('subcategory', []); // Reset subcategory when main category changes
-											}}
-											renderInput={(params) => (
-												<TextField
-													{...params}
-													label="Main Category *"
-													placeholder="Select main category"
-													size="small"
-													error={!!errors.main_category}
-													helperText={errors.main_category?.message as string}
+											{step.id}.
+										</span>
+										<div style={{ flex: 1, minWidth: 0 }}>
+											<div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+												<Typography
 													sx={{
-														'& .MuiOutlinedInput-root': {
-															borderRadius: '12px',
-															fontSize: '14px',
-															minHeight: '40px',
-														},
+														fontSize: '13px',
+														fontWeight: 500,
+														color: currentStep === step.id ? '#1e40af' : '#111827',
+														lineHeight: '1.5',
 													}}
-												/>
-											)}
-										/>
-									)}
-								/>
-								<Controller
-									name="subcategory"
-									control={control}
-									render={({ field }) => {
-										const mainCategory = watch('main_category');
-										
-										// Find the parent category with children from parentCategoriesWithChildren
-										const fullMainCategory = parentCategoriesWithChildren.find(cat => cat.id === mainCategory?.id);
-										const mainChildren = fullMainCategory?.children || [];
-										
-										// Use only the children (subcategories) of the selected main category
-										const subcategoryOptions = mainChildren;
+												>
+													{step.title}
+												</Typography>
+												{step.completed && (
+													<CheckCircleIcon
+														sx={{
+															fontSize: '14px',
+															color: '#10b981',
+															marginLeft: 'auto'
+														}}
+													/>
+												)}
+											</div>
+											<Typography
+												sx={{
+													fontSize: '11px',
+													display: 'block',
+													color: '#6b7280',
+													lineHeight: '1.4'
+												}}
+											>
+												{step.description}
+											</Typography>
+										</div>
+									</a>
+								))}
+							</div>
+						</div>
+					</aside>
 
-										return (
+					{/* Main Content Area */}
+					<main
+						className={`flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${sidebarOpen || rightSidebarOpen ? 'lg:ml-0 lg:mr-0' : ''
+							}`}
+						style={{
+							backgroundColor: '#ffffff',
+							paddingTop: '16px',
+							paddingBottom: '16px',
+							height: 'calc(100vh - 60px)',
+							width: '100%'
+						}}
+					>
+						<div className="w-full max-w-[1200px] mx-auto space-y-4 sm:space-y-6">
+							{/* Product Identity Section - Step 1 */}
+							<section
+								ref={(el) => setSectionRef(1, el)}
+								className="p-4 sm:p-6 rounded-xl border"
+								id="identity"
+								data-step-id="1"
+								style={{
+									borderRadius: '12px',
+									border: '1px solid #e5e7eb',
+									backgroundColor: '#ffffff',
+									boxShadow: 'none',
+									scrollMarginTop: '80px',
+								}}
+							>
+								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
+									Product identity
+								</Typography>
+								<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px', margin: '2px 0 10px 0' }}>
+									Match to a Master Product (MPID) to lock canonical specs. You can still add merchant-specific notes.
+								</Typography>
+
+								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+									<TextField
+										fullWidth
+										placeholder="Search name or GTIN/EAN/U"
+										variant="outlined"
+										value={mpidSearch}
+										onChange={(e) => handleMpidSearch(e.target.value)}
+										size="small"
+										sx={{
+											'& .MuiOutlinedInput-root': {
+												borderRadius: '12px',
+												fontSize: '14px',
+												height: '44px',
+											},
+										}}
+									/>
+									<Controller
+										name="name"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												fullWidth
+												label="Product Title"
+												placeholder="e.g., iPhone 16 Pro Max 256"
+												variant="outlined"
+												error={!!errors.name}
+												helperText={errors.name?.message as string}
+												size="small"
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														height: '44px',
+													},
+												}}
+											/>
+										)}
+									/>
+									<Controller
+										name="slug"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												fullWidth
+												label="Slug / Handle"
+												variant="outlined"
+												disabled
+												helperText="auto-generates from title"
+												size="small"
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														height: '44px',
+													},
+												}}
+											/>
+										)}
+									/>
+								</div>
+								<Typography variant="caption" className="text-gray-500 mb-3" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '6px' }}>
+									We'll suggest an SEO title later based on MPID + variants.
+								</Typography>
+
+								{/* Category Fields */}
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+									<Controller
+										name="main_category"
+										control={control}
+										render={({ field }) => (
 											<Autocomplete
 												{...field}
-												multiple
-												options={subcategoryOptions}
+												options={categoryOptions}
 												getOptionLabel={(option) => option.name || ''}
 												isOptionEqualToValue={(option, value) => option.id === value.id}
-												value={field.value || []}
+												value={field.value || null}
 												onChange={(event, newValue) => {
 													field.onChange(newValue);
+													setValue('subcategory', []); // Reset subcategory when main category changes
 												}}
-												disabled={!mainCategory}
-												filterSelectedOptions
 												renderInput={(params) => (
 													<TextField
 														{...params}
-														label="Subcategory"
-														placeholder={mainCategory ? "Select subcategories (optional)" : "Select main category first"}
+														label="Main Category *"
+														placeholder="Select main category"
 														size="small"
-														error={!!errors.subcategory}
-														helperText={errors.subcategory?.message as string || ""}
+														error={!!errors.main_category}
+														helperText={errors.main_category?.message as string}
 														sx={{
 															'& .MuiOutlinedInput-root': {
 																borderRadius: '12px',
@@ -3233,92 +3199,77 @@ function MultiKonnectListingCreation() {
 														}}
 													/>
 												)}
-												renderTags={(value, getTagProps) =>
-													value.map((option, index) => (
-														<Chip
-															{...getTagProps({ index })}
-															key={option.id}
-															label={option.name}
+											/>
+										)}
+									/>
+									<Controller
+										name="subcategory"
+										control={control}
+										render={({ field }) => {
+											const mainCategory = watch('main_category');
+
+											// Find the parent category with children from parentCategoriesWithChildren
+											const fullMainCategory = parentCategoriesWithChildren.find(cat => cat.id === mainCategory?.id);
+											const mainChildren = fullMainCategory?.children || [];
+
+											// Use only the children (subcategories) of the selected main category
+											const subcategoryOptions = mainChildren;
+
+											return (
+												<Autocomplete
+													{...field}
+													multiple
+													options={subcategoryOptions}
+													getOptionLabel={(option) => option.name || ''}
+													isOptionEqualToValue={(option, value) => option.id === value.id}
+													value={field.value || []}
+													onChange={(event, newValue) => {
+														field.onChange(newValue);
+													}}
+													disabled={!mainCategory}
+													filterSelectedOptions
+													renderInput={(params) => (
+														<TextField
+															{...params}
+															label="Subcategory"
+															placeholder={mainCategory ? "Select subcategories (optional)" : "Select main category first"}
 															size="small"
+															error={!!errors.subcategory}
+															helperText={errors.subcategory?.message as string || ""}
 															sx={{
-																fontSize: '12px',
-																height: '24px',
+																'& .MuiOutlinedInput-root': {
+																	borderRadius: '12px',
+																	fontSize: '14px',
+																	minHeight: '40px',
+																},
 															}}
 														/>
-													))
-												}
-											/>
-										);
-									}}
-								/>
-							</div>
+													)}
+													renderTags={(value, getTagProps) =>
+														value.map((option, index) => (
+															<Chip
+																{...getTagProps({ index })}
+																key={option.id}
+																label={option.name}
+																size="small"
+																sx={{
+																	fontSize: '12px',
+																	height: '24px',
+																}}
+															/>
+														))
+													}
+												/>
+											);
+										}}
+									/>
+								</div>
 
-							<div className="flex flex-wrap gap-2 mb-3">
-								<Button 
-									variant="outlined" 
-									size="small"
-									onClick={handleScanBarcode}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '10px 14px',
-										borderRadius: '12px',
-										minHeight: '44px',
-										'&:hover': {
-											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
-										},
-									}}
-								>
-									Scan barcode
-								</Button>
-								<Button 
-									variant="outlined" 
-									size="small"
-									onClick={handleUseMasterTemplate}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '10px 14px',
-										borderRadius: '12px',
-										minHeight: '44px',
-										'&:hover': {
-											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
-										},
-									}}
-								>
-									Use Master Template
-								</Button>
-								<Button 
-									variant="outlined" 
-									size="small"
-									onClick={handleUsePastListing}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '10px 14px',
-										borderRadius: '12px',
-										minHeight: '44px',
-										'&:hover': {
-											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
-										},
-									}}
-								>
-									Use My Past Listing
-								</Button>
-								{showImportFromVendor && (
-									<Button 
-										variant="outlined" 
+								<div className="flex flex-wrap gap-2 mb-3">
+									<Button
+										variant="outlined"
 										size="small"
-										onClick={handleImportFromVendor}
+										onClick={handleScanBarcode}
 										sx={{
 											borderColor: '#e5e7eb',
 											color: '#374151',
@@ -3333,1320 +3284,1443 @@ function MultiKonnectListingCreation() {
 											},
 										}}
 									>
-										Import from Other Vendor
+										Scan barcode
 									</Button>
-								)}
-								<Button 
-									variant="outlined" 
-									size="small"
-									onClick={() => handleLiveSyncToggle(!liveSyncEnabled)}
-									startIcon={<Switch checked={liveSyncEnabled} size="small" sx={{ pointerEvents: 'none' }} />}
-									sx={{
-										borderColor: liveSyncEnabled ? '#3b82f6' : '#e5e7eb',
-										color: liveSyncEnabled ? '#3b82f6' : '#374151',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '10px 14px',
-										borderRadius: '12px',
-										minHeight: '44px',
-										backgroundColor: liveSyncEnabled ? '#eff6ff' : 'transparent',
-										'&:hover': {
-											borderColor: liveSyncEnabled ? '#2563eb' : '#d1d5db',
-											backgroundColor: liveSyncEnabled ? '#dbeafe' : '#f9fafb',
-										},
-									}}
-								>
-									Live Sync (Auto-Update Specs)
-								</Button>
-							</div>
-
-							{mpidMatched && matchedProduct && (
-								<Box 
-									className="mt-3"
-									sx={{
-										paddingTop: '10px',
-										borderTop: '1px solid #e5e7eb',
-									}}
-								>
-									<div className="flex flex-wrap gap-2 mb-2">
-										<Chip 
-											label={`Brand: ${matchedProduct.brand}`} 
+									<Button
+										variant="outlined"
+										size="small"
+										onClick={handleUseMasterTemplate}
+										sx={{
+											borderColor: '#e5e7eb',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '10px 14px',
+											borderRadius: '12px',
+											minHeight: '44px',
+											'&:hover': {
+												borderColor: '#d1d5db',
+												backgroundColor: '#f9fafb',
+											},
+										}}
+									>
+										Use Master Template
+									</Button>
+									<Button
+										variant="outlined"
+										size="small"
+										onClick={handleUsePastListing}
+										sx={{
+											borderColor: '#e5e7eb',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '10px 14px',
+											borderRadius: '12px',
+											minHeight: '44px',
+											'&:hover': {
+												borderColor: '#d1d5db',
+												backgroundColor: '#f9fafb',
+											},
+										}}
+									>
+										Use My Past Listing
+									</Button>
+									{showImportFromVendor && (
+										<Button
+											variant="outlined"
 											size="small"
+											onClick={handleImportFromVendor}
 											sx={{
-												backgroundColor: '#f3f4f6',
-												border: '1px solid #e5e7eb',
+												borderColor: '#e5e7eb',
+												color: '#374151',
+												textTransform: 'none',
 												fontSize: '12px',
-												height: '24px',
-												fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-												padding: '2px 8px',
-											}}
-										/>
-										<Chip 
-											label={`Model: ${matchedProduct.model}`} 
-											size="small"
-											sx={{
-												backgroundColor: '#f3f4f6',
-												border: '1px solid #e5e7eb',
-												fontSize: '12px',
-												height: '24px',
-												fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-												padding: '2px 8px',
-											}}
-										/>
-										<Chip 
-											label={`Display: ${matchedProduct.display}`} 
-											size="small"
-											sx={{
-												backgroundColor: '#f3f4f6',
-												border: '1px solid #e5e7eb',
-												fontSize: '12px',
-												height: '24px',
-												fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-												padding: '2px 8px',
-											}}
-										/>
-										<Chip 
-											label={`Chip: ${matchedProduct.chip}`} 
-											size="small"
-											sx={{
-												backgroundColor: '#f3f4f6',
-												border: '1px solid #e5e7eb',
-												fontSize: '12px',
-												height: '24px',
-												fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-												padding: '2px 8px',
-											}}
-										/>
-										<Chip 
-											label={`Year: ${matchedProduct.year}`} 
-											size="small"
-											sx={{
-												backgroundColor: '#f3f4f6',
-												border: '1px solid #e5e7eb',
-												fontSize: '12px',
-												height: '24px',
-												fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-												padding: '2px 8px',
-											}}
-										/>
-									</div>
-									<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '6px' }}>
-										After matching MPID, core specs become read-only to protect catalog quality. You may add condition notes below.
-									</Typography>
-								</Box>
-							)}
-						</section>
-
-						{/* Media Section - Step 2 */}
-						<section 
-							ref={(el) => setSectionRef(2, el)}
-							className="p-4 sm:p-6 rounded-xl border" 
-							id="media"
-							data-step-id="2"
-							style={{
-								borderRadius: '12px',
-								border: '1px solid #e5e7eb',
-								backgroundColor: '#ffffff',
-								boxShadow: 'none',
-								scrollMarginTop: '80px',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
-								Media
-							</Typography>
-							<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px', margin: '2px 0 10px 0' }}>
-								Upload 6-12 images. Include front/back, box contents, ports. Per-variant photos supported.
-							</Typography>
-
-							{/* Image Upload Slots */}
-							<div className="flex gap-3 mb-4" style={{ flexWrap: 'wrap' }}>
-								{(() => {
-									// Use the memoized galleryImages for reactivity
-									const imagesArray = Array.isArray(galleryImages) ? galleryImages : [];
-									
-									// Show at least 6 slots, or more if there are more images
-									// Maximum of 12 slots as per instructions (6-12 images)
-									const totalSlots = Math.max(6, Math.min(12, imagesArray.length + 1));
-									
-									return Array.from({ length: totalSlots }, (_, index) => {
-										// Debug log for first slot
-										if (index === 0) {
-											console.log('Media section render - galleryImages:', imagesArray);
-											console.log('Media section render - galleryImagesRaw:', galleryImagesRaw);
-											console.log('Media section render - imagesArray length:', imagesArray.length);
-											console.log('Media section render - totalSlots:', totalSlots);
-											if (imagesArray.length > 0) {
-												console.log('Media section render - first image:', imagesArray[0]);
-											}
-										}
-										
-										const hasImage = imagesArray.length > index && 
-											imagesArray[index] && 
-											imagesArray[index].url &&
-											typeof imagesArray[index].url === 'string' &&
-											imagesArray[index].url.length > 0;
-										
-										const isFirstSlot = index === 0;
-										const currentImage = hasImage ? imagesArray[index] : null;
-										
-										if (index === 0) {
-											console.log('Media section render - hasImage for index 0:', hasImage, 'currentImage:', currentImage);
-										}
-									
-									return (
-										<label
-											key={`media-slot-${index}-${currentImage?.url || 'empty'}`}
-											htmlFor={`image-upload-${index}`}
-											style={{
-												width: '150px',
-												height: '150px',
-												border: '2px dashed #d1d5db',
+												padding: '10px 14px',
 												borderRadius: '12px',
-												display: 'flex',
-												alignItems: 'center',
-												justifyContent: 'center',
-												cursor: 'pointer',
-												backgroundColor: '#f9fafb',
-												transition: 'all 0.2s',
-												overflow: 'hidden',
-											}}
-											onMouseEnter={(e) => {
-												e.currentTarget.style.borderColor = '#9ca3af';
-												e.currentTarget.style.backgroundColor = '#f3f4f6';
-											}}
-											onMouseLeave={(e) => {
-												e.currentTarget.style.borderColor = '#d1d5db';
-												e.currentTarget.style.backgroundColor = '#f9fafb';
-											}}
-										>
-											{hasImage && currentImage ? (
-												<div style={{ position: 'relative', width: '100%', height: '100%' }}>
-													<img
-														src={currentImage.url}
-														alt="Uploaded"
-														style={{
-															width: '100%',
-															height: '100%',
-															objectFit: 'cover',
-															borderRadius: '10px',
-														}}
-														onError={(e) => {
-															console.error('Image load error:', e);
-															// Remove broken image from gallery
-															const currentImages = watch('gallery_images') || [];
-															const updatedImages = currentImages.filter((_: any, i: number) => i !== index);
-															setValue('gallery_images', updatedImages, { shouldDirty: true });
-														}}
-													/>
-													<button
-														onClick={(e) => {
-															e.preventDefault();
-															e.stopPropagation();
-															handleImageRemove(index);
-														}}
-														style={{
-															position: 'absolute',
-															top: '4px',
-															right: '4px',
-															background: 'rgba(0, 0, 0, 0.6)',
-															color: 'white',
-															border: 'none',
-															borderRadius: '50%',
-															width: '24px',
-															height: '24px',
-															cursor: 'pointer',
-															display: 'flex',
-															alignItems: 'center',
-															justifyContent: 'center',
-															fontSize: '16px',
-															zIndex: 10,
-														}}
-													>
-														×
-													</button>
-												</div>
-											) : isUploadingImage && index === 0 ? (
-												<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-													<CircularProgress size={24} sx={{ color: '#9ca3af' }} />
-													<span style={{ color: '#9ca3af', fontSize: '12px' }}>Uploading...</span>
-												</div>
-											) : (
-												<span style={{ color: '#9ca3af', fontSize: isFirstSlot ? '14px' : '24px', fontWeight: isFirstSlot ? 500 : 300 }}>
-													{isFirstSlot ? 'Upload' : '+'}
-												</span>
-											)}
-											<input
-												id={`image-upload-${index}`}
-												type="file"
-												accept="image/*"
-												multiple
-												disabled={isUploadingImage}
-												style={{ display: 'none' }}
-												onChange={handleImageUpload}
-											/>
-										</label>
-									);
-									});
-								})()}
-							</div>
-
-							{/* Action Buttons */}
-							<div className="flex flex-col gap-3 mb-4">
-								{/* First row of buttons */}
-								<div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
-									<Button
-										variant="outlined"
-										size="small"
-										onClick={() => {
-											if (galleryImages && galleryImages.length > 0) {
-												handleRemoveBackground(0);
-											} else {
-												alert('Please upload an image first');
-											}
-										}}
-										sx={{
-											borderColor: '#e5e7eb',
-											color: '#374151',
-											textTransform: 'none',
-											fontSize: '13px',
-											padding: '8px 16px',
-											borderRadius: '8px',
-											minHeight: '40px',
-											backgroundColor: '#ffffff',
-											'&:hover': {
-												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
-										}}
-									>
-										Remove background
-									</Button>
-									<Button
-										variant="outlined"
-										size="small"
-										onClick={() => {
-											if (galleryImages && galleryImages.length > 0) {
-												handleAutoCropAndCenter(0);
-											} else {
-												alert('Please upload an image first');
-											}
-										}}
-										sx={{
-											borderColor: '#e5e7eb',
-											color: '#374151',
-											textTransform: 'none',
-											fontSize: '13px',
-											padding: '8px 16px',
-											borderRadius: '8px',
-											minHeight: '40px',
-											backgroundColor: '#ffffff',
-											'&:hover': {
-												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
-										}}
-									>
-										Auto-crop & center
-									</Button>
-									<Button
-										variant="outlined"
-										size="small"
-										onClick={() => {
-											if (galleryImages && galleryImages.length > 0) {
-												handleCreate360Spin(0);
-											} else {
-												alert('Please upload an image first');
-											}
-										}}
-										sx={{
-											borderColor: '#e5e7eb',
-											color: '#374151',
-											textTransform: 'none',
-											fontSize: '13px',
-											padding: '8px 16px',
-											borderRadius: '8px',
-											minHeight: '40px',
-											backgroundColor: '#ffffff',
-											'&:hover': {
-												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
-										}}
-									>
-										Create 360° spin
-									</Button>
-									<Button
-										variant="outlined"
-										size="small"
-										onClick={() => {
-											if (galleryImages && galleryImages.length > 0) {
-												handleWatermark(0);
-											} else {
-												alert('Please upload an image first');
-											}
-										}}
-										sx={{
-											borderColor: '#e5e7eb',
-											color: '#374151',
-											textTransform: 'none',
-											fontSize: '13px',
-											padding: '8px 16px',
-											borderRadius: '8px',
-											minHeight: '40px',
-											backgroundColor: '#ffffff',
-											'&:hover': {
-												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
-										}}
-									>
-										Watermark
-									</Button>
-								</div>
-
-								{/* Second row - AI Auto-enhance */}
-								<div className="flex gap-3">
-									<Button
-										variant="outlined"
-										size="small"
-										onClick={() => {
-											if (galleryImages && galleryImages.length > 0) {
-												handleAIAutoEnhance(0);
-											} else {
-												alert('Please upload an image first');
-											}
-										}}
-										sx={{
-											borderColor: '#e5e7eb',
-											color: '#374151',
-											textTransform: 'none',
-											fontSize: '13px',
-											padding: '8px 16px',
-											borderRadius: '8px',
-											minHeight: '40px',
-											backgroundColor: '#ffffff',
-											'&:hover': {
-												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
-										}}
-									>
-										AI Auto-enhance
-									</Button>
-								</div>
-							</div>
-
-							{/* Tip Section */}
-							<div style={{ marginTop: '12px' }}>
-								<Typography variant="body2" sx={{ fontSize: '13px', color: '#6b7280' }}>
-									<span style={{ fontWeight: 600 }}>Tip:</span> Add a photo of serial/IMEI (mask last digits). AI will auto-shadow and white balance.
-								</Typography>
-							</div>
-						</section>
-
-						{/* Variants Section - Step 3 */}
-						<Paper 
-							ref={(el) => setSectionRef(3, el as HTMLElement)}
-							className="p-3 sm:p-4 lg:p-6" 
-							id="variants"
-							data-step-id="3"
-							sx={{
-								borderRadius: '12px',
-								border: '1px solid #e5e7eb',
-								backgroundColor: '#ffffff',
-								boxShadow: 'none',
-								scrollMarginTop: '80px',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
-								Variants
-							</Typography>
-							<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
-								Matrix for Storage × Color. Per-variant price / stock / images.
-							</Typography>
-
-							{/* Storage Options Display */}
-							{storageOptions.length > 0 && (
-								<div className="mb-3">
-									<Typography variant="subtitle2" className="mb-2" sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>
-										Storage Options:
-									</Typography>
-									<div className="flex flex-wrap gap-2">
-										{storageOptions.map((storage, idx) => (
-											<Chip
-												key={idx}
-												label={storage}
-												onDelete={() => handleRemoveStorage(storage)}
-												size="small"
-												sx={{
-													backgroundColor: '#f3f4f6',
-													color: '#374151',
-													fontSize: '12px',
-													'& .MuiChip-deleteIcon': {
-														fontSize: '16px',
-													},
-												}}
-											/>
-										))}
-									</div>
-								</div>
-							)}
-
-							{/* Color Options Display */}
-							{colorOptions.length > 0 && (
-								<div className="mb-3">
-									<Typography variant="subtitle2" className="mb-2" sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>
-										Color Options:
-									</Typography>
-									<div className="flex flex-wrap gap-2">
-										{colorOptions.map((color, idx) => (
-											<Chip
-												key={idx}
-												label={color}
-												onDelete={() => handleRemoveColor(color)}
-												size="small"
-												sx={{
-													backgroundColor: '#f3f4f6',
-													color: '#374151',
-													fontSize: '12px',
-													'& .MuiChip-deleteIcon': {
-														fontSize: '16px',
-													},
-												}}
-											/>
-										))}
-									</div>
-								</div>
-							)}
-
-							<div className="flex flex-wrap gap-2 mb-4">
-								<Button 
-									variant="outlined" 
-									size="small"
-									onClick={handleAddStorage}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '6px 12px',
-										borderRadius: '10px',
-										'&:hover': {
-											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
-										},
-									}}
-								>
-									Add {attribute1Name}
-								</Button>
-								<Button 
-									variant="outlined" 
-									size="small"
-									onClick={handleAddColor}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '6px 12px',
-										borderRadius: '10px',
-										'&:hover': {
-											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
-										},
-									}}
-								>
-									Add {attribute2Name}
-								</Button>
-								{variants.length > 0 && (
-									<>
-										<Button 
-											variant="outlined" 
-											size="small"
-											onClick={handleApplyPriceToAll}
-											startIcon={<FuseSvgIcon size={16}>heroicons-outline:currency-pound</FuseSvgIcon>}
-											sx={{
-												borderColor: '#e5e7eb',
-												color: '#374151',
-												textTransform: 'none',
-												fontSize: '12px',
-												padding: '6px 12px',
-												borderRadius: '10px',
+												minHeight: '44px',
 												'&:hover': {
 													borderColor: '#d1d5db',
 													backgroundColor: '#f9fafb',
 												},
 											}}
 										>
-											Apply price to all
+											Import from Other Seller
 										</Button>
-										<Button 
-											variant="outlined" 
-											size="small"
-											onClick={handleApplyStockToAll}
-											startIcon={<FuseSvgIcon size={16}>heroicons-outline:cube</FuseSvgIcon>}
-											sx={{
-												borderColor: '#e5e7eb',
-												color: '#374151',
-												textTransform: 'none',
-												fontSize: '12px',
-												padding: '6px 12px',
-												borderRadius: '10px',
-												'&:hover': {
-													borderColor: '#d1d5db',
-													backgroundColor: '#f9fafb',
-												},
-											}}
-										>
-											Apply stock to all
-										</Button>
-									</>
-								)}
-							</div>
-
-							{storageOptions.length > 0 && colorOptions.length > 0 && variants.length === 0 && (
-								<Button 
-									variant="contained" 
-									onClick={generateVariants} 
-									className="mb-4"
-									sx={{
-										backgroundColor: '#ff6536',
-										'&:hover': { backgroundColor: '#e55a2b' },
-										textTransform: 'none',
-										borderRadius: '10px',
-									}}
-								>
-									Generate Variant Matrix
-								</Button>
-							)}
-
-							<div className="overflow-x-auto -mx-3 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-								<table className="w-full border-collapse" style={{ fontSize: '13px', minWidth: '600px' }}>
-									<thead>
-										<tr className="bg-gray-100">
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute1Name}</th>
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute2Name}</th>
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Price (£)</th>
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Compare-at</th>
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Stock</th>
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Same-day</th>
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Images</th>
-											<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Actions</th>
-										</tr>
-									</thead>
-									<tbody>
-										{variants.length === 0 ? (
-											<tr>
-												<td colSpan={8} className="border border-gray-300 px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-400 text-xs sm:text-sm">
-													No variants added yet. Add {attribute1Name} and {attribute2Name} options to generate variant matrix.
-												</td>
-											</tr>
-										) : (
-											variants.map((variant, index) => (
-												<tr key={index}>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.storage}</td>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.color}</td>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2">
-														<TextField
-															size="small"
-															type="number"
-															value={variant.price}
-															onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
-															placeholder="1299"
-															sx={{
-																width: '100%',
-																'& .MuiOutlinedInput-root': {
-																	fontSize: { xs: '12px', sm: '13px' },
-																	minHeight: { xs: '32px', sm: '36px' },
-																	maxHeight: { xs: '32px', sm: '36px' },
-																},
-																'& .MuiInputBase-input': {
-																	padding: { xs: '6px 8px', sm: '8px 12px' },
-																	overflow: 'hidden',
-																	textOverflow: 'ellipsis',
-																},
-															}}
-														/>
-													</td>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2">
-														<TextField
-															size="small"
-															type="number"
-															value={variant.compareAt}
-															onChange={(e) => handleVariantChange(index, 'compareAt', e.target.value)}
-															placeholder="1349"
-															sx={{
-																width: '100%',
-																'& .MuiOutlinedInput-root': {
-																	fontSize: { xs: '12px', sm: '13px' },
-																	minHeight: { xs: '32px', sm: '36px' },
-																	maxHeight: { xs: '32px', sm: '36px' },
-																},
-																'& .MuiInputBase-input': {
-																	padding: { xs: '6px 8px', sm: '8px 12px' },
-																	overflow: 'hidden',
-																	textOverflow: 'ellipsis',
-																},
-															}}
-														/>
-													</td>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2">
-														<TextField
-															size="small"
-															type="number"
-															value={variant.stock}
-															onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
-															placeholder="12"
-															sx={{
-																width: '100%',
-																'& .MuiOutlinedInput-root': {
-																	fontSize: { xs: '12px', sm: '13px' },
-																	minHeight: { xs: '32px', sm: '36px' },
-																	maxHeight: { xs: '32px', sm: '36px' },
-																},
-																'& .MuiInputBase-input': {
-																	padding: { xs: '6px 8px', sm: '8px 12px' },
-																	overflow: 'hidden',
-																	textOverflow: 'ellipsis',
-																},
-															}}
-														/>
-													</td>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2">
-														<Checkbox
-															checked={variant.sameDay}
-															onChange={(e) => handleVariantChange(index, 'sameDay', e.target.checked)}
-															size="small"
-														/>
-													</td>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2">
-														<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-															{(variant as any).image ? (
-																<>
-																	<Box
-																		component="img"
-																		src={(() => {
-																			const imageUrl = (variant as any).image;
-																			// If it's a full URL or base64, use it directly
-																			if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/')) {
-																				return imageUrl;
-																			}
-																			// If it's a relative path, prepend API URL
-																			const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-																			if (imageUrl.startsWith('storage/')) {
-																				return `${apiUrl}/${imageUrl}`;
-																			}
-																			return `${apiUrl}/storage/${imageUrl}`;
-																		})()}
-																		alt={`${variant.storage} ${variant.color}`}
-																		sx={{
-																			width: 40,
-																			height: 40,
-																			objectFit: 'cover',
-																			borderRadius: '8px',
-																			border: '1px solid #e5e7eb',
-																		}}
-																	/>
-																	<IconButton
-																		size="small"
-																		onClick={() => {
-																			const updated = [...variants];
-																			delete (updated[index] as any).image;
-																			setVariants(updated);
-																		}}
-																		sx={{ color: '#ef4444', padding: '4px' }}
-																	>
-																		<FuseSvgIcon size={14}>heroicons-outline:x-mark</FuseSvgIcon>
-																	</IconButton>
-																</>
-															) : (
-																<label>
-																	<input
-																		type="file"
-																		accept="image/*"
-																		style={{ display: 'none' }}
-																		onChange={(e) => handleVariantImageUpload(index, e.target.files)}
-																	/>
-																	<Button 
-																		size="small" 
-																		variant="outlined"
-																		component="span"
-																		startIcon={<FuseSvgIcon size={14}>heroicons-outline:photo</FuseSvgIcon>}
-																		sx={{
-																			borderColor: '#e5e7eb',
-																			color: '#374151',
-																			textTransform: 'none',
-																			fontSize: '11px',
-																			padding: '4px 10px',
-																			borderRadius: '8px',
-																		}}
-																	>
-																		Upload
-																	</Button>
-																</label>
-															)}
-														</Box>
-													</td>
-													<td className="border border-gray-300 px-2 sm:px-3 py-2">
-														<IconButton
-															size="small"
-															onClick={() => handleDeleteVariant(index)}
-															sx={{ color: '#ef4444', padding: '4px' }}
-															title="Delete variant"
-														>
-															<FuseSvgIcon size={14}>heroicons-outline:trash</FuseSvgIcon>
-														</IconButton>
-													</td>
-												</tr>
-											))
-										)}
-									</tbody>
-								</table>
-							</div>
-						</Paper>
-
-						{/* Pricing & Intel Section - Step 4 */}
-						<Paper 
-							ref={(el) => setSectionRef(4, el as HTMLElement)}
-							className="p-3" 
-							id="pricing"
-							data-step-id="4"
-							sx={{
-								borderRadius: '16px',
-								border: '1px solid #e5e7eb',
-								boxShadow: 'none',
-								scrollMarginTop: '80px',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-2 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
-								Pricing & intelligence
-							</Typography>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-								<Paper 
-									className="p-3"
-									sx={{
-										backgroundColor: '#ffffff',
-										border: '1px solid #e5e7eb',
-										borderRadius: '12px',
-										padding: '12px',
-									}}
-								>
-									<div className="flex justify-between items-start mb-1">
-										<div>
-											<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
-												Suggested range ({pricingIntelligence.city})
-											</Typography>
-											<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
-												25–75% band from recent listings
-											</Typography>
-										</div>
-										<div style={{ textAlign: 'right' }}>
-											<Typography variant="h6" className="font-bold" sx={{ fontSize: '20px', fontWeight: 900 }}>
-												{formatCurrency(pricingIntelligence.priceRange.min)} – {formatCurrency(pricingIntelligence.priceRange.max)}
-											</Typography>
-											<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
-												Median {formatCurrency(pricingIntelligence.median)}
-											</Typography>
-										</div>
-									</div>
-								</Paper>
-								<Paper 
-									className="p-3"
-									sx={{
-										backgroundColor: '#ffffff',
-										border: '1px solid #e5e7eb',
-										borderRadius: '12px',
-										padding: '12px',
-									}}
-								>
-									<div className="flex justify-between items-start mb-1">
-										<div style={{ flex: 1 }}>
-											<div className="flex items-center justify-between mb-1">
-												<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
-													Fee preview
-												</Typography>
-												<IconButton 
-													size="small" 
-													onClick={() => {
-														setTempFeeSettings(feeSettings);
-														setFeeSettingsDialogOpen(true);
-													}}
-													sx={{ padding: '4px', marginLeft: '8px' }}
-													title="Configure fees"
-												>
-													<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:cog-6-tooth</FuseSvgIcon>
-												</IconButton>
-											</div>
-											<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
-												Commission + shipping + promos
-											</Typography>
-											{/* Fee Breakdown */}
-											<div className="mt-2 space-y-1" style={{ fontSize: '11px', color: '#6b7280' }}>
-												<div className="flex justify-between">
-													<span>Commission ({(feeSettings.commissionRate * 100).toFixed(1)}%):</span>
-													<span>{formatCurrency(pricingIntelligence.fees.commission)}</span>
-												</div>
-												<div className="flex justify-between">
-													<span>Shipping (vendor):</span>
-													<span>{formatCurrency(pricingIntelligence.fees.shipping)}</span>
-												</div>
-												{pricingIntelligence.fees.promos > 0 && (
-													<div className="flex justify-between">
-														<span>Promos:</span>
-														<span>{formatCurrency(pricingIntelligence.fees.promos)}</span>
-													</div>
-												)}
-											</div>
-										</div>
-										<div style={{ textAlign: 'right', marginLeft: '16px' }}>
-											<Typography variant="body2" className="mb-1" sx={{ fontSize: '13px' }}>
-												Fees: {formatCurrency(pricingIntelligence.fees.total)}
-											</Typography>
-											<Typography variant="h6" className="font-bold" sx={{ fontSize: '16px', fontWeight: 700 }}>
-												Net: {formatCurrency(pricingIntelligence.net)}
-											</Typography>
-										</div>
-									</div>
-								</Paper>
-							</div>
-							<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
-								{pricingIntelligence.basePrice > 0 
-									? `Auto-refreshed range for ${pricingIntelligence.city} based on selected variant.`
-									: "We'll auto-refresh range by city and variant once you select stock."}
-							</Typography>
-						</Paper>
-
-						{/* Same-day & Stores Section - Step 5 */}
-						<Paper 
-							ref={(el) => setSectionRef(5, el as HTMLElement)}
-							className="p-3 sm:p-4" 
-							id="delivery"
-							data-step-id="5"
-							sx={{
-								borderRadius: '16px',
-								border: '1px solid #e5e7eb',
-								boxShadow: 'none',
-								scrollMarginTop: '80px',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
-								Same-day & stores
-							</Typography>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-								<Controller
-									name="store_postcode"
-									control={control}
-									render={({ field }) => (
-										<TextField 
-											{...field} 
-											label="Store postcode" 
-											placeholder="E12 6PH" 
-											fullWidth 
-											size="small"
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-												},
-											}}
-										/>
 									)}
-								/>
-								<Controller
-									name="delivery_radius"
-									control={control}
-									render={({ field }) => (
-										<TextField 
-											{...field} 
-											label="Radius (km)" 
-											type="number" 
-											value={deliveryRadius} 
-											fullWidth 
-											size="small"
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-												},
-											}}
-										/>
-									)}
-								/>
-								<Controller
-									name="delivery_slots"
-									control={control}
-									render={({ field }) => (
-										<FormControl fullWidth size="small">
-											<InputLabel>Delivery slots</InputLabel>
-											<Select 
-												{...field} 
-												value={deliverySlots}
+									<Button
+										variant="outlined"
+										size="small"
+										onClick={() => handleLiveSyncToggle(!liveSyncEnabled)}
+										startIcon={<Switch checked={liveSyncEnabled} size="small" sx={{ pointerEvents: 'none' }} />}
+										sx={{
+											borderColor: liveSyncEnabled ? '#3b82f6' : '#e5e7eb',
+											color: liveSyncEnabled ? '#3b82f6' : '#374151',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '10px 14px',
+											borderRadius: '12px',
+											minHeight: '44px',
+											backgroundColor: liveSyncEnabled ? '#eff6ff' : 'transparent',
+											'&:hover': {
+												borderColor: liveSyncEnabled ? '#2563eb' : '#d1d5db',
+												backgroundColor: liveSyncEnabled ? '#dbeafe' : '#f9fafb',
+											},
+										}}
+									>
+										Live Sync (Auto-Update Specs)
+									</Button>
+								</div>
+
+								{mpidMatched && matchedProduct && (
+									<Box
+										className="mt-3"
+										sx={{
+											paddingTop: '10px',
+											borderTop: '1px solid #e5e7eb',
+										}}
+									>
+										<div className="flex flex-wrap gap-2 mb-2">
+											<Chip
+												label={`Brand: ${matchedProduct.brand}`}
+												size="small"
 												sx={{
-													borderRadius: '12px',
-													fontSize: '14px',
+													backgroundColor: '#f3f4f6',
+													border: '1px solid #e5e7eb',
+													fontSize: '12px',
+													height: '24px',
+													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+													padding: '2px 8px',
 												}}
-											>
-												<MenuItem value="12-3pm">12–3pm</MenuItem>
-												<MenuItem value="3-6pm">3–6pm</MenuItem>
-												<MenuItem value="6-9pm">6–9pm</MenuItem>
-											</Select>
-										</FormControl>
-									)}
-								/>
-								<Controller
-									name="ready_in_minutes"
-									control={control}
-									render={({ field }) => (
-										<TextField 
-											{...field} 
-											label="Ready in (minutes)" 
-											type="number"
-											value={readyInMinutes} 
-											fullWidth 
-											size="small"
-											inputProps={{ min: 0, step: 1 }}
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-												},
-											}}
-											helperText="Time to prepare product for delivery"
-										/>
-									)}
-								/>
-							</div>
-							
-							{/* Shipping Charges - Set by Vendor */}
-							<Typography variant="subtitle2" sx={{ fontSize: '14px', fontWeight: 600, marginTop: '16px', marginBottom: '8px' }}>
-								Shipping Charges
-							</Typography>
-							<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '12px' }}>
-								Set your shipping charges for this product. These will be added to the product price.
-							</Typography>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-								<Controller
-									name="shipping_charge_regular"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											label="Regular Delivery Charge (£)"
-											type="number"
-											value={shippingChargeRegular}
-											fullWidth
-											size="small"
-											InputProps={{
-												startAdornment: <InputAdornment position="start">£</InputAdornment>,
-											}}
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-												},
-											}}
-											helperText="Standard delivery"
-										/>
-									)}
-								/>
-								<Controller
-									name="shipping_charge_same_day"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											label="Same-Day Delivery Charge (£)"
-											type="number"
-											value={shippingChargeSameDay}
-											fullWidth
-											size="small"
-											InputProps={{
-												startAdornment: <InputAdornment position="start">£</InputAdornment>,
-											}}
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-												},
-											}}
-											helperText="Same-day delivery"
-										/>
-									)}
-								/>
-							</div>
-							
-							<Controller
-								name="enable_pickup"
-								control={control}
-								render={({ field }) => (
-									<FormControlLabel
-										control={<Checkbox {...field} checked={enablePickup} size="small" />}
-										label="Enable pickup"
-										sx={{ marginTop: '16px' }}
-									/>
+											/>
+											<Chip
+												label={`Model: ${matchedProduct.model}`}
+												size="small"
+												sx={{
+													backgroundColor: '#f3f4f6',
+													border: '1px solid #e5e7eb',
+													fontSize: '12px',
+													height: '24px',
+													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+													padding: '2px 8px',
+												}}
+											/>
+											<Chip
+												label={`Display: ${matchedProduct.display}`}
+												size="small"
+												sx={{
+													backgroundColor: '#f3f4f6',
+													border: '1px solid #e5e7eb',
+													fontSize: '12px',
+													height: '24px',
+													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+													padding: '2px 8px',
+												}}
+											/>
+											<Chip
+												label={`Chip: ${matchedProduct.chip}`}
+												size="small"
+												sx={{
+													backgroundColor: '#f3f4f6',
+													border: '1px solid #e5e7eb',
+													fontSize: '12px',
+													height: '24px',
+													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+													padding: '2px 8px',
+												}}
+											/>
+											<Chip
+												label={`Year: ${matchedProduct.year}`}
+												size="small"
+												sx={{
+													backgroundColor: '#f3f4f6',
+													border: '1px solid #e5e7eb',
+													fontSize: '12px',
+													height: '24px',
+													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+													padding: '2px 8px',
+												}}
+											/>
+										</div>
+										<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '6px' }}>
+											After matching MPID, core specs become read-only to protect catalog quality. You may add condition notes below.
+										</Typography>
+									</Box>
 								)}
-							/>
-							<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '8px' }}>
-								Same-day badge appears only if stock &gt; 0 and slots are available.
-							</Typography>
-						</Paper>
+							</section>
 
-						{/* Subscription Section */}
-						<Paper 
-							className="p-3 sm:p-4" 
-							id="subscription"
-							sx={{
-								borderRadius: '16px',
-								border: '1px solid #e5e7eb',
-								boxShadow: 'none',
-								scrollMarginTop: '80px',
-								marginTop: '16px',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
-								Subscription Options
-							</Typography>
-							<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '16px' }}>
-								Enable subscription for this product to allow customers to subscribe for regular deliveries.
-							</Typography>
-							
-							<Controller
-								name="subscription_enabled"
-								control={control}
-								render={({ field }) => (
-									<FormControlLabel
-										control={<Checkbox {...field} checked={subscriptionEnabled} size="small" />}
-										label="Enable subscription"
-										sx={{ marginBottom: subscriptionEnabled ? '16px' : 0 }}
-									/>
-								)}
-							/>
-							
-							{subscriptionEnabled && (
-								<Controller
-									name="subscription_frequencies"
-									control={control}
-									render={({ field }) => (
-										<TextField 
-											{...field} 
-											label="Subscription Frequencies" 
-											placeholder="e.g., weekly, monthly, quarterly" 
-											fullWidth 
-											size="small"
-											value={subscriptionFrequencies}
-											multiline
-											rows={2}
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-												},
-												marginTop: '12px',
-											}}
-											helperText="Enter available subscription frequencies (comma-separated or one per line)"
-										/>
-									)}
-								/>
-							)}
-						</Paper>
-
-						{/* Copy & SEO Section - Step 6 */}
-						<Paper 
-							ref={(el) => setSectionRef(6, el as HTMLElement)}
-							className="p-3 sm:p-4 lg:p-6" 
-							id="copy"
-							data-step-id="6"
-							sx={{
-								borderRadius: '12px',
-								scrollMarginTop: '80px',
-								border: '1px solid #e5e7eb',
-								backgroundColor: '#ffffff',
-								boxShadow: 'none',
-							}}
-						>
-							<Typography 
-								variant="h6" 
-								className="font-semibold mb-4 text-gray-900" 
-								sx={{ 
-									fontSize: '18px', 
-									fontWeight: 600, 
-									marginBottom: '16px',
-									color: '#111827'
+							{/* Media Section - Step 2 */}
+							<section
+								ref={(el) => setSectionRef(2, el)}
+								className="p-4 sm:p-6 rounded-xl border"
+								id="media"
+								data-step-id="2"
+								style={{
+									borderRadius: '12px',
+									border: '1px solid #e5e7eb',
+									backgroundColor: '#ffffff',
+									boxShadow: 'none',
+									scrollMarginTop: '80px',
 								}}
 							>
-								Copy & SEO (AI-assisted)
-							</Typography>
-							
-							{/* AI Action Buttons */}
-							<div className="flex flex-wrap gap-3 mb-6">
-								<Button
-									variant="outlined"
-									size="medium"
-									onClick={handleSuggestTitle}
-									sx={{
-										borderColor: '#d1d5db',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '14px',
-										fontWeight: 500,
-										padding: '10px 20px',
-										borderRadius: '8px',
-										minHeight: '42px',
-										borderWidth: '1.5px',
-										'&:hover': {
-											borderColor: '#9ca3af',
-											backgroundColor: '#f9fafb',
-											borderWidth: '1.5px',
-										},
-									}}
-								>
-									Suggest title
-								</Button>
-								<Button
-									variant="outlined"
-									size="medium"
-									onClick={handleGenerateBullets}
-									sx={{
-										borderColor: '#d1d5db',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '14px',
-										fontWeight: 500,
-										padding: '10px 20px',
-										borderRadius: '8px',
-										minHeight: '42px',
-										borderWidth: '1.5px',
-										'&:hover': {
-											borderColor: '#9ca3af',
-											backgroundColor: '#f9fafb',
-											borderWidth: '1.5px',
-										},
-									}}
-								>
-									Generate 6 bullets
-								</Button>
-								<Button
-									variant="outlined"
-									size="medium"
-									onClick={handleWriteDescription}
-									sx={{
-										borderColor: '#d1d5db',
-										color: '#374151',
-										textTransform: 'none',
-										fontSize: '14px',
-										fontWeight: 500,
-										padding: '10px 20px',
-										borderRadius: '8px',
-										minHeight: '42px',
-										borderWidth: '1.5px',
-										'&:hover': {
-											borderColor: '#9ca3af',
-											backgroundColor: '#f9fafb',
-											borderWidth: '1.5px',
-										},
-									}}
-								>
-									Write description
-								</Button>
-							</div>
+								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
+									Media
+								</Typography>
+								<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px', margin: '2px 0 10px 0' }}>
+									Upload 6-12 images. Include front/back, box contents, ports. Per-variant photos supported.
+								</Typography>
 
-							{/* Tone Dropdown */}
-							<div className="mb-6">
-								<FormControl fullWidth size="medium">
-									<InputLabel id="tone-select-label" sx={{ fontSize: '14px' }}>Tone</InputLabel>
-									<Select 
-										labelId="tone-select-label"
-										label="Tone"
-										value={seoTone}
-										onChange={(e) => setSeoTone(e.target.value)}
+								{/* Image Upload Slots */}
+								<div className="flex gap-3 mb-4" style={{ flexWrap: 'wrap' }}>
+									{(() => {
+										// Use the memoized galleryImages for reactivity
+										const imagesArray = Array.isArray(galleryImages) ? galleryImages : [];
+
+										// Show at least 6 slots, or more if there are more images
+										// Maximum of 12 slots as per instructions (6-12 images)
+										const totalSlots = Math.max(6, Math.min(12, imagesArray.length + 1));
+
+										return Array.from({ length: totalSlots }, (_, index) => {
+											const hasImage = imagesArray.length > index &&
+												imagesArray[index] &&
+												imagesArray[index].url &&
+												typeof imagesArray[index].url === 'string' &&
+												imagesArray[index].url.length > 0;
+
+											const isFirstSlot = index === 0;
+											const currentImage = hasImage ? imagesArray[index] : null;
+
+											return (
+												<label
+													key={`media-slot-${index}-${currentImage?.url || 'empty'}`}
+													htmlFor={`image-upload-${index}`}
+													style={{
+														width: '150px',
+														height: '150px',
+														border: '2px dashed #d1d5db',
+														borderRadius: '12px',
+														display: 'flex',
+														alignItems: 'center',
+														justifyContent: 'center',
+														cursor: 'pointer',
+														backgroundColor: '#f9fafb',
+														transition: 'all 0.2s',
+														overflow: 'hidden',
+													}}
+													onMouseEnter={(e) => {
+														e.currentTarget.style.borderColor = '#9ca3af';
+														e.currentTarget.style.backgroundColor = '#f3f4f6';
+													}}
+													onMouseLeave={(e) => {
+														e.currentTarget.style.borderColor = '#d1d5db';
+														e.currentTarget.style.backgroundColor = '#f9fafb';
+													}}
+												>
+													{hasImage && currentImage ? (
+														<div style={{ position: 'relative', width: '100%', height: '100%' }}>
+															<img
+																src={currentImage.url}
+																alt="Uploaded"
+																style={{
+																	width: '100%',
+																	height: '100%',
+																	objectFit: 'cover',
+																	borderRadius: '10px',
+																}}
+																onError={(e) => {
+																	console.error('Image load error:', e);
+																	// Remove broken image from gallery
+																	const currentImages = watch('gallery_images') || [];
+																	const updatedImages = currentImages.filter((_: any, i: number) => i !== index);
+																	setValue('gallery_images', updatedImages, { shouldDirty: true });
+																}}
+															/>
+															<button
+																onClick={(e) => {
+																	e.preventDefault();
+																	e.stopPropagation();
+																	handleImageRemove(index);
+																}}
+																style={{
+																	position: 'absolute',
+																	top: '4px',
+																	right: '4px',
+																	background: 'rgba(0, 0, 0, 0.6)',
+																	color: 'white',
+																	border: 'none',
+																	borderRadius: '50%',
+																	width: '24px',
+																	height: '24px',
+																	cursor: 'pointer',
+																	display: 'flex',
+																	alignItems: 'center',
+																	justifyContent: 'center',
+																	fontSize: '16px',
+																	zIndex: 10,
+																}}
+															>
+																×
+															</button>
+														</div>
+													) : isUploadingImage && index === 0 ? (
+														<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+															<CircularProgress size={24} sx={{ color: '#9ca3af' }} />
+															<span style={{ color: '#9ca3af', fontSize: '12px' }}>Uploading...</span>
+														</div>
+													) : (
+														<span style={{ color: '#9ca3af', fontSize: isFirstSlot ? '14px' : '24px', fontWeight: isFirstSlot ? 500 : 300 }}>
+															{isFirstSlot ? 'Upload' : '+'}
+														</span>
+													)}
+													<input
+														id={`image-upload-${index}`}
+														type="file"
+														accept="image/*"
+														multiple
+														disabled={isUploadingImage}
+														style={{ display: 'none' }}
+														onChange={handleImageUpload}
+													/>
+												</label>
+											);
+										});
+									})()}
+								</div>
+
+								{/* Action Buttons */}
+								<div className="flex flex-col gap-3 mb-4">
+									{/* First row of buttons */}
+									<div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
+										<Button
+											variant="outlined"
+											size="small"
+											onClick={() => {
+												if (galleryImages && galleryImages.length > 0) {
+													handleRemoveBackground(0);
+												} else {
+													alert('Please upload an image first');
+												}
+											}}
+											sx={{
+												borderColor: '#e5e7eb',
+												color: '#374151',
+												textTransform: 'none',
+												fontSize: '13px',
+												padding: '8px 16px',
+												borderRadius: '8px',
+												minHeight: '40px',
+												backgroundColor: '#ffffff',
+												'&:hover': {
+													borderColor: '#d1d5db',
+													backgroundColor: '#f9fafb',
+												},
+											}}
+										>
+											Remove background
+										</Button>
+										<Button
+											variant="outlined"
+											size="small"
+											onClick={() => {
+												if (galleryImages && galleryImages.length > 0) {
+													handleAutoCropAndCenter(0);
+												} else {
+													alert('Please upload an image first');
+												}
+											}}
+											sx={{
+												borderColor: '#e5e7eb',
+												color: '#374151',
+												textTransform: 'none',
+												fontSize: '13px',
+												padding: '8px 16px',
+												borderRadius: '8px',
+												minHeight: '40px',
+												backgroundColor: '#ffffff',
+												'&:hover': {
+													borderColor: '#d1d5db',
+													backgroundColor: '#f9fafb',
+												},
+											}}
+										>
+											Auto-crop & center
+										</Button>
+										<Button
+											variant="outlined"
+											size="small"
+											onClick={() => {
+												if (galleryImages && galleryImages.length > 0) {
+													handleCreate360Spin(0);
+												} else {
+													alert('Please upload an image first');
+												}
+											}}
+											sx={{
+												borderColor: '#e5e7eb',
+												color: '#374151',
+												textTransform: 'none',
+												fontSize: '13px',
+												padding: '8px 16px',
+												borderRadius: '8px',
+												minHeight: '40px',
+												backgroundColor: '#ffffff',
+												'&:hover': {
+													borderColor: '#d1d5db',
+													backgroundColor: '#f9fafb',
+												},
+											}}
+										>
+											Create 360° spin
+										</Button>
+										<Button
+											variant="outlined"
+											size="small"
+											onClick={() => {
+												if (galleryImages && galleryImages.length > 0) {
+													handleWatermark(0);
+												} else {
+													alert('Please upload an image first');
+												}
+											}}
+											sx={{
+												borderColor: '#e5e7eb',
+												color: '#374151',
+												textTransform: 'none',
+												fontSize: '13px',
+												padding: '8px 16px',
+												borderRadius: '8px',
+												minHeight: '40px',
+												backgroundColor: '#ffffff',
+												'&:hover': {
+													borderColor: '#d1d5db',
+													backgroundColor: '#f9fafb',
+												},
+											}}
+										>
+											Watermark
+										</Button>
+									</div>
+
+									{/* Second row - AI Auto-enhance */}
+									<div className="flex gap-3">
+										<Button
+											variant="outlined"
+											size="small"
+											onClick={() => {
+												if (galleryImages && galleryImages.length > 0) {
+													handleAIAutoEnhance(0);
+												} else {
+													alert('Please upload an image first');
+												}
+											}}
+											sx={{
+												borderColor: '#e5e7eb',
+												color: '#374151',
+												textTransform: 'none',
+												fontSize: '13px',
+												padding: '8px 16px',
+												borderRadius: '8px',
+												minHeight: '40px',
+												backgroundColor: '#ffffff',
+												'&:hover': {
+													borderColor: '#d1d5db',
+													backgroundColor: '#f9fafb',
+												},
+											}}
+										>
+											AI Auto-enhance
+										</Button>
+									</div>
+								</div>
+
+								{/* Tip Section */}
+								<div style={{ marginTop: '12px' }}>
+									<Typography variant="body2" sx={{ fontSize: '13px', color: '#6b7280' }}>
+										<span style={{ fontWeight: 600 }}>Tip:</span> Add a photo of serial/IMEI (mask last digits). AI will auto-shadow and white balance.
+									</Typography>
+								</div>
+							</section>
+
+							{/* Variants Section - Step 3 */}
+							<Paper
+								ref={(el) => setSectionRef(3, el as HTMLElement)}
+								className="p-3 sm:p-4 lg:p-6"
+								id="variants"
+								data-step-id="3"
+								sx={{
+									borderRadius: '12px',
+									border: '1px solid #e5e7eb',
+									backgroundColor: '#ffffff',
+									boxShadow: 'none',
+									scrollMarginTop: '80px',
+								}}
+							>
+								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+									Variants
+								</Typography>
+								<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
+									Matrix for Storage × Color. Per-variant price / stock / images.
+								</Typography>
+
+								{/* Storage Options Display */}
+								{storageOptions.length > 0 && (
+									<div className="mb-3">
+										<Typography variant="subtitle2" className="mb-2" sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>
+											Storage Options:
+										</Typography>
+										<div className="flex flex-wrap gap-2">
+											{storageOptions.map((storage, idx) => (
+												<Chip
+													key={idx}
+													label={storage}
+													onDelete={() => handleRemoveStorage(storage)}
+													size="small"
+													sx={{
+														backgroundColor: '#f3f4f6',
+														color: '#374151',
+														fontSize: '12px',
+														'& .MuiChip-deleteIcon': {
+															fontSize: '16px',
+														},
+													}}
+												/>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Color Options Display */}
+								{colorOptions.length > 0 && (
+									<div className="mb-3">
+										<Typography variant="subtitle2" className="mb-2" sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>
+											Color Options:
+										</Typography>
+										<div className="flex flex-wrap gap-2">
+											{colorOptions.map((color, idx) => (
+												<Chip
+													key={idx}
+													label={color}
+													onDelete={() => handleRemoveColor(color)}
+													size="small"
+													sx={{
+														backgroundColor: '#f3f4f6',
+														color: '#374151',
+														fontSize: '12px',
+														'& .MuiChip-deleteIcon': {
+															fontSize: '16px',
+														},
+													}}
+												/>
+											))}
+										</div>
+									</div>
+								)}
+
+								<div className="flex flex-wrap gap-2 mb-4">
+									<Button
+										variant="outlined"
+										size="small"
+										onClick={handleAddStorage}
 										sx={{
-											borderRadius: '8px',
-											fontSize: '14px',
-											'& .MuiOutlinedInput-notchedOutline': {
+											borderColor: '#e5e7eb',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '6px 12px',
+											borderRadius: '10px',
+											'&:hover': {
 												borderColor: '#d1d5db',
-											},
-											'&:hover .MuiOutlinedInput-notchedOutline': {
-												borderColor: '#9ca3af',
+												backgroundColor: '#f9fafb',
 											},
 										}}
 									>
-										<MenuItem value="Neutral" sx={{ fontSize: '14px' }}>Neutral</MenuItem>
-										<MenuItem value="Professional" sx={{ fontSize: '14px' }}>Professional</MenuItem>
-										<MenuItem value="Casual" sx={{ fontSize: '14px' }}>Casual</MenuItem>
-										<MenuItem value="Friendly" sx={{ fontSize: '14px' }}>Friendly</MenuItem>
-										<MenuItem value="Formal" sx={{ fontSize: '14px' }}>Formal</MenuItem>
-									</Select>
-								</FormControl>
-							</div>
-
-							{/* SEO Title Field - Independent */}
-							<div className="mb-6">
-								<Controller
-									name="meta_title"
-									control={control}
-									render={({ field }) => {
-										const currentValue = field.value || '';
-										return (
-											<TextField
-												{...field}
-												fullWidth
-												label="SEO title (≤ 70 chars)"
-												placeholder="iPhone 16 Pro Max 256GB — QC-Verified, Same-Day Delivery"
-												size="medium"
-												error={!!errors.meta_title}
-												helperText={`${currentValue.length}/70 ${errors?.meta_title?.message ? ' - ' + errors.meta_title.message : ''}`}
+										Add {attribute1Name}
+									</Button>
+									<Button
+										variant="outlined"
+										size="small"
+										onClick={handleAddColor}
+										sx={{
+											borderColor: '#e5e7eb',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '6px 12px',
+											borderRadius: '10px',
+											'&:hover': {
+												borderColor: '#d1d5db',
+												backgroundColor: '#f9fafb',
+											},
+										}}
+									>
+										Add {attribute2Name}
+									</Button>
+									{variants.length > 0 && (
+										<>
+											<Button
+												variant="outlined"
+												size="small"
+												onClick={handleApplyPriceToAll}
+												startIcon={<FuseSvgIcon size={16}>heroicons-outline:currency-pound</FuseSvgIcon>}
 												sx={{
-													'& .MuiOutlinedInput-root': {
-														borderRadius: '8px',
-														fontSize: '14px',
-														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db',
-														},
-														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af',
-														},
-														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#3b82f6',
-															borderWidth: '2px',
-														},
-													},
-													'& .MuiInputBase-input': {
-														padding: '12px 14px',
-														color: '#111827',
-													},
-													'& .MuiInputLabel-root': {
-														fontSize: '14px',
-														color: '#6b7280',
-													},
-													'& .MuiFormHelperText-root': {
-														fontSize: '12px',
-														marginTop: '4px',
+													borderColor: '#e5e7eb',
+													color: '#374151',
+													textTransform: 'none',
+													fontSize: '12px',
+													padding: '6px 12px',
+													borderRadius: '10px',
+													'&:hover': {
+														borderColor: '#d1d5db',
+														backgroundColor: '#f9fafb',
 													},
 												}}
-											/>
-										);
-									}}
-								/>
-							</div>
+											>
+												Apply price to all
+											</Button>
+											<Button
+												variant="outlined"
+												size="small"
+												onClick={handleApplyStockToAll}
+												startIcon={<FuseSvgIcon size={16}>heroicons-outline:cube</FuseSvgIcon>}
+												sx={{
+													borderColor: '#e5e7eb',
+													color: '#374151',
+													textTransform: 'none',
+													fontSize: '12px',
+													padding: '6px 12px',
+													borderRadius: '10px',
+													'&:hover': {
+														borderColor: '#d1d5db',
+														backgroundColor: '#f9fafb',
+													},
+												}}
+											>
+												Apply stock to all
+											</Button>
+										</>
+									)}
+								</div>
 
-							{/* Meta Description Field - Independent */}
-							<div className="mb-6">
+								{storageOptions.length > 0 && colorOptions.length > 0 && variants.length === 0 && (
+									<Button
+										variant="contained"
+										onClick={generateVariants}
+										className="mb-4"
+										sx={{
+											backgroundColor: '#ff6536',
+											'&:hover': { backgroundColor: '#e55a2b' },
+											textTransform: 'none',
+											borderRadius: '10px',
+										}}
+									>
+										Generate Variant Matrix
+									</Button>
+								)}
+
+								<div className="overflow-x-auto -mx-3 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
+									<table className="w-full border-collapse" style={{ fontSize: '13px', minWidth: '600px' }}>
+										<thead>
+											<tr className="bg-gray-100">
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute1Name}</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute2Name}</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Price (£)</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Compare-at</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Stock</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Same-day</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Images</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Actions</th>
+											</tr>
+										</thead>
+										<tbody>
+											{variants.length === 0 ? (
+												<tr>
+													<td colSpan={8} className="border border-gray-300 px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-400 text-xs sm:text-sm">
+														No variants added yet. Add {attribute1Name} and {attribute2Name} options to generate variant matrix.
+													</td>
+												</tr>
+											) : (
+												variants.map((variant, index) => (
+													<tr key={index}>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.storage}</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.color}</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2">
+															<TextField
+																size="small"
+																type="number"
+																value={variant.price}
+																onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+																placeholder="1299"
+																sx={{
+																	width: '100%',
+																	'& .MuiOutlinedInput-root': {
+																		fontSize: { xs: '12px', sm: '13px' },
+																		minHeight: { xs: '32px', sm: '36px' },
+																		maxHeight: { xs: '32px', sm: '36px' },
+																	},
+																	'& .MuiInputBase-input': {
+																		padding: { xs: '6px 8px', sm: '8px 12px' },
+																		overflow: 'hidden',
+																		textOverflow: 'ellipsis',
+																	},
+																}}
+															/>
+														</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2">
+															<TextField
+																size="small"
+																type="number"
+																value={variant.compareAt}
+																onChange={(e) => handleVariantChange(index, 'compareAt', e.target.value)}
+																placeholder="1349"
+																sx={{
+																	width: '100%',
+																	'& .MuiOutlinedInput-root': {
+																		fontSize: { xs: '12px', sm: '13px' },
+																		minHeight: { xs: '32px', sm: '36px' },
+																		maxHeight: { xs: '32px', sm: '36px' },
+																	},
+																	'& .MuiInputBase-input': {
+																		padding: { xs: '6px 8px', sm: '8px 12px' },
+																		overflow: 'hidden',
+																		textOverflow: 'ellipsis',
+																	},
+																}}
+															/>
+														</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2">
+															<TextField
+																size="small"
+																type="number"
+																value={variant.stock}
+																onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+																placeholder="12"
+																sx={{
+																	width: '100%',
+																	'& .MuiOutlinedInput-root': {
+																		fontSize: { xs: '12px', sm: '13px' },
+																		minHeight: { xs: '32px', sm: '36px' },
+																		maxHeight: { xs: '32px', sm: '36px' },
+																	},
+																	'& .MuiInputBase-input': {
+																		padding: { xs: '6px 8px', sm: '8px 12px' },
+																		overflow: 'hidden',
+																		textOverflow: 'ellipsis',
+																	},
+																}}
+															/>
+														</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2">
+															<Checkbox
+																checked={variant.sameDay}
+																onChange={(e) => handleVariantChange(index, 'sameDay', e.target.checked)}
+																size="small"
+															/>
+														</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2">
+															<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+																{(variant as any).image ? (
+																	<React.Fragment>
+																		<Box
+																			component="img"
+																			src={(() => {
+																				const imageUrl = (variant as any).image;
+																				// If it's a full URL or base64, use it directly
+																				if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/')) {
+																					return imageUrl;
+																				}
+																				// If it's a relative path, prepend API URL
+																				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+																				if (imageUrl.startsWith('storage/')) {
+																					return `${apiUrl}/${imageUrl}`;
+																				}
+																				return `${apiUrl}/storage/${imageUrl}`;
+																			})()}
+																			alt={`${variant.storage} ${variant.color}`}
+																			sx={{
+																				width: 40,
+																				height: 40,
+																				objectFit: 'cover',
+																				borderRadius: '8px',
+																				border: '1px solid #e5e7eb',
+																			}}
+																		/>
+																		<IconButton
+																			size="small"
+																			onClick={() => {
+																				const updated = [...variants];
+																				delete (updated[index] as any).image;
+																				setVariants(updated);
+																			}}
+																			sx={{ color: '#ef4444', padding: '4px' }}
+																		>
+																			<FuseSvgIcon size={14}>heroicons-outline:x-mark</FuseSvgIcon>
+																		</IconButton>
+																	</React.Fragment>
+																) : (
+																	<label>
+																		<input
+																			type="file"
+																			accept="image/*"
+																			style={{ display: 'none' }}
+																			onChange={(e) => handleVariantImageUpload(index, e.target.files)}
+																		/>
+																		<Button
+																			size="small"
+																			variant="outlined"
+																			component="span"
+																			startIcon={<FuseSvgIcon size={14}>heroicons-outline:photo</FuseSvgIcon>}
+																			sx={{
+																				borderColor: '#e5e7eb',
+																				color: '#374151',
+																				textTransform: 'none',
+																				fontSize: '11px',
+																				padding: '4px 10px',
+																				borderRadius: '8px',
+																			}}
+																		>
+																			Upload
+																		</Button>
+																	</label>
+																)}
+															</Box>
+														</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2">
+															<IconButton
+																size="small"
+																onClick={() => handleDeleteVariant(index)}
+																sx={{ color: '#ef4444', padding: '4px' }}
+																title="Delete variant"
+															>
+																<FuseSvgIcon size={14}>heroicons-outline:trash</FuseSvgIcon>
+															</IconButton>
+														</td>
+													</tr>
+												))
+											)}
+										</tbody>
+									</table>
+								</div>
+							</Paper>
+
+							{/* Pricing & Intel Section - Step 4 */}
+							<Paper
+								ref={(el) => setSectionRef(4, el as HTMLElement)}
+								className="p-3"
+								id="pricing"
+								data-step-id="4"
+								sx={{
+									borderRadius: '16px',
+									border: '1px solid #e5e7eb',
+									boxShadow: 'none',
+									scrollMarginTop: '80px',
+								}}
+							>
+								<Typography variant="h6" className="font-semibold mb-2 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
+									Pricing & intelligence
+								</Typography>
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+									<Paper
+										className="p-3"
+										sx={{
+											backgroundColor: '#ffffff',
+											border: '1px solid #e5e7eb',
+											borderRadius: '12px',
+											padding: '12px',
+										}}
+									>
+										<div className="flex justify-between items-start mb-1">
+											<div>
+												<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
+													Suggested range ({pricingIntelligence.city})
+												</Typography>
+												<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
+													25–75% band from recent listings
+												</Typography>
+											</div>
+											<div style={{ textAlign: 'right' }}>
+												<Typography variant="h6" className="font-bold" sx={{ fontSize: '20px', fontWeight: 900 }}>
+													{formatCurrency(pricingIntelligence.priceRange.min)} – {formatCurrency(pricingIntelligence.priceRange.max)}
+												</Typography>
+												<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
+													Median {formatCurrency(pricingIntelligence.median)}
+												</Typography>
+											</div>
+										</div>
+									</Paper>
+									<Paper
+										className="p-3"
+										sx={{
+											backgroundColor: '#ffffff',
+											border: '1px solid #e5e7eb',
+											borderRadius: '12px',
+											padding: '12px',
+										}}
+									>
+										<div className="flex justify-between items-start mb-1">
+											<div style={{ flex: 1 }}>
+												<div className="flex items-center justify-between mb-1">
+													<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
+														Fee preview
+													</Typography>
+													<IconButton
+														size="small"
+														onClick={() => {
+															setTempFeeSettings(feeSettings);
+															setFeeSettingsDialogOpen(true);
+														}}
+														sx={{ padding: '4px', marginLeft: '8px' }}
+														title="Configure fees"
+													>
+														<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:cog-6-tooth</FuseSvgIcon>
+													</IconButton>
+												</div>
+												<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
+													Commission + shipping + promos
+												</Typography>
+												{/* Fee Breakdown */}
+												<div className="mt-2 space-y-1" style={{ fontSize: '11px', color: '#6b7280' }}>
+													<div className="flex justify-between">
+														<span>Commission ({(feeSettings.commissionRate * 100).toFixed(1)}%):</span>
+														<span>{formatCurrency(pricingIntelligence.fees.commission)}</span>
+													</div>
+													<div className="flex justify-between">
+														<span>Shipping (vendor):</span>
+														<span>{formatCurrency(pricingIntelligence.fees.shipping)}</span>
+													</div>
+													{pricingIntelligence.fees.promos > 0 && (
+														<div className="flex justify-between">
+															<span>Promos:</span>
+															<span>{formatCurrency(pricingIntelligence.fees.promos)}</span>
+														</div>
+													)}
+												</div>
+											</div>
+											<div style={{ textAlign: 'right', marginLeft: '16px' }}>
+												<Typography variant="body2" className="mb-1" sx={{ fontSize: '13px' }}>
+													Fees: {formatCurrency(pricingIntelligence.fees.total)}
+												</Typography>
+												<Typography variant="h6" className="font-bold" sx={{ fontSize: '16px', fontWeight: 700 }}>
+													Net: {formatCurrency(pricingIntelligence.net)}
+												</Typography>
+											</div>
+										</div>
+									</Paper>
+								</div>
+								<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
+									{pricingIntelligence.basePrice > 0
+										? `Auto-refreshed range for ${pricingIntelligence.city} based on selected variant.`
+										: "We'll auto-refresh range by city and variant once you select stock."}
+								</Typography>
+							</Paper>
+
+							{/* Same-day & Stores Section - Step 5 */}
+							<Paper
+								ref={(el) => setSectionRef(5, el as HTMLElement)}
+								className="p-3 sm:p-4"
+								id="delivery"
+								data-step-id="5"
+								sx={{
+									borderRadius: '16px',
+									border: '1px solid #e5e7eb',
+									boxShadow: 'none',
+									scrollMarginTop: '80px',
+								}}
+							>
+								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+									Same-day & stores
+								</Typography>
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+									<Controller
+										name="store_postcode"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												label="Store postcode"
+												placeholder="E12 6PH"
+												fullWidth
+												size="small"
+												disabled
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														backgroundColor: '#f5f5f5',
+													},
+												}}
+												helperText="Pre-filled from store settings"
+											/>
+										)}
+									/>
+									<Controller
+										name="delivery_radius"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												label="Radius (km)"
+												type="number"
+												value={storeDeliveryRadius ?? ''}
+												fullWidth
+												size="small"
+												disabled
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														backgroundColor: '#f5f5f5',
+													},
+												}}
+												helperText="Pre-filled from store settings"
+											/>
+										)}
+									/>
+									<Controller
+										name="delivery_slots"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												label="Delivery slots"
+												fullWidth
+												size="small"
+												disabled
+												value={storeDeliverySlots.length > 0 ? storeDeliverySlots.join(', ') : '12-3pm, 3-6pm, 6-9pm'}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														backgroundColor: '#f5f5f5',
+													},
+												}}
+												helperText="Configured in store settings"
+											/>
+										)}
+									/>
+									<Controller
+										name="ready_in_minutes"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												label="Ready in (minutes)"
+												type="number"
+												value={readyInMinutes}
+												fullWidth
+												size="small"
+												inputProps={{ min: 0, step: 1 }}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+													},
+												}}
+												helperText="Time to prepare product for delivery"
+											/>
+										)}
+									/>
+								</div>
+
+								{/* Shipping Charges - Set by Vendor */}
+								<Typography variant="subtitle2" sx={{ fontSize: '14px', fontWeight: 600, marginTop: '16px', marginBottom: '8px' }}>
+									Shipping Charges
+								</Typography>
+								<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '12px' }}>
+									Set your shipping charges for this product. These will be added to the product price.
+								</Typography>
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+									<Controller
+										name="shipping_charge_regular"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												label="Regular Delivery Charge (£)"
+												type="number"
+												value={shippingChargeRegular}
+												fullWidth
+												size="small"
+												InputProps={{
+													startAdornment: <InputAdornment position="start">£</InputAdornment>,
+												}}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+													},
+												}}
+												helperText="Standard delivery"
+											/>
+										)}
+									/>
+									<Controller
+										name="shipping_charge_same_day"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												label="Same-Day Delivery Charge (£)"
+												type="number"
+												value={shippingChargeSameDay}
+												fullWidth
+												size="small"
+												InputProps={{
+													startAdornment: <InputAdornment position="start">£</InputAdornment>,
+												}}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+													},
+												}}
+												helperText="Same-day delivery"
+											/>
+										)}
+									/>
+								</div>
+
 								<Controller
-									name="meta_description"
+									name="enable_pickup"
 									control={control}
-									render={({ field }) => {
-										const currentValue = field.value || '';
-										return (
+									render={({ field }) => (
+										<FormControlLabel
+											control={<Checkbox {...field} checked={enablePickup} size="small" />}
+											label="Enable pickup"
+											sx={{ marginTop: '16px' }}
+										/>
+									)}
+								/>
+								<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '8px' }}>
+									Same-day badge appears only if stock &gt; 0 and slots are available.
+								</Typography>
+							</Paper>
+
+							{/* Subscription Section */}
+							<Paper
+								className="p-3 sm:p-4"
+								id="subscription"
+								sx={{
+									borderRadius: '16px',
+									border: '1px solid #e5e7eb',
+									boxShadow: 'none',
+									scrollMarginTop: '80px',
+									marginTop: '16px',
+								}}
+							>
+								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+									Subscription Options
+								</Typography>
+								<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '16px' }}>
+									Enable subscription for this product to allow customers to subscribe for regular deliveries.
+								</Typography>
+
+								<Controller
+									name="subscription_enabled"
+									control={control}
+									render={({ field }) => (
+										<FormControlLabel
+											control={<Checkbox {...field} checked={subscriptionEnabled} size="small" />}
+											label="Enable subscription"
+											sx={{ marginBottom: subscriptionEnabled ? '16px' : 0 }}
+										/>
+									)}
+								/>
+
+								{subscriptionEnabled && (
+									<Controller
+										name="subscription_frequencies"
+										control={control}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												label="Subscription Frequencies"
+												placeholder="e.g., weekly, monthly, quarterly"
+												fullWidth
+												size="small"
+												value={subscriptionFrequencies}
+												multiline
+												rows={2}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+													},
+													marginTop: '12px',
+												}}
+												helperText="Enter available subscription frequencies (comma-separated or one per line)"
+											/>
+										)}
+									/>
+								)}
+							</Paper>
+
+							{/* Copy & SEO Section - Step 6 */}
+							<Paper
+								ref={(el) => setSectionRef(6, el as HTMLElement)}
+								className="p-3 sm:p-4 lg:p-6"
+								id="copy"
+								data-step-id="6"
+								sx={{
+									borderRadius: '12px',
+									scrollMarginTop: '80px',
+									border: '1px solid #e5e7eb',
+									backgroundColor: '#ffffff',
+									boxShadow: 'none',
+								}}
+							>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-4 text-gray-900"
+									sx={{
+										fontSize: '18px',
+										fontWeight: 600,
+										marginBottom: '16px',
+										color: '#111827'
+									}}
+								>
+									Copy & SEO (AI-assisted)
+								</Typography>
+
+								{/* AI Action Buttons */}
+								<div className="flex flex-wrap gap-3 mb-6">
+									<Button
+										variant="outlined"
+										size="medium"
+										disabled={isGeneratingTitle}
+										onClick={handleSuggestTitle}
+										startIcon={isGeneratingTitle ? <CircularProgress size={16} /> : null}
+										sx={{
+											borderColor: '#d1d5db',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '14px',
+											fontWeight: 500,
+											padding: '10px 20px',
+											borderRadius: '8px',
+											minHeight: '42px',
+											borderWidth: '1.5px',
+											'&:hover': {
+												borderColor: '#9ca3af',
+												backgroundColor: '#f9fafb',
+												borderWidth: '1.5px',
+											},
+											'&:disabled': {
+												opacity: 0.7,
+												cursor: 'not-allowed',
+											},
+										}}
+									>
+										{isGeneratingTitle ? 'Generating...' : 'Suggest title'}
+									</Button>
+									<Button
+										variant="outlined"
+										size="medium"
+										disabled={isGeneratingBullets}
+										onClick={handleGenerateBullets}
+										startIcon={isGeneratingBullets ? <CircularProgress size={16} /> : null}
+										sx={{
+											borderColor: '#d1d5db',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '14px',
+											fontWeight: 500,
+											padding: '10px 20px',
+											borderRadius: '8px',
+											minHeight: '42px',
+											borderWidth: '1.5px',
+											'&:hover': {
+												borderColor: '#9ca3af',
+												backgroundColor: '#f9fafb',
+												borderWidth: '1.5px',
+											},
+											'&:disabled': {
+												opacity: 0.7,
+												cursor: 'not-allowed',
+											},
+										}}
+									>
+										{isGeneratingBullets ? 'Generating...' : 'Generate 6 bullets'}
+									</Button>
+									<Button
+										variant="outlined"
+										size="medium"
+										disabled={isWritingDescription}
+										onClick={handleWriteDescription}
+										startIcon={isWritingDescription ? <CircularProgress size={16} /> : null}
+										sx={{
+											borderColor: '#d1d5db',
+											color: '#374151',
+											textTransform: 'none',
+											fontSize: '14px',
+											fontWeight: 500,
+											padding: '10px 20px',
+											borderRadius: '8px',
+											minHeight: '42px',
+											borderWidth: '1.5px',
+											'&:hover': {
+												borderColor: '#9ca3af',
+												backgroundColor: '#f9fafb',
+												borderWidth: '1.5px',
+											},
+											'&:disabled': {
+												opacity: 0.7,
+												cursor: 'not-allowed',
+											},
+										}}
+									>
+										{isWritingDescription ? 'Writing...' : 'Write description'}
+									</Button>
+								</div>
+
+								{/* Tone Dropdown */}
+								<div className="mb-6">
+									<FormControl fullWidth size="medium">
+										<InputLabel id="tone-select-label" sx={{ fontSize: '14px' }}>Tone</InputLabel>
+										<Select
+											labelId="tone-select-label"
+											label="Tone"
+											value={seoTone}
+											onChange={(e) => setSeoTone(e.target.value)}
+											sx={{
+												borderRadius: '8px',
+												fontSize: '14px',
+												'& .MuiOutlinedInput-notchedOutline': {
+													borderColor: '#d1d5db',
+												},
+												'&:hover .MuiOutlinedInput-notchedOutline': {
+													borderColor: '#9ca3af',
+												},
+											}}
+										>
+											<MenuItem value="Neutral" sx={{ fontSize: '14px' }}>Neutral</MenuItem>
+											<MenuItem value="Professional" sx={{ fontSize: '14px' }}>Professional</MenuItem>
+											<MenuItem value="Casual" sx={{ fontSize: '14px' }}>Casual</MenuItem>
+											<MenuItem value="Friendly" sx={{ fontSize: '14px' }}>Friendly</MenuItem>
+											<MenuItem value="Formal" sx={{ fontSize: '14px' }}>Formal</MenuItem>
+										</Select>
+									</FormControl>
+								</div>
+
+								{/* SEO Title Field - Independent */}
+								<div className="mb-6">
+									<Controller
+										name="meta_title"
+										control={control}
+										render={({ field }) => {
+											const currentValue = field.value || '';
+											return (
+												<TextField
+													{...field}
+													fullWidth
+													label="SEO title (≤ 70 chars)"
+													placeholder="iPhone 16 Pro Max 256GB — QC-Verified, Same-Day Delivery"
+													size="medium"
+													error={!!errors.meta_title}
+													helperText={`${currentValue.length}/70 ${errors?.meta_title?.message ? ' - ' + errors.meta_title.message : ''}`}
+													sx={{
+														'& .MuiOutlinedInput-root': {
+															borderRadius: '8px',
+															fontSize: '14px',
+															'& .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#d1d5db',
+															},
+															'&:hover .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#9ca3af',
+															},
+															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#3b82f6',
+																borderWidth: '2px',
+															},
+														},
+														'& .MuiInputBase-input': {
+															padding: '12px 14px',
+															color: '#111827',
+														},
+														'& .MuiInputLabel-root': {
+															fontSize: '14px',
+															color: '#6b7280',
+														},
+														'& .MuiFormHelperText-root': {
+															fontSize: '12px',
+															marginTop: '4px',
+														},
+													}}
+												/>
+											);
+										}}
+									/>
+								</div>
+
+								{/* Meta Description Field - Independent */}
+								<div className="mb-6">
+									<Controller
+										name="meta_description"
+										control={control}
+										render={({ field }) => {
+											const currentValue = field.value || '';
+											return (
+												<TextField
+													{...field}
+													fullWidth
+													label="Meta description (≤ 160 chars)"
+													placeholder="Fast same-day delivery, 1-year AccessoryShield, verified device with invoice."
+													multiline
+													rows={2}
+													size="medium"
+													error={!!errors.meta_description}
+													helperText={`${currentValue.length}/160 ${errors?.meta_description?.message ? ' - ' + errors.meta_description.message : ''}`}
+													sx={{
+														'& .MuiOutlinedInput-root': {
+															borderRadius: '8px',
+															fontSize: '14px',
+															'& .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#d1d5db',
+															},
+															'&:hover .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#9ca3af',
+															},
+															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#3b82f6',
+																borderWidth: '2px',
+															},
+														},
+														'& .MuiInputBase-input': {
+															padding: '12px 14px',
+															color: '#111827',
+															lineHeight: '1.5',
+														},
+														'& .MuiInputLabel-root': {
+															fontSize: '14px',
+															color: '#6b7280',
+														},
+														'& .MuiFormHelperText-root': {
+															fontSize: '12px',
+															marginTop: '4px',
+														},
+													}}
+												/>
+											);
+										}}
+									/>
+								</div>
+
+								{/* Description Field - Independent */}
+								<div className="mb-4">
+									<Controller
+										name="description"
+										control={control}
+										render={({ field }) => (
 											<TextField
 												{...field}
 												fullWidth
-												label="Meta description (≤ 160 chars)"
-												placeholder="Fast same-day delivery, 1-year AccessoryShield, verified device with invoice."
+												label="Description"
+												placeholder="Add what's in the box, condition notes, and warranty details..."
 												multiline
-												rows={2}
+												minRows={5}
+												maxRows={12}
 												size="medium"
-												error={!!errors.meta_description}
-												helperText={`${currentValue.length}/160 ${errors?.meta_description?.message ? ' - ' + errors.meta_description.message : ''}`}
+												error={!!errors.description}
+												helperText={errors?.description?.message as string}
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '8px',
@@ -4660,6 +4734,12 @@ function MultiKonnectListingCreation() {
 														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 															borderColor: '#3b82f6',
 															borderWidth: '2px',
+														},
+														'& textarea': {
+															overflow: 'auto !important',
+															resize: 'vertical',
+															minHeight: '120px !important',
+															fontFamily: 'inherit',
 														},
 													},
 													'& .MuiInputBase-input': {
@@ -4677,205 +4757,361 @@ function MultiKonnectListingCreation() {
 													},
 												}}
 											/>
-										);
-									}}
-								/>
-							</div>
+										)}
+									/>
+								</div>
 
-							{/* Description Field - Independent */}
-							<div className="mb-4">
-								<Controller
-									name="description"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											fullWidth
-											label="Description"
-											placeholder="Add what's in the box, condition notes, and warranty details..."
-											multiline
-											minRows={5}
-											maxRows={12}
-											size="medium"
-											error={!!errors.description}
-											helperText={errors?.description?.message as string}
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '8px',
-													fontSize: '14px',
-													'& .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#d1d5db',
-													},
-													'&:hover .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#9ca3af',
-													},
-													'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#3b82f6',
-														borderWidth: '2px',
-													},
-													'& textarea': {
-														overflow: 'auto !important',
-														resize: 'vertical',
-														minHeight: '120px !important',
-														fontFamily: 'inherit',
-													},
-												},
-												'& .MuiInputBase-input': {
-													padding: '12px 14px',
-													color: '#111827',
-													lineHeight: '1.5',
-												},
-												'& .MuiInputLabel-root': {
-													fontSize: '14px',
-													color: '#6b7280',
-												},
-												'& .MuiFormHelperText-root': {
-													fontSize: '12px',
-													marginTop: '4px',
-												},
-											}}
-										/>
-									)}
-								/>
-							</div>
-
-							<Typography 
-								variant="caption" 
-								className="text-gray-500" 
-								sx={{ 
-									fontSize: '12px', 
-									color: '#6b7280', 
-									display: 'block', 
-									marginTop: '12px',
-									lineHeight: '1.5'
-								}}
-							>
-								Structured schema will include brand/model/MPN from MPID automatically.
-							</Typography>
-						</Paper>
-
-						{/* QC & Policies Section - Step 7 */}
-						<Paper 
-							ref={(el) => setSectionRef(7, el as HTMLElement)}
-							className="p-3 sm:p-4 lg:p-6" 
-							id="qc-policies"
-							data-step-id="7"
-							sx={{
-								borderRadius: '16px',
-								scrollMarginTop: '80px',
-								border: '1px solid #e5e7eb',
-								boxShadow: 'none',
-								backgroundColor: '#ffffff',
-							}}
-						>
-							<Typography 
-								variant="h6" 
-								className="font-semibold mb-1 text-gray-900" 
-								sx={{ 
-									fontSize: '18px', 
-									fontWeight: 600, 
-									marginBottom: '8px',
-									color: '#111827'
-								}}
-							>
-								QC & Policies
-							</Typography>
-							<Typography 
-								variant="body2" 
-								className="text-gray-600 mb-4" 
-								sx={{ 
-									fontSize: '13px', 
-									color: '#6b7280', 
-									marginBottom: '24px',
-									lineHeight: '1.5'
-								}}
-							>
-								Set product condition, warranty, returns policy, and quality control details to build buyer trust.
-							</Typography>
-
-							{/* Quality Control Section */}
-							<Box sx={{ marginBottom: '32px' }}>
-								<Typography 
-									variant="subtitle2" 
-									sx={{ 
-										fontSize: '14px', 
-										fontWeight: 600, 
-										color: '#374151',
-										marginBottom: '16px',
-										textTransform: 'uppercase',
-										letterSpacing: '0.5px'
+								<Typography
+									variant="caption"
+									className="text-gray-500"
+									sx={{
+										fontSize: '12px',
+										color: '#6b7280',
+										display: 'block',
+										marginTop: '12px',
+										lineHeight: '1.5'
 									}}
 								>
-									Quality Control
+									Structured schema will include brand/model/MPN from MPID automatically.
 								</Typography>
-								
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-									{/* Condition */}
+							</Paper>
+
+							{/* QC & Policies Section - Step 7 */}
+							<Paper
+								ref={(el) => setSectionRef(7, el as HTMLElement)}
+								className="p-3 sm:p-4 lg:p-6"
+								id="qc-policies"
+								data-step-id="7"
+								sx={{
+									borderRadius: '16px',
+									scrollMarginTop: '80px',
+									border: '1px solid #e5e7eb',
+									boxShadow: 'none',
+									backgroundColor: '#ffffff',
+								}}
+							>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{
+										fontSize: '18px',
+										fontWeight: 600,
+										marginBottom: '8px',
+										color: '#111827'
+									}}
+								>
+									QC & Policies
+								</Typography>
+								<Typography
+									variant="body2"
+									className="text-gray-600 mb-4"
+									sx={{
+										fontSize: '13px',
+										color: '#6b7280',
+										marginBottom: '24px',
+										lineHeight: '1.5'
+									}}
+								>
+									Set product condition, warranty, returns policy, and quality control details to build buyer trust.
+								</Typography>
+
+								{/* Quality Control Section */}
+								<Box sx={{ marginBottom: '32px' }}>
+									<Typography
+										variant="subtitle2"
+										sx={{
+											fontSize: '14px',
+											fontWeight: 600,
+											color: '#374151',
+											marginBottom: '16px',
+											textTransform: 'uppercase',
+											letterSpacing: '0.5px'
+										}}
+									>
+										Quality Control
+									</Typography>
+
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+										{/* Condition */}
+										<Controller
+											name="condition"
+											control={control}
+											render={({ field }) => {
+												const hasError = condition === 'New' && (!galleryImages || galleryImages.length === 0);
+												return (
+													<FormControl fullWidth size="small" error={hasError}>
+														<InputLabel>Condition *</InputLabel>
+														<Select
+															{...field}
+															value={condition}
+															label="Condition *"
+															onChange={(e) => {
+																const newCondition = e.target.value;
+																field.onChange(e);
+																// Validate if "New" is selected and no images
+																if (newCondition === 'New' && (!galleryImages || galleryImages.length === 0)) {
+																	setValue('condition', newCondition, { shouldValidate: true });
+																}
+															}}
+															sx={{
+																borderRadius: '12px',
+																fontSize: '14px',
+																'& .MuiOutlinedInput-notchedOutline': {
+																	borderColor: hasError ? '#ef4444' : '#d1d5db',
+																},
+																'&:hover .MuiOutlinedInput-notchedOutline': {
+																	borderColor: hasError ? '#ef4444' : '#9ca3af',
+																},
+																'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+																	borderColor: hasError ? '#ef4444' : '#3b82f6',
+																	borderWidth: '2px',
+																},
+															}}
+														>
+															<MenuItem value="New">New</MenuItem>
+															<MenuItem value="Like New">Like New</MenuItem>
+															<MenuItem value="Refurbished">Refurbished</MenuItem>
+															<MenuItem value="Used - Excellent">Used - Excellent</MenuItem>
+															<MenuItem value="Used - Good">Used - Good</MenuItem>
+															<MenuItem value="Used - Fair">Used - Fair</MenuItem>
+														</Select>
+														{hasError && (
+															<Typography variant="caption" sx={{ color: '#ef4444', marginTop: '4px', fontSize: '12px' }}>
+																New condition requires at least one picture
+															</Typography>
+														)}
+													</FormControl>
+												);
+											}}
+										/>
+
+										{/* IMEI/Serial Number */}
+										<Controller
+											name="imei"
+											control={control}
+											render={({ field }) => (
+												<TextField
+													{...field}
+													fullWidth
+													label="IMEI/Serial Number"
+													placeholder="Enter IMEI or serial number"
+													size="small"
+													error={!!errors.imei}
+													helperText={errors?.imei?.message as string || "Optional: Add for verification"}
+													sx={{
+														'& .MuiOutlinedInput-root': {
+															borderRadius: '12px',
+															fontSize: '14px',
+															'& .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#d1d5db',
+															},
+															'&:hover .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#9ca3af',
+															},
+															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#3b82f6',
+																borderWidth: '2px',
+															},
+														},
+														'& .MuiInputBase-input': {
+															padding: '12px 14px',
+															color: '#111827',
+														},
+														'& .MuiFormHelperText-root': {
+															fontSize: '11px',
+															marginTop: '4px',
+														},
+													}}
+												/>
+											)}
+										/>
+									</div>
+
+									{/* Condition Notes */}
 									<Controller
-										name="condition"
+										name="condition_notes"
 										control={control}
-										render={({ field }) => {
-											const hasError = condition === 'New' && (!galleryImages || galleryImages.length === 0);
-											return (
-												<FormControl fullWidth size="small" error={hasError}>
-													<InputLabel>Condition *</InputLabel>
-													<Select 
-														{...field} 
-														value={condition}
-														label="Condition *"
-														onChange={(e) => {
-															const newCondition = e.target.value;
-															field.onChange(e);
-															// Validate if "New" is selected and no images
-															if (newCondition === 'New' && (!galleryImages || galleryImages.length === 0)) {
-																setValue('condition', newCondition, { shouldValidate: true });
-															}
-														}}
+										render={({ field }) => (
+											<TextField
+												{...field}
+												fullWidth
+												label="Condition Notes"
+												placeholder="Describe any wear, scratches, imperfections, or special conditions..."
+												value={conditionNotes}
+												multiline
+												minRows={3}
+												maxRows={5}
+												size="medium"
+												error={!!errors.condition_notes}
+												helperText={errors?.condition_notes?.message as string || "Optional: Detailed notes help buyers make informed decisions"}
+												sx={{
+													'& .MuiOutlinedInput-root': {
+														borderRadius: '12px',
+														fontSize: '14px',
+														'& .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#d1d5db',
+														},
+														'&:hover .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#9ca3af',
+														},
+														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+															borderColor: '#3b82f6',
+															borderWidth: '2px',
+														},
+														'& textarea': {
+															overflow: 'auto !important',
+															resize: 'vertical',
+															minHeight: '90px !important',
+															fontFamily: 'inherit',
+														},
+													},
+													'& .MuiInputBase-input': {
+														padding: '12px 14px',
+														color: '#111827',
+														lineHeight: '1.5',
+													},
+													'& .MuiFormHelperText-root': {
+														fontSize: '11px',
+														marginTop: '4px',
+													},
+												}}
+											/>
+										)}
+									/>
+								</Box>
+
+								<Divider sx={{ marginY: '32px', borderColor: '#e5e7eb' }} />
+
+								{/* Policies Section */}
+								<Box sx={{ marginBottom: '24px' }}>
+									<Typography
+										variant="subtitle2"
+										sx={{
+											fontSize: '14px',
+											fontWeight: 600,
+											color: '#374151',
+											marginBottom: '16px',
+											textTransform: 'uppercase',
+											letterSpacing: '0.5px'
+										}}
+									>
+										Policies & Warranty
+									</Typography>
+
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+										{/* Returns Policy */}
+										<Controller
+											name="returns"
+											control={control}
+											render={({ field }) => (
+												<FormControl fullWidth size="small">
+													<InputLabel>Returns Policy *</InputLabel>
+													<Select
+														{...field}
+														value={returns}
+														label="Returns Policy *"
 														sx={{
 															borderRadius: '12px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: hasError ? '#ef4444' : '#d1d5db',
+																borderColor: '#d1d5db',
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: hasError ? '#ef4444' : '#9ca3af',
+																borderColor: '#9ca3af',
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-																borderColor: hasError ? '#ef4444' : '#3b82f6',
+																borderColor: '#3b82f6',
 																borderWidth: '2px',
 															},
 														}}
 													>
-														<MenuItem value="New">New</MenuItem>
-														<MenuItem value="Like New">Like New</MenuItem>
-														<MenuItem value="Refurbished">Refurbished</MenuItem>
-														<MenuItem value="Used - Excellent">Used - Excellent</MenuItem>
-														<MenuItem value="Used - Good">Used - Good</MenuItem>
-														<MenuItem value="Used - Fair">Used - Fair</MenuItem>
+														<MenuItem value="7-day returns">7-day returns</MenuItem>
+														<MenuItem value="14-day returns">14-day returns</MenuItem>
+														<MenuItem value="30-day returns">30-day returns</MenuItem>
+														<MenuItem value="No returns">No returns</MenuItem>
 													</Select>
-													{hasError && (
-														<Typography variant="caption" sx={{ color: '#ef4444', marginTop: '4px', fontSize: '12px' }}>
-															New condition requires at least one picture
-														</Typography>
-													)}
 												</FormControl>
-											);
-										}}
-									/>
+											)}
+										/>
 
-									{/* IMEI/Serial Number */}
+										{/* Manufacturer Warranty */}
+										<Controller
+											name="warranty"
+											control={control}
+											render={({ field }) => (
+												<TextField
+													{...field}
+													fullWidth
+													label="Manufacturer Warranty"
+													placeholder="e.g., 1-year manufacturer warranty"
+													value={warranty}
+													size="small"
+													error={!!errors.warranty}
+													helperText={errors?.warranty?.message as string || "Optional: Warranty details"}
+													sx={{
+														'& .MuiOutlinedInput-root': {
+															borderRadius: '12px',
+															fontSize: '14px',
+															'& .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#d1d5db',
+															},
+															'&:hover .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#9ca3af',
+															},
+															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+																borderColor: '#3b82f6',
+																borderWidth: '2px',
+															},
+														},
+														'& .MuiInputBase-input': {
+															padding: '12px 14px',
+															color: '#111827',
+														},
+														'& .MuiFormHelperText-root': {
+															fontSize: '11px',
+															marginTop: '4px',
+														},
+													}}
+												/>
+											)}
+										/>
+									</div>
+								</Box>
+
+								<Divider sx={{ marginY: '24px', borderColor: '#e5e7eb' }} />
+
+								{/* Box Contents Section */}
+								<Box>
+									<Typography
+										variant="subtitle2"
+										sx={{
+											fontSize: '14px',
+											fontWeight: 600,
+											color: '#374151',
+											marginBottom: '16px',
+											textTransform: 'uppercase',
+											letterSpacing: '0.5px'
+										}}
+									>
+										Box Contents
+									</Typography>
+
 									<Controller
-										name="imei"
+										name="box_contents"
 										control={control}
 										render={({ field }) => (
 											<TextField
 												{...field}
 												fullWidth
-												label="IMEI/Serial Number"
-												placeholder="Enter IMEI or serial number"
-												size="small"
-												error={!!errors.imei}
-												helperText={errors?.imei?.message as string || "Optional: Add for verification"}
+												label="What's Included"
+												placeholder="List all items included in the box (e.g., Device, Charger, USB-C cable, SIM tool, Documentation, Original box, Warranty card)"
+												value={boxContents}
+												multiline
+												minRows={3}
+												maxRows={5}
+												size="medium"
+												error={!!errors.box_contents}
+												helperText={errors?.box_contents?.message as string || "Be specific about what's included to set accurate buyer expectations"}
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
@@ -4890,10 +5126,17 @@ function MultiKonnectListingCreation() {
 															borderColor: '#3b82f6',
 															borderWidth: '2px',
 														},
+														'& textarea': {
+															overflow: 'auto !important',
+															resize: 'vertical',
+															minHeight: '90px !important',
+															fontFamily: 'inherit',
+														},
 													},
 													'& .MuiInputBase-input': {
 														padding: '12px 14px',
 														color: '#111827',
+														lineHeight: '1.5',
 													},
 													'& .MuiFormHelperText-root': {
 														fontSize: '11px',
@@ -4903,968 +5146,763 @@ function MultiKonnectListingCreation() {
 											/>
 										)}
 									/>
-								</div>
+								</Box>
 
-								{/* Condition Notes */}
-								<Controller
-									name="condition_notes"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											fullWidth
-											label="Condition Notes"
-											placeholder="Describe any wear, scratches, imperfections, or special conditions..."
-											value={conditionNotes}
-											multiline
-											minRows={3}
-											maxRows={5}
-											size="medium"
-											error={!!errors.condition_notes}
-											helperText={errors?.condition_notes?.message as string || "Optional: Detailed notes help buyers make informed decisions"}
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-													'& .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#d1d5db',
-													},
-													'&:hover .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#9ca3af',
-													},
-													'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#3b82f6',
-														borderWidth: '2px',
-													},
-													'& textarea': {
-														overflow: 'auto !important',
-														resize: 'vertical',
-														minHeight: '90px !important',
-														fontFamily: 'inherit',
-													},
-												},
-												'& .MuiInputBase-input': {
-													padding: '12px 14px',
-													color: '#111827',
-													lineHeight: '1.5',
-												},
-												'& .MuiFormHelperText-root': {
-													fontSize: '11px',
-													marginTop: '4px',
-												},
-											}}
-										/>
-									)}
-								/>
-							</Box>
-
-							<Divider sx={{ marginY: '32px', borderColor: '#e5e7eb' }} />
-
-							{/* Policies Section */}
-							<Box sx={{ marginBottom: '24px' }}>
-								<Typography 
-									variant="subtitle2" 
-									sx={{ 
-										fontSize: '14px', 
-										fontWeight: 600, 
-										color: '#374151',
-										marginBottom: '16px',
-										textTransform: 'uppercase',
-										letterSpacing: '0.5px'
+								<Box
+									sx={{
+										marginTop: '24px',
+										padding: '12px 16px',
+										backgroundColor: '#f3f4f6',
+										borderRadius: '8px',
+										borderLeft: '3px solid #3b82f6'
 									}}
 								>
-									Policies & Warranty
+									<Typography
+										variant="caption"
+										sx={{
+											fontSize: '12px',
+											color: '#4b5563',
+											lineHeight: '1.6',
+											display: 'block'
+										}}
+									>
+										<strong>💡 Tip:</strong> QC-verified products with detailed condition notes and complete box contents build buyer trust and reduce returns. Be accurate and transparent.
+									</Typography>
+								</Box>
+							</Paper>
+
+							{/* Offers Section - Step 8 */}
+							<Paper
+								ref={(el) => setSectionRef(8, el as HTMLElement)}
+								className="p-3 sm:p-4"
+								id="offers"
+								data-step-id="8"
+								sx={{
+									borderRadius: '16px',
+									scrollMarginTop: '80px',
+									border: '1px solid #e5e7eb',
+									boxShadow: 'none',
+								}}
+							>
+								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+									Offers
 								</Typography>
-								
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-									{/* Returns Policy */}
+								<div className="space-y-2">
+									<FormControlLabel
+										control={
+											<Checkbox
+												checked={offers.accessoryShield}
+												onChange={(e) => setOffers({ ...offers, accessoryShield: e.target.checked })}
+												size="small"
+											/>
+										}
+										label="AccessoryShield — Free 1‑Year replacement"
+										sx={{ fontSize: '13px' }}
+									/>
+									<FormControlLabel
+										control={
+											<Checkbox
+												checked={offers.setupAtDoorstep}
+												onChange={(e) => setOffers({ ...offers, setupAtDoorstep: e.target.checked })}
+												size="small"
+											/>
+										}
+										label="Setup@Doorstep — 30‑minute concierge"
+										sx={{ fontSize: '13px' }}
+									/>
+									<FormControlLabel
+										control={
+											<Checkbox
+												checked={offers.priceDropProtection}
+												onChange={(e) => setOffers({ ...offers, priceDropProtection: e.target.checked })}
+												size="small"
+											/>
+										}
+										label="7‑Day Price‑Drop Protection"
+										sx={{ fontSize: '13px' }}
+									/>
+									<FormControlLabel
+										control={
+											<Checkbox
+												checked={offers.tradeInAssist}
+												onChange={(e) => setOffers({ ...offers, tradeInAssist: e.target.checked })}
+												size="small"
+											/>
+										}
+										label="Trade‑in Assist — instant value check"
+										sx={{ fontSize: '13px' }}
+									/>
+								</div>
+							</Paper>
+
+							{/* Trust & Compliance Section - Step 9 */}
+							<Paper
+								ref={(el) => setSectionRef(9, el as HTMLElement)}
+								className="p-3 sm:p-4"
+								id="trust"
+								data-step-id="9"
+								sx={{
+									borderRadius: '16px',
+									scrollMarginTop: '80px',
+									border: '1px solid #e5e7eb',
+									boxShadow: 'none',
+								}}
+							>
+								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+									Trust & Compliance
+								</Typography>
+								<Typography variant="body2" className="text-gray-600 mb-3" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
+									Exclusive MultiKonnect safeguards to reduce fraud and elevate buyer confidence.
+								</Typography>
+								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
 									<Controller
-										name="returns"
+										name="kyc_tier"
 										control={control}
 										render={({ field }) => (
 											<FormControl fullWidth size="small">
-												<InputLabel>Returns Policy *</InputLabel>
-												<Select 
-													{...field} 
-													value={returns}
-													label="Returns Policy *"
+												<InputLabel>KYC tier</InputLabel>
+												<Select
+													{...field}
+													value={kycTier}
 													sx={{
 														borderRadius: '12px',
 														fontSize: '14px',
-														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db',
-														},
-														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af',
-														},
-														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#3b82f6',
-															borderWidth: '2px',
-														},
 													}}
 												>
-													<MenuItem value="7-day returns">7-day returns</MenuItem>
-													<MenuItem value="14-day returns">14-day returns</MenuItem>
-													<MenuItem value="30-day returns">30-day returns</MenuItem>
-													<MenuItem value="No returns">No returns</MenuItem>
+													<MenuItem value="Tier 0 - Email verified">Tier 0 — Email verified</MenuItem>
+													<MenuItem value="Tier 1 - ID + Selfie">Tier 1 — ID + Selfie</MenuItem>
+													<MenuItem value="Tier 2 - ID + Bank match">Tier 2 — ID + Bank match</MenuItem>
+													<MenuItem value="Tier 3 - Business KYB">Tier 3 — Business KYB</MenuItem>
 												</Select>
 											</FormControl>
 										)}
 									/>
-
-									{/* Manufacturer Warranty */}
 									<Controller
-										name="warranty"
+										name="safe_selling_limit"
 										control={control}
 										render={({ field }) => (
 											<TextField
 												{...field}
+												label="Safe‑selling limit"
+												value={safeSellingLimit}
 												fullWidth
-												label="Manufacturer Warranty"
-												placeholder="e.g., 1-year manufacturer warranty"
-												value={warranty}
 												size="small"
-												error={!!errors.warranty}
-												helperText={errors?.warranty?.message as string || "Optional: Warranty details"}
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
 														fontSize: '14px',
-														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db',
-														},
-														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af',
-														},
-														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#3b82f6',
-															borderWidth: '2px',
-														},
-													},
-													'& .MuiInputBase-input': {
-														padding: '12px 14px',
-														color: '#111827',
-													},
-													'& .MuiFormHelperText-root': {
-														fontSize: '11px',
-														marginTop: '4px',
 													},
 												}}
 											/>
 										)}
 									/>
+									<TextField
+										fullWidth
+										label="Fraud signals"
+										value="Device fingerprint OK · IP clean · Velocity normal"
+										disabled
+										size="small"
+										sx={{
+											'& .MuiOutlinedInput-root': {
+												borderRadius: '12px',
+												fontSize: '14px',
+											},
+										}}
+									/>
+									<Controller
+										name="payout_lock"
+										control={control}
+										render={({ field }) => (
+											<FormControl fullWidth size="small">
+												<InputLabel>Payout lock</InputLabel>
+												<Select
+													{...field}
+													value={payoutLock}
+													sx={{
+														borderRadius: '12px',
+														fontSize: '14px',
+													}}
+												>
+													<MenuItem value="Instant">Instant</MenuItem>
+													<MenuItem value="48h post-delivery">48h post‑delivery</MenuItem>
+													<MenuItem value="Manual review">Manual review</MenuItem>
+												</Select>
+											</FormControl>
+										)}
+									/>
 								</div>
-							</Box>
-
-							<Divider sx={{ marginY: '24px', borderColor: '#e5e7eb' }} />
-
-							{/* Box Contents Section */}
-							<Box>
-								<Typography 
-									variant="subtitle2" 
-									sx={{ 
-										fontSize: '14px', 
-										fontWeight: 600, 
-										color: '#374151',
-										marginBottom: '16px',
-										textTransform: 'uppercase',
-										letterSpacing: '0.5px'
-									}}
-								>
-									Box Contents
+								<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
+									We cross‑check ID ↔ bank name, geolocation, IP risk, and order velocity to keep the marketplace safe.
 								</Typography>
-								
-								<Controller
-									name="box_contents"
-									control={control}
-									render={({ field }) => (
-										<TextField
-											{...field}
-											fullWidth
-											label="What's Included"
-											placeholder="List all items included in the box (e.g., Device, Charger, USB-C cable, SIM tool, Documentation, Original box, Warranty card)"
-											value={boxContents}
-											multiline
-											minRows={3}
-											maxRows={5}
-											size="medium"
-											error={!!errors.box_contents}
-											helperText={errors?.box_contents?.message as string || "Be specific about what's included to set accurate buyer expectations"}
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-													'& .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#d1d5db',
-													},
-													'&:hover .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#9ca3af',
-													},
-													'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-														borderColor: '#3b82f6',
-														borderWidth: '2px',
-													},
-													'& textarea': {
-														overflow: 'auto !important',
-														resize: 'vertical',
-														minHeight: '90px !important',
-														fontFamily: 'inherit',
-													},
-												},
-												'& .MuiInputBase-input': {
-													padding: '12px 14px',
-													color: '#111827',
-													lineHeight: '1.5',
-												},
-												'& .MuiFormHelperText-root': {
-													fontSize: '11px',
-													marginTop: '4px',
-												},
-											}}
-										/>
-									)}
-								/>
-							</Box>
+							</Paper>
 
-							<Box 
-								sx={{ 
-									marginTop: '24px',
-									padding: '12px 16px',
-									backgroundColor: '#f3f4f6',
-									borderRadius: '8px',
-									borderLeft: '3px solid #3b82f6'
+							{/* Preview Section - Step 10 */}
+							<Paper
+								ref={(el) => setSectionRef(10, el as HTMLElement)}
+								className="p-0"
+								id="preview"
+								data-step-id="10"
+								sx={{
+									borderRadius: '16px',
+									scrollMarginTop: '80px',
+									border: '1px solid #e5e7eb',
+									boxShadow: 'none',
+									overflow: 'hidden',
 								}}
 							>
-								<Typography 
-									variant="caption" 
-									sx={{ 
-										fontSize: '12px', 
-										color: '#4b5563', 
-										lineHeight: '1.6',
-										display: 'block'
-									}}
-								>
-									<strong>💡 Tip:</strong> QC-verified products with detailed condition notes and complete box contents build buyer trust and reduce returns. Be accurate and transparent.
-								</Typography>
-							</Box>
-						</Paper>
-
-						{/* Offers Section - Step 8 */}
-						<Paper 
-							ref={(el) => setSectionRef(8, el as HTMLElement)}
-							className="p-3 sm:p-4" 
-							id="offers"
-							data-step-id="8"
-							sx={{
-								borderRadius: '16px',
-								scrollMarginTop: '80px',
-								border: '1px solid #e5e7eb',
-								boxShadow: 'none',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
-								Offers
-							</Typography>
-							<div className="space-y-2">
-								<FormControlLabel
-									control={
-										<Checkbox
-											checked={offers.accessoryShield}
-											onChange={(e) => setOffers({ ...offers, accessoryShield: e.target.checked })}
-											size="small"
-										/>
-									}
-									label="AccessoryShield — Free 1‑Year replacement"
-									sx={{ fontSize: '13px' }}
-								/>
-								<FormControlLabel
-									control={
-										<Checkbox
-											checked={offers.setupAtDoorstep}
-											onChange={(e) => setOffers({ ...offers, setupAtDoorstep: e.target.checked })}
-											size="small"
-										/>
-									}
-									label="Setup@Doorstep — 30‑minute concierge"
-									sx={{ fontSize: '13px' }}
-								/>
-								<FormControlLabel
-									control={
-										<Checkbox
-											checked={offers.priceDropProtection}
-											onChange={(e) => setOffers({ ...offers, priceDropProtection: e.target.checked })}
-											size="small"
-										/>
-									}
-									label="7‑Day Price‑Drop Protection"
-									sx={{ fontSize: '13px' }}
-								/>
-								<FormControlLabel
-									control={
-										<Checkbox
-											checked={offers.tradeInAssist}
-											onChange={(e) => setOffers({ ...offers, tradeInAssist: e.target.checked })}
-											size="small"
-										/>
-									}
-									label="Trade‑in Assist — instant value check"
-									sx={{ fontSize: '13px' }}
-								/>
-							</div>
-						</Paper>
-
-						{/* Trust & Compliance Section - Step 9 */}
-						<Paper 
-							ref={(el) => setSectionRef(9, el as HTMLElement)}
-							className="p-3 sm:p-4" 
-							id="trust"
-							data-step-id="9"
-							sx={{
-								borderRadius: '16px',
-								scrollMarginTop: '80px',
-								border: '1px solid #e5e7eb',
-								boxShadow: 'none',
-							}}
-						>
-							<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
-								Trust & Compliance
-							</Typography>
-							<Typography variant="body2" className="text-gray-600 mb-3" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
-								Exclusive MultiKonnect safeguards to reduce fraud and elevate buyer confidence.
-							</Typography>
-							<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-								<Controller
-									name="kyc_tier"
-									control={control}
-									render={({ field }) => (
-										<FormControl fullWidth size="small">
-											<InputLabel>KYC tier</InputLabel>
-											<Select 
-												{...field} 
-												value={kycTier}
-												sx={{
-													borderRadius: '12px',
-													fontSize: '14px',
-												}}
-											>
-												<MenuItem value="Tier 0 - Email verified">Tier 0 — Email verified</MenuItem>
-												<MenuItem value="Tier 1 - ID + Selfie">Tier 1 — ID + Selfie</MenuItem>
-												<MenuItem value="Tier 2 - ID + Bank match">Tier 2 — ID + Bank match</MenuItem>
-												<MenuItem value="Tier 3 - Business KYB">Tier 3 — Business KYB</MenuItem>
-											</Select>
-										</FormControl>
-									)}
-								/>
-								<Controller
-									name="safe_selling_limit"
-									control={control}
-									render={({ field }) => (
-										<TextField 
-											{...field} 
-											label="Safe‑selling limit" 
-											value={safeSellingLimit} 
-											fullWidth 
-											size="small"
-											sx={{
-												'& .MuiOutlinedInput-root': {
-													borderRadius: '12px',
-													fontSize: '14px',
-												},
-											}}
-										/>
-									)}
-								/>
-								<TextField
-									fullWidth
-									label="Fraud signals"
-									value="Device fingerprint OK · IP clean · Velocity normal"
-									disabled
-									size="small"
-									sx={{
-										'& .MuiOutlinedInput-root': {
-											borderRadius: '12px',
-											fontSize: '14px',
-										},
-									}}
-								/>
-								<Controller
-									name="payout_lock"
-									control={control}
-									render={({ field }) => (
-										<FormControl fullWidth size="small">
-											<InputLabel>Payout lock</InputLabel>
-											<Select 
-												{...field} 
-												value={payoutLock}
-												sx={{
-													borderRadius: '12px',
-													fontSize: '14px',
-												}}
-											>
-												<MenuItem value="Instant">Instant</MenuItem>
-												<MenuItem value="48h post-delivery">48h post‑delivery</MenuItem>
-												<MenuItem value="Manual review">Manual review</MenuItem>
-											</Select>
-										</FormControl>
-									)}
-								/>
-							</div>
-							<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
-								We cross‑check ID ↔ bank name, geolocation, IP risk, and order velocity to keep the marketplace safe.
-							</Typography>
-						</Paper>
-
-						{/* Preview Section - Step 10 */}
-						<Paper 
-							ref={(el) => setSectionRef(10, el as HTMLElement)}
-							className="p-0" 
-							id="preview"
-							data-step-id="10"
-							sx={{
-								borderRadius: '16px',
-								scrollMarginTop: '80px',
-								border: '1px solid #e5e7eb',
-								boxShadow: 'none',
-								overflow: 'hidden',
-							}}
-						>
-							<div className="flex gap-2 items-center p-3 border-b border-gray-200">
-								<Typography variant="h6" className="font-semibold flex-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600 }}>
-									Preview
-								</Typography>
-								<Button 
-									variant={previewMode === 'desktop' ? 'contained' : 'outlined'}
-									size="small"
-									onClick={() => setPreviewMode('desktop')}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: previewMode === 'desktop' ? '#fff' : '#374151',
-										backgroundColor: previewMode === 'desktop' ? '#ff6536' : 'transparent',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '4px 12px',
-										borderRadius: '8px',
-										minHeight: '36px',
-										'&:hover': {
-											backgroundColor: previewMode === 'desktop' ? '#e55a2b' : '#f9fafb',
-										},
-									}}
-								>
-									Desktop
-								</Button>
-								<Button 
-									variant={previewMode === 'mobile' ? 'contained' : 'outlined'}
-									size="small"
-									onClick={() => setPreviewMode('mobile')}
-									sx={{
-										borderColor: '#e5e7eb',
-										color: previewMode === 'mobile' ? '#fff' : '#374151',
-										backgroundColor: previewMode === 'mobile' ? '#ff6536' : 'transparent',
-										textTransform: 'none',
-										fontSize: '12px',
-										padding: '4px 12px',
-										borderRadius: '8px',
-										minHeight: '36px',
-										'&:hover': {
-											backgroundColor: previewMode === 'mobile' ? '#e55a2b' : '#f9fafb',
-										},
-									}}
-								>
-									Mobile
-								</Button>
-							</div>
-							<div className="p-3 sm:p-4">
-								<div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]'}`}>
-									<div 
-										className={`rounded-xl overflow-hidden relative bg-gray-100 ${
-											previewMode === 'mobile' ? 'h-[300px] sm:h-[360px]' : 'h-[360px]'
-										}`}
-										style={{
-											borderRadius: '14px',
+								<div className="flex gap-2 items-center p-3 border-b border-gray-200">
+									<Typography variant="h6" className="font-semibold flex-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600 }}>
+										Preview
+									</Typography>
+									<Button
+										variant={previewMode === 'desktop' ? 'contained' : 'outlined'}
+										size="small"
+										onClick={() => setPreviewMode('desktop')}
+										sx={{
+											borderColor: '#e5e7eb',
+											color: previewMode === 'desktop' ? '#fff' : '#374151',
+											backgroundColor: previewMode === 'desktop' ? '#ff6536' : 'transparent',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '4px 12px',
+											borderRadius: '8px',
+											minHeight: '36px',
+											'&:hover': {
+												backgroundColor: previewMode === 'desktop' ? '#e55a2b' : '#f9fafb',
+											},
 										}}
 									>
-										{Array.isArray(galleryImages) && galleryImages.length > 0 ? (
-											<>
-												{/* Main Featured Image - show featured image or first image */}
-												<img
-													src={(() => {
-														// Double-check that galleryImages is an array
-														const images = Array.isArray(galleryImages) ? galleryImages : [];
-														if (images.length === 0) return '';
-														const featured = images.find((img: any) => img && img.is_featured);
-														const first = images.find((img: any) => img && img.url);
-														return (featured || first)?.url || '';
-													})()}
-													alt={productTitle || 'Product'}
-													className="w-full h-full object-contain"
-													style={{
-														objectFit: 'contain',
-													}}
-													onError={(e: any) => {
-														console.error('Image load error:', e);
-														// Try to fallback to a placeholder or remove broken image
-														const target = e.target as HTMLImageElement;
-														if (target) {
-															target.style.display = 'none';
-														}
-													}}
-												/>
-												{/* Image Counter Badge */}
-												{galleryImages.length > 1 && (
-													<div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xs font-semibold">
-														{galleryImages.length} images
-													</div>
-												)}
-												{/* Thumbnail Navigation */}
-												{Array.isArray(galleryImages) && galleryImages.length > 1 && (
-													<div className="absolute bottom-2 left-2 right-2 flex gap-2 overflow-x-auto pb-1">
-														{galleryImages.filter((img: any) => img && img.url).slice(0, 5).map((img: any, idx: number) => {
-															// Double-check that galleryImages is an array before using .some()
+										Desktop
+									</Button>
+									<Button
+										variant={previewMode === 'mobile' ? 'contained' : 'outlined'}
+										size="small"
+										onClick={() => setPreviewMode('mobile')}
+										sx={{
+											borderColor: '#e5e7eb',
+											color: previewMode === 'mobile' ? '#fff' : '#374151',
+											backgroundColor: previewMode === 'mobile' ? '#ff6536' : 'transparent',
+											textTransform: 'none',
+											fontSize: '12px',
+											padding: '4px 12px',
+											borderRadius: '8px',
+											minHeight: '36px',
+											'&:hover': {
+												backgroundColor: previewMode === 'mobile' ? '#e55a2b' : '#f9fafb',
+											},
+										}}
+									>
+										Mobile
+									</Button>
+								</div>
+								<div className="p-3 sm:p-4">
+									<div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]'}`}>
+										<div
+											className={`rounded-xl overflow-hidden relative bg-gray-100 ${previewMode === 'mobile' ? 'h-[300px] sm:h-[360px]' : 'h-[360px]'
+												}`}
+											style={{
+												borderRadius: '14px',
+											}}
+										>
+											{Array.isArray(galleryImages) && galleryImages.length > 0 ? (
+												<>
+													{/* Main Featured Image - show featured image or first image */}
+													<img
+														src={(() => {
+															// Double-check that galleryImages is an array
 															const images = Array.isArray(galleryImages) ? galleryImages : [];
-															const isFeatured = img.is_featured || (idx === 0 && !images.some((i: any) => i && i.is_featured));
-															return (
-																<div
-																	key={idx}
-																	className="flex-shrink-0 w-12 h-12 rounded border-2 border-white overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-																	style={{
-																		borderColor: isFeatured ? '#ff6536' : 'white',
-																	}}
-																	onClick={() => {
-																		// Switch featured image
-																		if (!Array.isArray(galleryImages)) return;
-																		const updated = galleryImages.map((img, i) => ({
-																			...img,
-																			is_featured: i === idx,
-																		}));
-																		setValue('gallery_images', updated, { shouldDirty: true });
-																	}}
-																>
-																	{img && img.url && (
-																		<img
-																			src={img.url}
-																			alt={`Thumbnail ${idx + 1}`}
-																			className="w-full h-full object-cover"
-																			onError={(e) => {
-																				console.error('Thumbnail load error:', e);
-																			}}
-																		/>
-																	)}
+															if (images.length === 0) return '';
+															const featured = images.find((img: any) => img && img.is_featured);
+															const first = images.find((img: any) => img && img.url);
+															return (featured || first)?.url || '';
+														})()}
+														alt={productTitle || 'Product'}
+														className="w-full h-full object-contain"
+														style={{
+															objectFit: 'contain',
+														}}
+														onError={(e: any) => {
+															console.error('Image load error:', e);
+															// Try to fallback to a placeholder or remove broken image
+															const target = e.target as HTMLImageElement;
+															if (target) {
+																target.style.display = 'none';
+															}
+														}}
+													/>
+													{/* Image Counter Badge */}
+													{galleryImages.length > 1 && (
+														<div className="absolute top-2 right-2 bg-black bg-opacity-60 text-white px-2 py-1 rounded-md text-xs font-semibold">
+															{galleryImages.length} images
+														</div>
+													)}
+													{/* Thumbnail Navigation */}
+													{Array.isArray(galleryImages) && galleryImages.length > 1 && (
+														<div className="absolute bottom-2 left-2 right-2 flex gap-2 overflow-x-auto pb-1">
+															{galleryImages.filter((img: any) => img && img.url).slice(0, 5).map((img: any, idx: number) => {
+																// Double-check that galleryImages is an array before using .some()
+																const images = Array.isArray(galleryImages) ? galleryImages : [];
+																const isFeatured = img.is_featured || (idx === 0 && !images.some((i: any) => i && i.is_featured));
+																return (
+																	<div
+																		key={idx}
+																		className="flex-shrink-0 w-12 h-12 rounded border-2 border-white overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+																		style={{
+																			borderColor: isFeatured ? '#ff6536' : 'white',
+																		}}
+																		onClick={() => {
+																			// Switch featured image
+																			if (!Array.isArray(galleryImages)) return;
+																			const updated = galleryImages.map((img, i) => ({
+																				...img,
+																				is_featured: i === idx,
+																			}));
+																			setValue('gallery_images', updated, { shouldDirty: true });
+																		}}
+																	>
+																		{img && img.url && (
+																			<img
+																				src={img.url}
+																				alt={`Thumbnail ${idx + 1}`}
+																				className="w-full h-full object-cover"
+																				onError={(e) => {
+																					console.error('Thumbnail load error:', e);
+																				}}
+																			/>
+																		)}
+																	</div>
+																);
+															})}
+															{galleryImages.length > 5 && (
+																<div className="flex-shrink-0 w-12 h-12 rounded border-2 border-white bg-black bg-opacity-60 flex items-center justify-center text-white text-xs font-semibold">
+																	+{galleryImages.length - 5}
 																</div>
-															);
-														})}
-														{galleryImages.length > 5 && (
-															<div className="flex-shrink-0 w-12 h-12 rounded border-2 border-white bg-black bg-opacity-60 flex items-center justify-center text-white text-xs font-semibold">
-																+{galleryImages.length - 5}
-															</div>
+															)}
+														</div>
+													)}
+												</>
+											) : (
+												<div
+													className="h-full w-full flex items-center justify-center text-gray-400"
+													style={{
+														background: 'linear-gradient(135deg, #ff7a52, #ff4f1e)',
+													}}
+												>
+													<Typography variant="h6" sx={{ fontSize: '18px', fontWeight: 900, color: 'white' }}>
+														PRODUCT IMAGES
+													</Typography>
+												</div>
+											)}
+										</div>
+										<div className="w-full">
+											<Typography variant="h5" className="font-bold mb-2" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, marginBottom: '6px' }}>
+												{productTitle || 'Product Name'}
+											</Typography>
+											<div className="flex flex-wrap gap-2 items-center mb-2">
+												{/* QC-Verified badge - show if condition is set */}
+												{(condition && condition !== 'New') && (
+													<Chip
+														label="QC‑Verified"
+														size="small"
+														sx={{
+															backgroundColor: '#f3f4f6',
+															border: '1px solid #e5e7eb',
+															fontSize: '11px',
+															height: '24px',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+														}}
+													/>
+												)}
+												{/* AccessoryShield badge - show if offer is enabled */}
+												{offers.accessoryShield && (
+													<Chip
+														label="AccessoryShield"
+														size="small"
+														sx={{
+															backgroundColor: '#f3f4f6',
+															border: '1px solid #e5e7eb',
+															fontSize: '11px',
+															height: '24px',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+														}}
+													/>
+												)}
+												{/* Same-day delivery badge - show if stock > 0 and delivery slots set */}
+												{(stock > 0 || variants.some(v => parseInt(v.stock) > 0)) && deliverySlots && (
+													<Chip
+														label={`Ready ~${readyInMinutes}m`}
+														size="small"
+														sx={{
+															backgroundColor: '#f3f4f6',
+															border: '1px solid #e5e7eb',
+															fontSize: '11px',
+															height: '24px',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+														}}
+													/>
+												)}
+												{/* Setup at Doorstep badge */}
+												{offers.setupAtDoorstep && (
+													<Chip
+														label="Setup at Doorstep"
+														size="small"
+														sx={{
+															backgroundColor: '#f3f4f6',
+															border: '1px solid #e5e7eb',
+															fontSize: '11px',
+															height: '24px',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+														}}
+													/>
+												)}
+												{/* Price Drop Protection badge */}
+												{offers.priceDropProtection && (
+													<Chip
+														label="Price Drop Protection"
+														size="small"
+														sx={{
+															backgroundColor: '#f3f4f6',
+															border: '1px solid #e5e7eb',
+															fontSize: '11px',
+															height: '24px',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+														}}
+													/>
+												)}
+											</div>
+											<div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-2">
+												<div className="flex items-center border border-gray-300 rounded-xl px-3 py-2 flex-1 sm:flex-initial sm:max-w-[220px]" style={{ borderRadius: '12px' }}>
+													<span className="mr-1" style={{ fontSize: '16px', fontWeight: 700 }}>£</span>
+													<input
+														type="text"
+														value={variants.length > 0 && variants[0].price
+															? variants[0].price
+															: priceTaxExcl || '0'}
+														readOnly
+														style={{
+															border: 'none',
+															outline: 'none',
+															width: '100%',
+															fontSize: '16px',
+															fontWeight: 700,
+															color: '#111827',
+														}}
+													/>
+												</div>
+												<Button
+													variant="contained"
+													fullWidth={previewMode === 'mobile'}
+													disabled={(stock === 0 && variants.length === 0) || (variants.length > 0 && !variants.some(v => parseInt(v.stock) > 0))}
+													sx={{
+														backgroundColor: '#ff6536',
+														'&:hover': { backgroundColor: '#e55a2b' },
+														'&:disabled': {
+															backgroundColor: '#d1d5db',
+															color: '#9ca3af',
+														},
+														textTransform: 'none',
+														borderRadius: '10px',
+														fontSize: { xs: '14px', sm: '13px' },
+														padding: { xs: '10px 16px', sm: '8px 16px' },
+														minHeight: { xs: '44px', sm: '36px' },
+														whiteSpace: previewMode === 'mobile' ? 'normal' : 'nowrap',
+													}}
+												>
+													{previewMode === 'mobile' ? (
+														<span>
+															Add<br />to cart
+														</span>
+													) : (
+														'Add to cart'
+													)}
+												</Button>
+											</div>
+											{/* Show variant selection if variants exist */}
+											{variants.length > 0 && (
+												<div className="mb-2">
+													<Typography variant="caption" sx={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+														Variants:
+													</Typography>
+													<div className="flex flex-wrap gap-1">
+														{variants.slice(0, 3).map((variant, idx) => (
+															<Chip
+																key={idx}
+																label={`${variant.storage} ${variant.color}`}
+																size="small"
+																sx={{
+																	backgroundColor: '#f3f4f6',
+																	border: '1px solid #e5e7eb',
+																	fontSize: '10px',
+																	height: '20px',
+																}}
+															/>
+														))}
+														{variants.length > 3 && (
+															<Chip
+																label={`+${variants.length - 3} more`}
+																size="small"
+																sx={{
+																	backgroundColor: '#f3f4f6',
+																	border: '1px solid #e5e7eb',
+																	fontSize: '10px',
+																	height: '20px',
+																}}
+															/>
 														)}
 													</div>
-												)}
-											</>
-										) : (
-											<div 
-												className="h-full w-full flex items-center justify-center text-gray-400"
-												style={{
-													background: 'linear-gradient(135deg, #ff7a52, #ff4f1e)',
-												}}
-											>
-												<Typography variant="h6" sx={{ fontSize: '18px', fontWeight: 900, color: 'white' }}>
-													PRODUCT IMAGES
-												</Typography>
-											</div>
-										)}
-									</div>
-									<div className="w-full">
-										<Typography variant="h5" className="font-bold mb-2" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, marginBottom: '6px' }}>
-											{productTitle || 'Product Name'}
-										</Typography>
-										<div className="flex flex-wrap gap-2 items-center mb-2">
-											{/* QC-Verified badge - show if condition is set */}
-											{(condition && condition !== 'New') && (
-												<Chip 
-													label="QC‑Verified" 
-													size="small"
-													sx={{
-														backgroundColor: '#f3f4f6',
-														border: '1px solid #e5e7eb',
-														fontSize: '11px',
-														height: '24px',
-														fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													}}
-												/>
-											)}
-											{/* AccessoryShield badge - show if offer is enabled */}
-											{offers.accessoryShield && (
-												<Chip 
-													label="AccessoryShield" 
-													size="small"
-													sx={{
-														backgroundColor: '#f3f4f6',
-														border: '1px solid #e5e7eb',
-														fontSize: '11px',
-														height: '24px',
-														fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													}}
-												/>
-											)}
-											{/* Same-day delivery badge - show if stock > 0 and delivery slots set */}
-											{(stock > 0 || variants.some(v => parseInt(v.stock) > 0)) && deliverySlots && (
-												<Chip 
-													label={`Ready ~${readyInMinutes}m`} 
-													size="small"
-													sx={{
-														backgroundColor: '#f3f4f6',
-														border: '1px solid #e5e7eb',
-														fontSize: '11px',
-														height: '24px',
-														fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													}}
-												/>
-											)}
-											{/* Setup at Doorstep badge */}
-											{offers.setupAtDoorstep && (
-												<Chip 
-													label="Setup at Doorstep" 
-													size="small"
-													sx={{
-														backgroundColor: '#f3f4f6',
-														border: '1px solid #e5e7eb',
-														fontSize: '11px',
-														height: '24px',
-														fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													}}
-												/>
-											)}
-											{/* Price Drop Protection badge */}
-											{offers.priceDropProtection && (
-												<Chip 
-													label="Price Drop Protection" 
-													size="small"
-													sx={{
-														backgroundColor: '#f3f4f6',
-														border: '1px solid #e5e7eb',
-														fontSize: '11px',
-														height: '24px',
-														fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													}}
-												/>
-											)}
-										</div>
-										<div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-2">
-											<div className="flex items-center border border-gray-300 rounded-xl px-3 py-2 flex-1 sm:flex-initial sm:max-w-[220px]" style={{ borderRadius: '12px' }}>
-												<span className="mr-1" style={{ fontSize: '16px', fontWeight: 700 }}>£</span>
-												<input 
-													type="text" 
-													value={variants.length > 0 && variants[0].price 
-														? variants[0].price 
-														: priceTaxExcl || '0'} 
-													readOnly
-													style={{ 
-														border: 'none', 
-														outline: 'none', 
-														width: '100%',
-														fontSize: '16px',
-														fontWeight: 700,
-														color: '#111827',
-													}}
-												/>
-											</div>
-											<Button 
-												variant="contained"
-												fullWidth={previewMode === 'mobile'}
-												disabled={(stock === 0 && variants.length === 0) || (variants.length > 0 && !variants.some(v => parseInt(v.stock) > 0))}
-												sx={{
-													backgroundColor: '#ff6536',
-													'&:hover': { backgroundColor: '#e55a2b' },
-													'&:disabled': {
-														backgroundColor: '#d1d5db',
-														color: '#9ca3af',
-													},
-													textTransform: 'none',
-													borderRadius: '10px',
-													fontSize: { xs: '14px', sm: '13px' },
-													padding: { xs: '10px 16px', sm: '8px 16px' },
-													minHeight: { xs: '44px', sm: '36px' },
-													whiteSpace: previewMode === 'mobile' ? 'normal' : 'nowrap',
-												}}
-											>
-												{previewMode === 'mobile' ? (
-													<span>
-														Add<br />to cart
-													</span>
-												) : (
-													'Add to cart'
-												)}
-											</Button>
-										</div>
-										{/* Show variant selection if variants exist */}
-										{variants.length > 0 && (
-											<div className="mb-2">
-												<Typography variant="caption" sx={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
-													Variants:
-												</Typography>
-												<div className="flex flex-wrap gap-1">
-													{variants.slice(0, 3).map((variant, idx) => (
-														<Chip
-															key={idx}
-															label={`${variant.storage} ${variant.color}`}
-															size="small"
-															sx={{
-																backgroundColor: '#f3f4f6',
-																border: '1px solid #e5e7eb',
-																fontSize: '10px',
-																height: '20px',
-															}}
-														/>
-													))}
-													{variants.length > 3 && (
-														<Chip
-															label={`+${variants.length - 3} more`}
-															size="small"
-															sx={{
-																backgroundColor: '#f3f4f6',
-																border: '1px solid #e5e7eb',
-																fontSize: '10px',
-																height: '20px',
-															}}
-														/>
-													)}
 												</div>
-											</div>
-										)}
-										<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
-											Preview is read‑only on live; fields here mirror your inputs.
-										</Typography>
+											)}
+											<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
+												Preview is read‑only on live; fields here mirror your inputs.
+											</Typography>
+										</div>
 									</div>
 								</div>
-							</div>
-						</Paper>
-					</div>
-				</main>
+							</Paper>
+						</div>
+					</main>
 
-				{/* Mobile Right Sidebar Overlay */}
-				{rightSidebarOpen && (
-					<div 
-						className="fixed inset-0 bg-black bg-opacity-50 z-[60] lg:hidden"
-						onClick={() => setRightSidebarOpen(false)}
-						style={{ top: '60px' }}
-					/>
-				)}
-
-				{/* Right Sidebar - Listing Score & Actions */}
-				<aside 
-					className={`fixed lg:static w-[320px] max-w-[85vw] lg:max-w-none bg-white border-l overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
-						rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-					}`}
-					style={{ 
-						borderLeftColor: '#e5e7eb',
-						borderLeftWidth: '1px',
-						height: 'calc(100vh - 60px)',
-						top: '60px',
-						right: 0,
-						boxShadow: rightSidebarOpen ? '-2px 0 8px rgba(0,0,0,0.1)' : 'none'
-					}}
-				>
-					{/* Close button for mobile */}
-					<div className="lg:hidden flex justify-end p-2 border-b">
-						<IconButton
+					{/* Mobile Right Sidebar Overlay */}
+					{rightSidebarOpen && (
+						<div
+							className="fixed inset-0 bg-black bg-opacity-50 z-[60] lg:hidden"
 							onClick={() => setRightSidebarOpen(false)}
-							size="small"
-							sx={{ color: '#6b7280' }}
-						>
-							<FuseSvgIcon>heroicons-outline:x-mark</FuseSvgIcon>
-						</IconButton>
-					</div>
-					<div className="p-3 sm:p-4 lg:p-5 space-y-4 sm:space-y-5">
-						{/* Listing Score */}
-						<div>
-							<div className="flex items-center justify-between mb-3">
-								<Typography variant="h6" className="font-semibold text-gray-900" sx={{ fontSize: '16px', fontWeight: 600 }}>
-									Listing Score
-								</Typography>
-								<Chip 
-									label={listingScore} 
+							style={{ top: '60px' }}
+						/>
+					)}
+
+					{/* Right Sidebar - Listing Score & Actions */}
+					<aside
+						className={`fixed lg:static w-[320px] max-w-[85vw] lg:max-w-none bg-white border-l overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+							}`}
+						style={{
+							borderLeftColor: '#e5e7eb',
+							borderLeftWidth: '1px',
+							height: 'calc(100vh - 60px)',
+							top: '60px',
+							right: 0,
+							boxShadow: rightSidebarOpen ? '-2px 0 8px rgba(0,0,0,0.1)' : 'none'
+						}}
+					>
+						{/* Close button for mobile */}
+						<div className="lg:hidden flex justify-end p-2 border-b">
+							<IconButton
+								onClick={() => setRightSidebarOpen(false)}
+								size="small"
+								sx={{ color: '#6b7280' }}
+							>
+								<FuseSvgIcon>heroicons-outline:x-mark</FuseSvgIcon>
+							</IconButton>
+						</div>
+						<div className="p-3 sm:p-4 lg:p-5 space-y-4 sm:space-y-5">
+							{/* Listing Score */}
+							<div>
+								<div className="flex items-center justify-between mb-3">
+									<Typography variant="h6" className="font-semibold text-gray-900" sx={{ fontSize: '16px', fontWeight: 600 }}>
+										Listing Score
+									</Typography>
+									<Chip
+										label={listingScore}
+										sx={{
+											backgroundColor: listingScore >= 80 ? '#10b981' : listingScore >= 60 ? '#f59e0b' : '#ef4444',
+											color: '#fff',
+											fontSize: '14px',
+											fontWeight: 700,
+											height: '28px',
+											borderRadius: '999px',
+											padding: '0 12px',
+										}}
+									/>
+								</div>
+								<LinearProgress
+									variant="determinate"
+									value={listingScore}
 									sx={{
-										backgroundColor: listingScore >= 80 ? '#10b981' : listingScore >= 60 ? '#f59e0b' : '#ef4444',
-										color: '#fff',
-										fontSize: '14px',
-										fontWeight: 700,
-										height: '28px',
+										height: 8,
 										borderRadius: '999px',
-										padding: '0 12px',
+										backgroundColor: '#e5e7eb',
+										'& .MuiLinearProgress-bar': {
+											background: listingScore >= 80
+												? 'linear-gradient(90deg, #22c55e, #10b981)'
+												: listingScore >= 60
+													? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+													: 'linear-gradient(90deg, #ef4444, #dc2626)',
+											borderRadius: '999px',
+										},
 									}}
 								/>
 							</div>
-							<LinearProgress
-								variant="determinate"
-								value={listingScore}
-								sx={{
-									height: 8,
-									borderRadius: '999px',
-									backgroundColor: '#e5e7eb',
-									'& .MuiLinearProgress-bar': {
-										background: listingScore >= 80 
-											? 'linear-gradient(90deg, #22c55e, #10b981)' 
-											: listingScore >= 60 
-											? 'linear-gradient(90deg, #f59e0b, #fbbf24)' 
-											: 'linear-gradient(90deg, #ef4444, #dc2626)',
-										borderRadius: '999px',
-									},
-								}}
-							/>
-						</div>
 
-						{/* Missing Fields Alert */}
-						{missingFields.length > 0 && (
-							<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-								<Typography variant="subtitle2" className="font-semibold mb-2 text-red-900" sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
-									⚠️ Missing Required Fields ({missingFields.length})
+							{/* Missing Fields Alert */}
+							{missingFields.length > 0 && (
+								<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+									<Typography variant="subtitle2" className="font-semibold mb-2 text-red-900" sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+										⚠️ Missing Required Fields ({missingFields.length})
+									</Typography>
+									<div className="space-y-1 max-h-[200px] overflow-y-auto">
+										{missingFields.map((item, idx) => (
+											<div
+												key={idx}
+												className="text-xs text-red-700 cursor-pointer hover:text-red-900 hover:underline"
+												onClick={() => {
+													setCurrentStep(item.step);
+													handleStepClick(item.step);
+												}}
+											>
+												• {item.field}
+												<span className="text-red-500 ml-1">({item.section})</span>
+											</div>
+										))}
+									</div>
+								</div>
+							)}
+
+							{/* Checklist */}
+							<div>
+								<Typography variant="subtitle2" className="font-semibold mb-3 text-gray-900" sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px' }}>
+									Checklist
 								</Typography>
-								<div className="space-y-1 max-h-[200px] overflow-y-auto">
-									{missingFields.map((item, idx) => (
-										<div 
-											key={idx} 
-											className="text-xs text-red-700 cursor-pointer hover:text-red-900 hover:underline"
-											onClick={() => {
-												setCurrentStep(item.step);
-												handleStepClick(item.step);
+								<div className="space-y-2">
+									{checklistItems.map((item) => (
+										<Box
+											key={item.id}
+											sx={{
+												display: 'flex',
+												alignItems: 'flex-start',
+												gap: '10px',
+												border: '1px solid #e5e7eb',
+												borderRadius: '12px',
+												padding: '10px',
+												backgroundColor: item.completed ? '#ecfdf5' : '#fef2f2',
 											}}
 										>
-											• {item.field}
-											<span className="text-red-500 ml-1">({item.section})</span>
-										</div>
+											{item.completed ? (
+												<CheckCircleIcon sx={{ color: '#10b981', fontSize: '20px', marginTop: '2px', flexShrink: 0 }} />
+											) : (
+												<CancelIcon sx={{ color: '#ef4444', fontSize: '20px', marginTop: '2px', flexShrink: 0 }} />
+											)}
+											<Typography
+												variant="body2"
+												sx={{
+													fontSize: '13px',
+													color: item.completed ? '#374151' : '#991b1b',
+													flex: 1,
+													lineHeight: 1.5,
+												}}
+											>
+												{item.text}
+											</Typography>
+										</Box>
 									))}
 								</div>
 							</div>
-						)}
 
-						{/* Checklist */}
-						<div>
-							<Typography variant="subtitle2" className="font-semibold mb-3 text-gray-900" sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px' }}>
-								Checklist
-							</Typography>
+							{/* Actions */}
 							<div className="space-y-2">
-								{checklistItems.map((item) => (
-									<Box
-										key={item.id}
-										sx={{
-											display: 'flex',
-											alignItems: 'flex-start',
-											gap: '10px',
-											border: '1px solid #e5e7eb',
-											borderRadius: '12px',
-											padding: '10px',
-											backgroundColor: item.completed ? '#ecfdf5' : '#fef2f2',
-										}}
-									>
-										{item.completed ? (
-											<CheckCircleIcon sx={{ color: '#10b981', fontSize: '20px', marginTop: '2px', flexShrink: 0 }} />
-										) : (
-											<CancelIcon sx={{ color: '#ef4444', fontSize: '20px', marginTop: '2px', flexShrink: 0 }} />
-										)}
-										<Typography
-											variant="body2"
-											sx={{
-												fontSize: '13px',
-												color: item.completed ? '#374151' : '#991b1b',
-												flex: 1,
-												lineHeight: 1.5,
-											}}
-										>
-											{item.text}
-										</Typography>
-									</Box>
-								))}
+								<Button
+									variant="contained"
+									fullWidth
+									disabled={isValidating}
+									onClick={handleRunValidation}
+									startIcon={isValidating ? <CircularProgress size={16} color="inherit" /> : null}
+									sx={{
+										backgroundColor: '#ff6536',
+										color: '#fff',
+										textTransform: 'none',
+										fontSize: '13px',
+										padding: '10px 16px',
+										fontWeight: 600,
+										borderRadius: '12px',
+										minHeight: '44px',
+										'&:hover': { backgroundColor: '#e55a2b' },
+										'&:disabled': {
+											opacity: 0.7,
+											cursor: 'not-allowed',
+										},
+									}}
+								>
+									{isValidating ? 'Validating...' : 'Run validation'}
+								</Button>
+								<Button
+									variant="outlined"
+									fullWidth
+									disabled={isSavingDraft}
+									onClick={handleSaveDraft}
+									startIcon={isSavingDraft ? <CircularProgress size={16} /> : null}
+									sx={{
+										borderColor: '#e5e7eb',
+										color: '#374151',
+										textTransform: 'none',
+										fontSize: '13px',
+										padding: '10px 16px',
+										borderRadius: '12px',
+										minHeight: '44px',
+										'&:hover': {
+											borderColor: '#d1d5db',
+											backgroundColor: '#f9fafb',
+										},
+										'&:disabled': {
+											opacity: 0.7,
+											cursor: 'not-allowed',
+										},
+									}}
+								>
+									{isSavingDraft ? 'Saving...' : 'Save draft'}
+								</Button>
+								<Button
+									variant="outlined"
+									fullWidth
+									onClick={handlePreviewClick}
+									sx={{
+										borderColor: '#e5e7eb',
+										color: '#374151',
+										textTransform: 'none',
+										fontSize: '13px',
+										padding: '10px 16px',
+										borderRadius: '12px',
+										minHeight: '44px',
+										'&:hover': {
+											borderColor: '#d1d5db',
+											backgroundColor: '#f9fafb',
+										},
+									}}
+								>
+									Preview
+								</Button>
+								<Button
+									variant="contained"
+									fullWidth
+									disabled={isPublishing}
+									onClick={handlePublishClick}
+									startIcon={isPublishing ? <CircularProgress size={16} color="inherit" /> : null}
+									sx={{
+										backgroundColor: '#ff6536',
+										color: '#fff',
+										textTransform: 'none',
+										fontSize: '13px',
+										padding: '10px 16px',
+										fontWeight: 600,
+										borderRadius: '12px',
+										minHeight: '44px',
+										'&:hover': { backgroundColor: '#e55a2b' },
+										'&:disabled': {
+											opacity: 0.7,
+											cursor: 'not-allowed',
+										},
+									}}
+								>
+									{isPublishing ? 'Publishing...' : 'Publish'}
+								</Button>
 							</div>
 						</div>
-
-						{/* Actions */}
-						<div className="space-y-2">
-							<Button
-								variant="contained"
-								fullWidth
-								sx={{
-									backgroundColor: '#ff6536',
-									color: '#fff',
-									textTransform: 'none',
-									fontSize: '13px',
-									padding: '10px 16px',
-									fontWeight: 600,
-									borderRadius: '12px',
-									minHeight: '44px',
-									'&:hover': { backgroundColor: '#e55a2b' },
-								}}
-								onClick={handleRunValidation}
-							>
-								Run validation
-							</Button>
-							<Button 
-								variant="outlined" 
-								fullWidth
-								onClick={handleSaveDraft}
-								sx={{
-									borderColor: '#e5e7eb',
-									color: '#374151',
-									textTransform: 'none',
-									fontSize: '13px',
-									padding: '10px 16px',
-									borderRadius: '12px',
-									minHeight: '44px',
-									'&:hover': {
-										borderColor: '#d1d5db',
-										backgroundColor: '#f9fafb',
-									},
-								}}
-							>
-								Save draft
-							</Button>
-							<Button 
-								variant="outlined" 
-								fullWidth
-								onClick={handlePreviewClick}
-								sx={{
-									borderColor: '#e5e7eb',
-									color: '#374151',
-									textTransform: 'none',
-									fontSize: '13px',
-									padding: '10px 16px',
-									borderRadius: '12px',
-									minHeight: '44px',
-									'&:hover': {
-										borderColor: '#d1d5db',
-										backgroundColor: '#f9fafb',
-									},
-								}}
-							>
-								Preview
-							</Button>
-							<Button
-								variant="contained"
-								fullWidth
-								sx={{
-									backgroundColor: '#ff6536',
-									color: '#fff',
-									textTransform: 'none',
-									fontSize: '13px',
-									padding: '10px 16px',
-									fontWeight: 600,
-									borderRadius: '12px',
-									minHeight: '44px',
-									'&:hover': { backgroundColor: '#e55a2b' },
-								}}
-								onClick={handlePublishClick}
-							>
-								Publish
-							</Button>
-						</div>
-					</div>
-				</aside>
+					</aside>
 				</div>
 			</div>
 
 			{/* Bottom Bar - Light Grey */}
-			<div 
-				className="border-t px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 flex-shrink-0 sticky bottom-0 z-40" 
-				style={{ 
+			<div
+				className="border-t px-3 sm:px-6 py-2 sm:py-3 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 flex-shrink-0 sticky bottom-0 z-40"
+				style={{
 					backgroundColor: '#f3f4f6',
 					borderTopColor: '#e5e7eb',
 					minHeight: '56px'
@@ -5872,8 +5910,8 @@ function MultiKonnectListingCreation() {
 			>
 				<div className="flex items-center space-x-2 sm:space-x-3 flex-wrap justify-center">
 					{mpidMatched && (
-						<Chip 
-							label="MPID matched" 
+						<Chip
+							label="MPID matched"
 							size="small"
 							sx={{
 								backgroundColor: '#ffffff',
@@ -5889,8 +5927,8 @@ function MultiKonnectListingCreation() {
 						/>
 					)}
 					{variants.length > 0 && (
-						<Chip 
-							label="Per-variant images" 
+						<Chip
+							label="Per-variant images"
 							size="small"
 							sx={{
 								backgroundColor: '#ffffff',
@@ -5906,8 +5944,8 @@ function MultiKonnectListingCreation() {
 						/>
 					)}
 					{storePostcode && (
-						<Chip 
-							label="Same-day enabled" 
+						<Chip
+							label="Same-day enabled"
 							size="small"
 							sx={{
 								backgroundColor: '#ffffff',
@@ -5924,8 +5962,8 @@ function MultiKonnectListingCreation() {
 					)}
 				</div>
 				<div className="flex items-center space-x-1 sm:space-x-2">
-					<Button 
-						variant="text" 
+					<Button
+						variant="text"
 						size="small"
 						onClick={handleSaveDraft}
 						className="hidden sm:flex"
@@ -5945,8 +5983,8 @@ function MultiKonnectListingCreation() {
 					>
 						Save draft
 					</Button>
-					<Button 
-						variant="text" 
+					<Button
+						variant="text"
 						size="small"
 						onClick={handlePreviewClick}
 						className="hidden sm:flex"
@@ -5979,7 +6017,7 @@ function MultiKonnectListingCreation() {
 							borderRadius: '8px',
 							minHeight: '36px',
 							boxShadow: 'none',
-							'&:hover': { 
+							'&:hover': {
 								backgroundColor: '#e55a2b',
 								boxShadow: 'none',
 							},
@@ -6124,7 +6162,7 @@ function MultiKonnectListingCreation() {
 										No past listings found
 									</Typography>
 									<Typography variant="body2" color="text.secondary">
-										{searchQuery 
+										{searchQuery
 											? 'No listings match your search. Try a different search term.'
 											: 'You haven\'t created any products yet. Create your first product to see it here.'}
 									</Typography>
@@ -6138,10 +6176,10 @@ function MultiKonnectListingCreation() {
 				</DialogActions>
 			</Dialog>
 
-			{/* Import from Other Seller Modal - Use the dedicated ImportProductModal component */}
+			{/* Import from Other Vendor Modal - Use the dedicated ImportProductModal component */}
 			{showImportFromVendor && (
-				<ImportProductModal 
-					open={importVendorDialogOpen} 
+				<ImportProductModal
+					open={importVendorDialogOpen}
 					onClose={() => setImportVendorDialogOpen(false)}
 					mode="select"
 					onProductSelect={handleSelectVendorProduct} // This will populate form with ALL fields
@@ -6153,8 +6191,8 @@ function MultiKonnectListingCreation() {
 				<DialogTitle>
 					<div className="flex items-center justify-between">
 						<span>Add {attribute1Name} Option</span>
-						<IconButton 
-							size="small" 
+						<IconButton
+							size="small"
 							onClick={() => {
 								setEditingAttribute('attribute1');
 								setNewAttributeName(attribute1Name);
@@ -6207,8 +6245,8 @@ function MultiKonnectListingCreation() {
 				<DialogTitle>
 					<div className="flex items-center justify-between">
 						<span>Add {attribute2Name} Option</span>
-						<IconButton 
-							size="small" 
+						<IconButton
+							size="small"
 							onClick={() => {
 								setEditingAttribute('attribute2');
 								setNewAttributeName(attribute2Name);
@@ -6322,49 +6360,49 @@ function MultiKonnectListingCreation() {
 			</Dialog>
 
 			{/* Image Processing Dialog */}
-			<Dialog 
-				open={imageProcessingDialogOpen} 
-				onClose={() => {}} 
-				PaperProps={{ sx: { borderRadius: '16px' } }} 
-				maxWidth="sm" 
+			<Dialog
+				open={imageProcessingDialogOpen}
+				onClose={() => { }}
+				PaperProps={{ sx: { borderRadius: '16px' } }}
+				maxWidth="sm"
 				fullWidth
 			>
 				<DialogContent sx={{ textAlign: 'center', padding: 3 }}>
 					{processingImageIndex !== null && (
-						<>
+						<React.Fragment>
 							<CircularProgress sx={{ marginBottom: 2 }} />
 							<Typography variant="body1" sx={{ fontSize: '14px', color: '#374151' }}>
 								{imageProcessingMessage}
 							</Typography>
-						</>
+						</React.Fragment>
 					)}
 				</DialogContent>
 			</Dialog>
 
 			{/* Fee Settings Dialog - Admin Configuration (Per Product) */}
-			<Dialog 
-				open={feeSettingsDialogOpen} 
+			<Dialog
+				open={feeSettingsDialogOpen}
 				onClose={() => setFeeSettingsDialogOpen(false)}
-				PaperProps={{ sx: { borderRadius: '16px' } }} 
-				maxWidth="sm" 
+				PaperProps={{ sx: { borderRadius: '16px' } }}
+				maxWidth="sm"
 				fullWidth
 			>
 				<DialogTitle>Fee Settings</DialogTitle>
 				<DialogContent>
 					{isAdmin ? (
-						<>
+						<React.Fragment>
 							<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
 								Set the fee rates for this specific product. These settings are saved with the product and will be used for fee calculations.
 							</Typography>
 							<Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
-								Note: Shipping charges are set by vendors/sellers in the delivery section, not here.
+								Note: Shipping charges are set by vendors/vendors in the delivery section, not here.
 							</Typography>
 							{adminFeesData?.data && adminFeesData.data.standard_product_fee_type === 'percentage' && adminFeesData.data.standard_product_fee > 0 && (
 								<Typography variant="caption" sx={{ color: '#10b981', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
 									Default commission rate from admin settings: {adminFeesData.data.standard_product_fee}%
 								</Typography>
 							)}
-							
+
 							<TextField
 								fullWidth
 								label="Commission Rate (%)"
@@ -6383,8 +6421,8 @@ function MultiKonnectListingCreation() {
 								sx={{ marginBottom: 2 }}
 								helperText="Percentage of sale price (e.g., 2.5 for 2.5%)"
 							/>
-							
-							
+
+
 							<TextField
 								fullWidth
 								label="Promotional Fee (£)"
@@ -6402,9 +6440,9 @@ function MultiKonnectListingCreation() {
 								sx={{ marginBottom: 2 }}
 								helperText="Additional fee for promotional listings (optional)"
 							/>
-						</>
+						</React.Fragment>
 					) : (
-						<>
+						<React.Fragment>
 							<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
 								The commission rate for this product is set by the administrator. You cannot modify these settings.
 							</Typography>
@@ -6413,17 +6451,7 @@ function MultiKonnectListingCreation() {
 								let displayCommissionRate = 0;
 								const adminFees = adminFeesData?.data;
 								const isProductSpecific = extraFields?.commissionRate !== undefined;
-								
-								// Debug logging
-								console.log('Fee Settings Dialog - Non-Admin View:', {
-									adminFeesData,
-									adminFees,
-									extraFields,
-									feeSettings,
-									isProductSpecific,
-									isLoadingAdminFees
-								});
-								
+
 								if (isProductSpecific) {
 									// Product has specific commission rate
 									displayCommissionRate = (extraFields.commissionRate * 100);
@@ -6434,7 +6462,7 @@ function MultiKonnectListingCreation() {
 									// Fallback to feeSettings if it has a value
 									displayCommissionRate = feeSettings.commissionRate * 100;
 								}
-								
+
 								let helperText = 'Commission rate for this product';
 								if (isProductSpecific) {
 									helperText = 'This product has a custom commission rate set by an administrator';
@@ -6445,7 +6473,7 @@ function MultiKonnectListingCreation() {
 								} else if (!adminFeesData) {
 									helperText = 'Unable to load commission rate. Please refresh the page.';
 								}
-								
+
 								return (
 									<TextField
 										fullWidth
@@ -6473,7 +6501,7 @@ function MultiKonnectListingCreation() {
 								sx={{ marginBottom: 2 }}
 								helperText="Additional fee for promotional listings (if set)"
 							/>
-						</>
+						</React.Fragment>
 					)}
 				</DialogContent>
 				<DialogActions>
@@ -6481,7 +6509,7 @@ function MultiKonnectListingCreation() {
 						{isAdmin ? 'Cancel' : 'Close'}
 					</Button>
 					{isAdmin && (
-						<Button 
+						<Button
 							onClick={() => {
 								// Save fees to extraFields (product-specific)
 								setValue('extraFields', {
@@ -6491,7 +6519,7 @@ function MultiKonnectListingCreation() {
 								}, { shouldDirty: true });
 								setFeeSettings(tempFeeSettings);
 								setFeeSettingsDialogOpen(false);
-							}} 
+							}}
 							variant="contained"
 						>
 							Save Settings

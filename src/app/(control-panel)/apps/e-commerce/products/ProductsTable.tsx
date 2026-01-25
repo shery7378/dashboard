@@ -46,16 +46,6 @@ function ProductsTable() {
       if (!Array.isArray((mapped as any).product_attributes)) {
         (mapped as any).product_attributes = [];
       }
-      // Log for debugging
-      console.log('Mapped product:', {
-        id: mapped.id,
-        name: mapped.name,
-        tags: (mapped as any).tags,
-        product_attributes: (mapped as any).product_attributes,
-        price_tax_excl: mapped.price_tax_excl,
-        quantity: mapped.quantity,
-        product_variants: (mapped as any).product_variants
-      });
       return mapped;
     });
   }, [products]);
@@ -80,7 +70,7 @@ function ProductsTable() {
           }
           return url.startsWith('/') ? url : `/${url}`;
         };
-        
+
         return (
           <div className="flex items-center justify-center">
             <img
@@ -102,19 +92,19 @@ function ProductsTable() {
         // Ensure product ID is a string and handle empty slug
         const productId = String((row.original as any).id || '');
         const slug = (row.original as any).slug || '';
-        
+
         // Always use just the productId in the URL (slug is optional and handled by [[...handle]])
         // This ensures the route matches correctly
         const productUrl = `/apps/e-commerce/products/${productId}${slug && slug.trim() !== '' ? `/${slug}` : ''}`;
-        
-        console.log('Product link:', { 
-          productId, 
-          slug, 
-          url: productUrl, 
+
+        console.log('Product link:', {
+          productId,
+          slug,
+          url: productUrl,
           productIdType: typeof productId,
           product: { id: (row.original as any).id, name: row.original.name }
         });
-        
+
         return (
           <Typography component={Link} to={productUrl} role="button">
             <u>{row.original.name}</u>
@@ -129,58 +119,58 @@ function ProductsTable() {
         const mainCategory = row.original.main_category;
         const subcategories = (row.original as any).subcategories || [];
         const categories = row.original.categories || [];
-        
+
         // Collect all categories to display
         const categoryChips: any[] = [];
-        
+
         // Add main category if it exists
         if (mainCategory && mainCategory.name) {
           categoryChips.push(
-            <Chip 
-              key={`main-${mainCategory.id || mainCategory.name}`} 
-              className="text-sm" 
-              size="small" 
-              color="default" 
-              label={mainCategory.name} 
+            <Chip
+              key={`main-${mainCategory.id || mainCategory.name}`}
+              className="text-sm"
+              size="small"
+              color="default"
+              label={mainCategory.name}
             />
           );
         }
-        
+
         // Add subcategories if they exist
         if (Array.isArray(subcategories) && subcategories.length > 0) {
           subcategories.forEach((sub: any) => {
             if (sub && sub.name) {
               categoryChips.push(
-                <Chip 
-                  key={`sub-${sub.id || sub.name}`} 
-                  className="text-sm" 
-                  size="small" 
-                  color="default" 
-                  label={sub.name} 
+                <Chip
+                  key={`sub-${sub.id || sub.name}`}
+                  className="text-sm"
+                  size="small"
+                  color="default"
+                  label={sub.name}
                 />
               );
             }
           });
         }
-        
+
         // Fallback: if no main_category or subcategories, try to use categories array
         if (categoryChips.length === 0 && Array.isArray(categories) && categories.length > 0) {
           categories.forEach((cat: any, index: number) => {
             const catName = typeof cat === 'string' ? cat : (cat?.name || cat);
             if (catName) {
               categoryChips.push(
-                <Chip 
-                  key={`cat-${index}`} 
-                  className="text-sm" 
-                  size="small" 
-                  color="default" 
-                  label={catName} 
+                <Chip
+                  key={`cat-${index}`}
+                  className="text-sm"
+                  size="small"
+                  color="default"
+                  label={catName}
                 />
               );
             }
           });
         }
-        
+
         return (
           <div className="flex flex-wrap space-x-0.5">
             {categoryChips.length > 0 ? categoryChips : '-'}
@@ -194,20 +184,20 @@ function ProductsTable() {
       Cell: ({ row }) => {
         const tags = row.original.tags || [];
         const subcategories = (row.original as any).subcategories || [];
-        
+
         // Combine tags and subcategories
         const allItems: any[] = [];
-        
+
         // Add tags
         if (Array.isArray(tags) && tags.length > 0) {
           allItems.push(...tags.map((tag: any) => ({ ...tag, type: 'tag' })));
         }
-        
+
         // Add subcategories
         if (Array.isArray(subcategories) && subcategories.length > 0) {
           allItems.push(...subcategories.map((sub: any) => ({ ...sub, type: 'subcategory' })));
         }
-        
+
         return (
           <div className="flex flex-wrap space-x-0.5 space-y-0.5">
             {allItems.length > 0
@@ -232,7 +222,7 @@ function ProductsTable() {
         // Check both product_attributes and attributes from variants
         const productAttrs = (row.original as any).product_attributes || [];
         const variants = (row.original as any).product_variants || (row.original as any).variants || [];
-        
+
         // Get attributes from variants if product_attributes is empty
         let attributes = productAttrs;
         if (attributes.length === 0 && variants.length > 0) {
@@ -249,7 +239,7 @@ function ProductsTable() {
           });
           attributes = variantAttrs;
         }
-        
+
         return (
           <div className="flex flex-wrap space-x-0.5 space-y-0.5">
             {Array.isArray(attributes) && attributes.length > 0
@@ -265,13 +255,13 @@ function ProductsTable() {
                       ? {
                         backgroundColor: `${attr.attribute_value} !important`,
                         '& .MuiChip-label': {
-                         color: `${ getContrastColor(attr.attribute_value.toLowerCase())} `,
+                          color: `${getContrastColor(attr.attribute_value.toLowerCase())} `,
                         },
                       }
                       : {}),
                   }}
                 />
-            ))
+              ))
               : '-'}
           </div>
         );

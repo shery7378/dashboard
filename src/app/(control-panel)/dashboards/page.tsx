@@ -21,7 +21,7 @@ export default async function DashboardsPage() {
     if (role === 'admin') {
         redirect('/dashboards/project');
     } else if (role === 'vendor') {
-        // Sellers can buy from suppliers (wholesale catalog access)
+        // Vendors can buy from suppliers (wholesale catalog access)
         redirect('/dashboards/seller');
     } else if (role === 'supplier') {
         // Suppliers use the same dashboard as sellers

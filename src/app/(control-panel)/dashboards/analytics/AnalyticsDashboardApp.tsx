@@ -1,9 +1,9 @@
 'use client';
 
 import FusePageSimple from '@fuse/core/FusePageSimple';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import Typography from '@mui/material/Typography';
-import FuseLoading from '@fuse/core/FuseLoading';
 import AnalyticsDashboardAppHeader from './AnalyticsDashboardAppHeader';
 import VisitorsOverviewWidget from './widgets/VisitorsOverviewWidget';
 import ConversionsWidget from './widgets/ConversionsWidget';
@@ -35,10 +35,19 @@ const item = {
  */
 function AnalyticsDashboardApp() {
 	const { isLoading } = useGetAnalyticsDashboardWidgetsQuery();
+	const [showContent, setShowContent] = useState(false);
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
+	// Add timeout to prevent infinite loading (show content after 5 seconds even if still loading)
+	useEffect(() => {
+		if (!isLoading) {
+			setShowContent(true);
+		} else {
+			const timer = setTimeout(() => {
+				setShowContent(true);
+			}, 5000); // 5 second timeout
+			return () => clearTimeout(timer);
+		}
+	}, [isLoading]);
 
 	return (
 		<FusePageSimple

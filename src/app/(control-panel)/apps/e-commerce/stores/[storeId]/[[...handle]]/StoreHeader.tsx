@@ -30,7 +30,7 @@ const tabFields: Record<string, (keyof EcommerceStore)[]> = {
 	'basic-info': ['name', 'description', 'slug'],
 	'store-images': ['logo', 'banner_image'],
 	'store-address': ['address', 'zip_code', 'city', 'country', 'latitude', 'longitude'],
-	'store-settings': ['contact_email', 'contact_phone', 'active', 'offers_delivery', 'offers_pickup', 'delivery_radius'],
+	'store-settings': ['contact_email', 'contact_phone', 'active', 'offers_delivery', 'offers_pickup', 'delivery_radius', 'delivery_slots'],
 	'seo-settings': ['meta_title', 'meta_description', 'meta_keywords']
 };
 

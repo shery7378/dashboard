@@ -5,7 +5,7 @@ import { Box, Button, Card, CardContent, CardHeader, Stack, Typography, Alert } 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 
-export default function VendorKybPage() {
+export default function vendorKybPage() {
   const [status, setStatus] = useState<string>("not_verified");
   const { data: session } = useSession();
   const vendorId = useMemo(() => (session as any)?.db?.id || (session as any)?.user?.id || null, [session]);

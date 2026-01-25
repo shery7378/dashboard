@@ -74,8 +74,10 @@ export default function Order() {
 		methods.reset(orderData); // ✅ No options needed; defaults are strings now
 	}, [orderData, methods]);
 
-	/** Loading state */
-	if (isLoading) return <FuseLoading />;
+	/** Loading state - Only show loading if we're actually loading an existing order (not creating new) */
+	if (isLoading && !isNew) {
+		return <FuseLoading />;
+	}
 
 	/** Error state */
 	if (isError && !isNew) {

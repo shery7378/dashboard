@@ -10,9 +10,9 @@ import OrdersTableForHome from '@/app/(control-panel)/apps/e-commerce/orders/Ord
 import ProductsTableForHome from '@/app/(control-panel)/apps/e-commerce/products/ProductsTableForHome';
 
 /**
- * The Seller HomeTab component.
- * Shows seller-specific dashboard widgets (no wholesale catalog access).
- * Uses vendor API endpoints for seller/vendor authorization.
+ * The Vendor HomeTab component.
+ * Shows vendor-specific dashboard widgets (no wholesale catalog access).
+ * Uses vendor API endpoints for vendor/vendor authorization.
  */
 function HomeTab() {
 	const container = {
@@ -35,16 +35,16 @@ function HomeTab() {
 			initial="hidden"
 			animate="show"
 		>
-			<motion.div variants={item}>
+			<motion.div variants={item} className="flex flex-col h-full">
 				<SummaryWidget />
 			</motion.div>
-			<motion.div variants={item}>
+			<motion.div variants={item} className="flex flex-col h-full">
 				<OverdueWidget />
 			</motion.div>
-			<motion.div variants={item}>
+			<motion.div variants={item} className="flex flex-col h-full">
 				<IssuesWidget />
 			</motion.div>
-			<motion.div variants={item}>
+			<motion.div variants={item} className="flex flex-col h-full">
 				<FeaturesWidget />
 			</motion.div>
 			<motion.div

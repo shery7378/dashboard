@@ -25,29 +25,29 @@ const AnalyticsApi = api
       >({
         query: ({ from, to } = {}) => ({
           url: `/api/analytics/sales-heatmap`,
-          params: { from, to },
+		  params: { from, to },
         }),
         providesTags: ['Analytics'],
       }),
 
       getVendorPerformance: build.query<
         { status: number; data: { vendor_id: number; vendor_name: string; total_sales: number; orders: number; stores_count: number }[] },
-        { from?: string; to?: string; limit?: number }
+		{ from?: string; to?: string; limit?: number }
       >({
         query: ({ from, to, limit = 20 } = {}) => ({
           url: `/api/analytics/vendor-performance`,
-          params: { from, to, limit },
+		  params: { from, to, limit },
         }),
         providesTags: ['Analytics'],
       }),
 
       getTopProducts: build.query<
         { status: number; data: { product_id: number; product_name: string; total_sales: number; orders: number }[] },
-        { from?: string; to?: string; limit?: number }
+		{ from?: string; to?: string; limit?: number }
       >({
         query: ({ from, to, limit = 10 } = {}) => ({
           url: `/api/analytics/top-products`,
-          params: { from, to, limit },
+		  params: { from, to, limit },
         }),
         providesTags: ['Analytics'],
       }),

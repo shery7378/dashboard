@@ -282,7 +282,7 @@ const navigationConfig: FuseNavItemType[] = [
 		],
 	},
 
-	// Seller menu (sellers can buy from suppliers - wholesale catalog access)
+	// Vendor menu (vendors can buy from suppliers - wholesale catalog access)
 	{
 		id: 'vendor',
 		type: 'group',

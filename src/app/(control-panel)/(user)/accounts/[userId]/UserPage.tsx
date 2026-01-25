@@ -24,7 +24,7 @@ import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
 // ---------------- Validation schema ----------------
 export const createProfileSchema = z
     .object({
-        user_type: z.enum(['customer', 'seller', 'supplier'], {
+        user_type: z.enum(['customer', 'vendor', 'supplier'], {
             errorMap: () => ({ message: 'Please select a valid role' }),
         }),
         store_name: z.string().max(100).optional(),
@@ -54,7 +54,7 @@ export const createProfileSchema = z
 
 export const updateProfileSchema = z
     .object({
-        user_type: z.enum(['customer', 'seller', 'supplier']),
+        user_type: z.enum(['customer', 'vendor', 'supplier']),
         store_name: z.string().max(100).optional(),
         name: z.string().max(100).optional(),
         city: z.string().max(255).optional(),
@@ -170,7 +170,7 @@ function UserPage() {
                 last_name: profile?.last_name || '',
                 phone: profile?.phone || '',
             };
-        } else if (role === 'seller' || role === 'supplier') {
+        } else if (role === 'vendor' || role === 'supplier') {
             defaultValues = {
                 ...defaultValues,
                 name: profile?.user?.name || '',
@@ -201,7 +201,7 @@ function UserPage() {
 
             const roleMapping: Record<string, string> = {
                 customer: 'customer',
-                seller: 'vendor', // Backend uses 'vendor' but frontend shows 'seller'
+                vendor: 'vendor', // Backend uses 'vendor' but frontend shows 'vendor'
                 supplier: 'supplier',
             };
             payload.role = roleMapping[payload.user_type] || payload.user_type;
@@ -217,7 +217,7 @@ function UserPage() {
             if (payload.role === 'customer') {
                 payload.name = payload.first_name || payload.name;
             } else if (payload.role === 'vendor' || payload.role === 'supplier') {
-                // For seller/supplier, the 'name' field is the owner name, which should be the user's name
+                // For vendor/supplier, the 'name' field is the owner name, which should be the user's name
                 // Backend expects 'name' to be the user's full name
                 if (!payload.name || payload.name.trim() === '') {
                     // If name is not provided, try to construct from first_name and last_name
@@ -228,7 +228,7 @@ function UserPage() {
                         payload.name = payload.storeName || payload.email?.split('@')[0] || 'User';
                     }
                 }
-                // For seller/supplier, remove first_name and last_name as they're not needed
+                // For vendor/supplier, remove first_name and last_name as they're not needed
                 delete payload.first_name;
                 delete payload.last_name;
             }
@@ -317,13 +317,13 @@ function UserPage() {
                                 onChange={(e: SyntheticEvent, val: string) => setTabValue(val)}
                             >
                                 <FuseTab value="basic-info" label="User Info" />
-                                {(watch('user_type') === 'seller' || watch('user_type') === 'supplier') && (
+                                {(watch('user_type') === 'vendor' || watch('user_type') === 'supplier') && (
                                     <FuseTab value="location" label="Location" />
                                 )}
                             </FuseTabs>
 
                             {tabValue === 'basic-info' && <BasicInfoTab />}
-                            {tabValue === 'location' && (watch('user_type') === 'seller' || watch('user_type') === 'supplier') && <LocationTab />}
+                            {tabValue === 'location' && (watch('user_type') === 'vendor' || watch('user_type') === 'supplier') && <LocationTab />}
                         </motion.div>
                     }
                     scroll={isMobile ? 'normal' : 'content'}

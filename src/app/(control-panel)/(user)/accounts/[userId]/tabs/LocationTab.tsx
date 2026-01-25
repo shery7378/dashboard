@@ -16,7 +16,7 @@ function LocationTab() {
     const { errors } = formState;
     const userType = watch('user_type');
     
-    // Only show location tab for seller and supplier, not for customers
+    // Only show location tab for vendor and supplier, not for customers
     if (userType === 'customer') {
         return null;
     }

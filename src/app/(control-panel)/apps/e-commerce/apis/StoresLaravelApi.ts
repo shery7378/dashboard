@@ -50,6 +50,14 @@ const StoresLaravelApi = api
                 invalidatesTags: ['eCommerce_store', 'eCommerce_stores'],
             }),
 
+            // Get current user's store
+            getCurrentUserStore: build.query<GetECommerceStoreApiResponse, void>({
+                query: () => ({
+                    url: `/api/store/current`,
+                }),
+                providesTags: ['eCommerce_store'],
+            }),
+
             // Delete store by ID
             deleteECommerceStore: build.mutation<DeleteECommerceStoreApiResponse, DeleteECommerceStoreApiArg>({
                 query: (storeId) => ({
@@ -134,6 +142,7 @@ export type EcommerceStore = {
     offers_pickup: boolean;
     offers_delivery: boolean;
     delivery_radius: number | null;
+    delivery_slots: string[] | null; // Array of available delivery time slots
     created_at: string;
     updated_at: string;
     deleted_at: string | null;
@@ -154,6 +163,7 @@ export const {
     useCreateECommerceStoreMutation,
     useUpdateECommerceStoreMutation,
     useDeleteECommerceStoreMutation,
+    useGetCurrentUserStoreQuery,
 } = StoresLaravelApi;
 
 // Optional: for Redux integration

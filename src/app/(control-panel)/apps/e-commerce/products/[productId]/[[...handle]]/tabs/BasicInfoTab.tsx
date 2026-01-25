@@ -74,14 +74,14 @@ function BasicInfoTab() {
 		if (isAdmin) {
 			return storeOptions; // Super Admin or Admin can see all
 		}
-		// For sellers/vendors: filter by user_id
+		// For sellers/sellers: filter by user_id
 		return storeOptions.filter(store => {
 			const storeUserId = store.user_id || store.userId;
 			return storeUserId === userId || storeUserId === Number(userId);
 		});
 	}, [user, userId, storeOptions, isAdmin]);
 
-	// Check if seller/vendor has a store
+	// Check if vendor/vendor has a store
 	const myStore = useMemo(() => {
 		if (!user || !userId || isAdmin) return null;
 		if (!storeOptions || storeOptions.length === 0) return null;

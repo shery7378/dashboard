@@ -2,6 +2,7 @@
 
 import FusePageSimple from '@fuse/core/FusePageSimple';
 import { styled } from '@mui/material/styles';
+import { useState, useEffect } from 'react';
 import FuseLoading from '@fuse/core/FuseLoading';
 import ProjectDashboardAppHeader from './ProjectDashboardAppHeader';
 import HomeTab from './tabs/home/HomeTab';
@@ -19,8 +20,21 @@ const Root = styled(FusePageSimple)(({ theme }) => ({
  */
 function ProjectDashboardApp() {
 	const { isLoading } = useGetProjectDashboardWidgetsQuery();
+	const [showContent, setShowContent] = useState(false);
 
-	if (isLoading) {
+	// Add timeout to prevent infinite loading (show content after 5 seconds even if still loading)
+	useEffect(() => {
+		if (!isLoading) {
+			setShowContent(true);
+		} else {
+			const timer = setTimeout(() => {
+				setShowContent(true);
+			}, 5000); // 5 second timeout
+			return () => clearTimeout(timer);
+		}
+	}, [isLoading]);
+
+	if (isLoading && !showContent) {
 		return <FuseLoading />;
 	}
 

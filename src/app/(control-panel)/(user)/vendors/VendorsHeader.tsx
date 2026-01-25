@@ -9,7 +9,7 @@ import PageBreadcrumb from 'src/components/PageBreadcrumb';
 /**
  * The products header.
  */
-function VendorsHeader() {
+function vendorsHeader() {
     const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
 
     return (
@@ -20,7 +20,7 @@ function VendorsHeader() {
             >
                 <div>
                     <PageBreadcrumb className="mb-2" />
-                    <Typography className="text-4xl font-extrabold leading-none tracking-tight">Sellers</Typography>
+                    <Typography className="text-4xl font-extrabold leading-none tracking-tight">Vendors</Typography>
                 </div>
             </motion.span>
 
@@ -47,4 +47,4 @@ function VendorsHeader() {
     );
 }
 
-export default VendorsHeader;
+export default vendorsHeader;

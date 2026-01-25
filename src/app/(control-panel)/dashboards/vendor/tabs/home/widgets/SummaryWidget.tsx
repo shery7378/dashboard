@@ -2,10 +2,10 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
-import { memo, useState } from 'react';
+import Skeleton from '@mui/material/Skeleton';
+import { memo, useEffect, useState } from 'react';
 import MenuItem from '@mui/material/MenuItem';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import FuseLoading from '@fuse/core/FuseLoading';
 import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
 import WidgetDataType, { RangeType } from './types/WidgetDataType';
 
@@ -19,18 +19,32 @@ function SummaryWidget() {
 	const ranges = widget?.ranges;
 	const currentRangeDefault = widget?.currentRange;
 
-	const [currentRange, setCurrentRange] = useState<RangeType>(currentRangeDefault as RangeType);
+	const [currentRange, setCurrentRange] = useState<RangeType>((currentRangeDefault as RangeType) || ('this-week' as RangeType));
+
+	useEffect(() => {
+		if (currentRangeDefault) {
+			setCurrentRange(currentRangeDefault as RangeType);
+		}
+	}, [currentRangeDefault]);
 
 	function handleChangeRange(event: SelectChangeEvent<string>) {
 		setCurrentRange(event.target.value as RangeType);
 	}
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
-
-	if (!widget) {
-		return null;
+	if (isLoading || !widget || !data || !ranges) {
+		return (
+			<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
+				<div className="flex items-center justify-between px-2 pt-2">
+					<Skeleton variant="rounded" width={160} height={36} />
+					<Skeleton variant="circular" width={32} height={32} />
+				</div>
+				<div className="text-center mt-4">
+					<Skeleton variant="text" sx={{ mx: 'auto' }} width={160} height={72} />
+					<Skeleton variant="text" sx={{ mx: 'auto' }} width={120} />
+				</div>
+				<Skeleton variant="text" sx={{ mx: 'auto' }} width={200} />
+			</Paper>
+		);
 	}
 
 	return (

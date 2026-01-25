@@ -46,7 +46,7 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
   KRW: '₩',
 };
 
-export default function VendorAnalyticsApp() {
+export default function vendorAnalyticsApp() {
   const [defaultCurrency, setDefaultCurrency] = useState<string>('GBP'); // Default to GBP
   const [currencySymbol, setCurrencySymbol] = useState<string>('£');
 
@@ -120,7 +120,7 @@ export default function VendorAnalyticsApp() {
     <FusePageSimple
       header={
         <Box sx={{ px: { xs: 2, md: 4 }, py: 2 }}>
-          <Typography variant="h5" sx={{ fontWeight: 800 }}>Seller Analytics</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800 }}>Vendor Analytics</Typography>
           <Typography color="text.secondary">Sales, top products, and performance</Typography>
         </Box>
       }

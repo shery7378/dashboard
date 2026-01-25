@@ -97,7 +97,7 @@ function WithdrawalsTable() {
 			},
 			{
 				accessorKey: 'user.name',
-				header: 'Vendor',
+				header: 'vendor',
 				Cell: ({ row }) => (
 					<div>
 						<Typography variant="body2" fontWeight="medium">
@@ -224,7 +224,7 @@ function WithdrawalsTable() {
 					{selectedWithdrawal && (
 						<div className="space-y-4 pt-4">
 							<Typography>
-								<strong>Vendor:</strong> {selectedWithdrawal.user?.name}
+								<strong>vendor:</strong> {selectedWithdrawal.user?.name}
 							</Typography>
 							<Typography>
 								<strong>Amount:</strong> {selectedWithdrawal.currency} {formatAmount(selectedWithdrawal.amount)}
@@ -253,7 +253,7 @@ function WithdrawalsTable() {
 					{selectedWithdrawal && (
 						<div className="space-y-4 pt-4">
 							<Typography>
-								<strong>Vendor:</strong> {selectedWithdrawal.user?.name}
+								<strong>vendor:</strong> {selectedWithdrawal.user?.name}
 							</Typography>
 							<Typography>
 								<strong>Amount:</strong> {selectedWithdrawal.currency} {formatAmount(selectedWithdrawal.amount)}

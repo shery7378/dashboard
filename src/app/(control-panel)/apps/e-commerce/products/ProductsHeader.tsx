@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
 import ImportProductModal from './ImportProductModal';
+import { useGetCurrentUserStoreQuery } from '../apis/StoresLaravelApi';
 import './i18n';
 
 /**
@@ -17,6 +18,10 @@ function ProductsHeader() {
 	const { t } = useTranslation('products');
 	const { data: session } = useSession();
 	const [importModalOpen, setImportModalOpen] = useState(false);
+	
+	// Get current user's store
+	const { data: storeData } = useGetCurrentUserStoreQuery();
+	const store = storeData?.data;
 
 	// Get user roles
 	const user = session?.user || session?.db;
@@ -27,6 +32,9 @@ function ProductsHeader() {
 	const isSupplier = roles.includes('supplier');
 	const isAdmin = roles.includes('admin');
 	const showImportButton = !isSupplier && !isAdmin;
+
+	// Check if both delivery and pickup are off
+	const bothDeliveryAndPickupOff = store && !store.offers_delivery && !store.offers_pickup;
 
 	return (
 		<div className="flex grow-0 flex-1 w-full items-center justify-between space-y-2 sm:space-y-0 py-6 sm:py-8">
@@ -50,6 +58,8 @@ function ProductsHeader() {
 						color="primary"
 						startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
 						onClick={() => setImportModalOpen(true)}
+						disabled={bothDeliveryAndPickupOff}
+						title={bothDeliveryAndPickupOff ? 'Import is disabled when both delivery and pickup are off' : ''}
 					>
 						<span className="hidden sm:inline">{t('import_product')}</span>
 						<span className="sm:hidden">{t('import')}</span>
@@ -62,6 +72,8 @@ function ProductsHeader() {
 					variant="contained"
 					color="primary"
 					startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}
+					disabled={bothDeliveryAndPickupOff}
+					title={bothDeliveryAndPickupOff ? 'Adding products is disabled when both delivery and pickup are off' : ''}
 				>
 					<span className="hidden sm:inline">{t('add')} {t('new_product')}</span>
 					<span className="sm:hidden">{t('add')}</span>

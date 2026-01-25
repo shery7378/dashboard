@@ -1,13 +1,12 @@
 'use client';
 
 import FusePageSimple from '@fuse/core/FusePageSimple';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { styled } from '@mui/material/styles';
 import * as React from 'react';
-import FuseLoading from '@fuse/core/FuseLoading';
 import FuseTabs from 'src/components/tabs/FuseTabs';
 import FuseTab from 'src/components/tabs/FuseTab';
-import SellerDashboardAppHeader from './SellerDashboardAppHeader';
+import VendorDashboardAppHeader from './SellerDashboardAppHeader';
 import HomeTab from './tabs/home/HomeTab';
 import { useGetProjectDashboardWidgetsQuery } from '../vendor/ProjectDashboardApi';
 
@@ -28,13 +27,22 @@ function SellerDashboardApp() {
 	});
 
 	const [tabValue, setTabValue] = useState('home');
+	const [showContent, setShowContent] = useState(false);
+
+	// Add timeout to prevent infinite loading (show content after 5 seconds even if still loading)
+	useEffect(() => {
+		if (!isLoading) {
+			setShowContent(true);
+		} else {
+			const timer = setTimeout(() => {
+				setShowContent(true);
+			}, 5000); // 5 second timeout
+			return () => clearTimeout(timer);
+		}
+	}, [isLoading]);
 
 	function handleTabChange(event: React.SyntheticEvent, value: string) {
 		setTabValue(value);
-	}
-
-	if (isLoading) {
-		return <FuseLoading />;
 	}
 
 	// Log error for debugging but don't block the page
@@ -44,7 +52,8 @@ function SellerDashboardApp() {
 
 	return (
 		<Root
-			header={<SellerDashboardAppHeader />}
+			scroll="content"
+			header={<VendorDashboardAppHeader />}
 			content={
 				<div className="w-full pt-4 sm:pt-6">
 					<div className="w-full px-6 md:px-8">
