@@ -40,10 +40,17 @@ export default function AuthGuard({
 
   useEffect(() => {
     if (status?.trim() !== 'authenticated') return; // only run when authenticated
-    if (!user?.db?.role.includes("admin") && profileId == null) {
+    // Only redirect to profile if user is not admin AND has no profile AND no store
+    // Vendors/suppliers with stores should be able to access their pages
+    const isAdmin = user?.db?.role?.includes("admin");
+    const hasProfile = profileId != null;
+    const hasStore = storeId != null;
+    
+    if (!isAdmin && !hasProfile && !hasStore) {
+      console.log('AuthGuard: Redirecting to profile - no profile and no store');
       navigate('/accounts/profile');
     }
-  }, [status, profileId, storeId, from, navigate]);
+  }, [status, profileId, storeId, from, navigate, user]);
 
   const [accessGranted, setAccessGranted] = useState(false);
 

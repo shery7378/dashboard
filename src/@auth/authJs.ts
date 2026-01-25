@@ -49,10 +49,14 @@ export const providers: Provider[] = [
         if (!res.ok || !data.user) return null;
 
         const storeId = data.user.store_id ? String(data.user.store_id) : null;
+        const profileId = data.user.profile_id ? String(data.user.profile_id) : null;
         if (storeId) {
           console.log('Authorize callback: store_id from login response:', storeId);
         } else {
           console.log('Authorize callback: No store_id in login response');
+        }
+        if (profileId) {
+          console.log('Authorize callback: profile_id from login response:', profileId);
         }
         
         return {
@@ -65,7 +69,8 @@ export const providers: Provider[] = [
               ? Object.values(data.user.roles)
               : [data.user.roles || 'guest']),
           accessAuthToken: data.token,
-          storeId: storeId // Include store_id from login response
+          storeId: storeId, // Include store_id from login response
+          profileId: profileId // Include profile_id from login response
         };
       } catch (error) {
         console.error('Authorize error:', error);
@@ -108,6 +113,11 @@ const config = {
           token.storeId = String((user as any).storeId);
           console.log('JWT callback: Storing storeId in token:', token.storeId);
         }
+        // Store profileId from the authorize function
+        if ((user as any).profileId !== undefined && (user as any).profileId !== null) {
+          token.profileId = String((user as any).profileId);
+          console.log('JWT callback: Storing profileId in token:', token.profileId);
+        }
       }
 
       if (trigger === 'update') {
@@ -147,8 +157,12 @@ const config = {
         // Always return a valid session - don't let API failures break authentication
         // Store fetching will be handled on the client side for better reliability
         const storeId = token.storeId ? String(token.storeId) : undefined;
+        const profileId = token.profileId ? String(token.profileId) : undefined;
         if (storeId) {
           console.log('Session callback: store_id from token:', storeId);
+        }
+        if (profileId) {
+          console.log('Session callback: profile_id from token:', profileId);
         }
         
         const defaultDbUser: User = {
@@ -159,7 +173,8 @@ const config = {
           photoURL: session.user.image || '/assets/images/avatars/brian-hughes.jpg',
           settings: { layout: {}, theme: {} },
           shortcuts: ['apps.calendar', 'apps.mailbox', 'apps.contacts'],
-          store_id: storeId // Include store_id from token
+          store_id: storeId, // Include store_id from token
+          profile_id: profileId // Include profile_id from token
         } as User;
 
         session.db = defaultDbUser;
