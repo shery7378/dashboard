@@ -393,12 +393,12 @@ function WholesaleCatalog() {
                                 </Select>
                             </FormControl>
                         </Box>
-                    </Paper >
+                    </Paper>
 
                     {/* Enhanced Info Banner */}
-                    < Alert
+                    <Alert
                         severity="info"
-                        icon={< FuseSvgIcon > heroicons - outline:sparkles</FuseSvgIcon >}
+                        icon={<FuseSvgIcon>heroicons-outline:sparkles</FuseSvgIcon>}
                         sx={{
                             borderRadius: 3,
                             background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
@@ -413,7 +413,7 @@ function WholesaleCatalog() {
                             <strong>✨ Smart Inventory Sync:</strong> When you import a product, inventory sync is automatically enabled.
                             Stock updates from suppliers will sync to your store in real-time, keeping your inventory always up-to-date.
                         </Typography>
-                    </Alert >
+                    </Alert>
 
                     {/* Products Grid */}
                     {
@@ -642,37 +642,39 @@ function WholesaleCatalog() {
                                         borderRadius: 3,
                                         background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%)',
                                         backdropFilter: 'blur(10px)',
-                    < Box >
-                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
-                            {pagination?.total || products.length} Products Found
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            {search ? `Search results for "${search}"` : 'Available from suppliers'}
-                        </Typography>
-                    </Box >
-                </Box >
-        { search && (
-                <Chip
-                    label={`Search: "${search}"`}
-                    onDelete={() => {
-                        setSearch('');
-                        setSearchInput('');
-                        setPage(1);
-                    }}
-                    color="primary"
-                    variant="outlined"
-                    sx={{
-                        fontWeight: 600,
-                        borderRadius: 2,
-                        '& .MuiChip-deleteIcon': {
-                            color: 'primary.main',
-                        },
-                    }}
-                />
-            )
-            }
-            </ Box >
-            <Grid
+                                    }}
+                                >
+                                    <Box>
+                                        <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                                            {pagination?.total || products.length} Products Found
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {search ? `Search results for "${search}"` : 'Available from suppliers'}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                                {search && (
+                                    <Chip
+                                        label={`Search: "${search}"`}
+                                        onDelete={() => {
+                                            setSearch('');
+                                            setSearchInput('');
+                                            setPage(1);
+                                        }}
+                                        color="primary"
+                                        variant="outlined"
+                                        sx={{
+                                            fontWeight: 600,
+                                            borderRadius: 2,
+                                            '& .MuiChip-deleteIcon': {
+                                                color: 'primary.main',
+                                            },
+                                        }}
+                                    />
+                                )}
+                            </>
+                        )}
+                        <Grid
                 container
                 spacing={3}
                 sx={{
@@ -1075,28 +1077,23 @@ function WholesaleCatalog() {
                     </Box>
                 )
             }
-        </>
-    )
-}
 
-{/* Payment Method Dialog */ }
-{
-    selectedProduct && (
-        <PaymentMethodDialog
-            open={paymentDialogOpen}
-            onClose={() => {
-                setPaymentDialogOpen(false);
-                setSelectedProduct(null);
-            }}
-            onConfirm={handleImportConfirm}
-            productId={selectedProduct.id}
-            supplierId={selectedProduct.supplierId}
-            productPrice={selectedProduct.price}
-            isLoading={isImporting && importingId === selectedProduct.id}
-        />
-    )
-}
-        </Box >
+        {/* Payment Method Dialog */}
+        {selectedProduct && (
+            <PaymentMethodDialog
+                open={paymentDialogOpen}
+                onClose={() => {
+                    setPaymentDialogOpen(false);
+                    setSelectedProduct(null);
+                }}
+                onConfirm={handleImportConfirm}
+                productId={selectedProduct.id}
+                supplierId={selectedProduct.supplierId}
+                productPrice={selectedProduct.price}
+                isLoading={isImporting && importingId === selectedProduct.id}
+            />
+        )}
+                </Box>
             }
         />
     );

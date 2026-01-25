@@ -1,3 +1,3 @@
-import VendorAnalyticsApp from '../vendor-analytics/vendorAnalyticsApp';
+import sellerAnalyticsApp from '../seller-analytics/sellerAnalyticsApp';
 
-export default SellerAnalyticsApp;
+export default sellerAnalyticsApp;
