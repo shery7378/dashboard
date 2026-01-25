@@ -58,9 +58,12 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 			ignoredPaths: ignoredPaths.includes(pathname)
 		});
 
+		// If user has permission, grant access and clear any existing redirect URL
 		if (!auth || (auth && userHasPermission) || (isOnlyGuestAllowed && isGuest)) {
 			console.log('AuthGuardRedirect - Access granted');
 			setAccessGranted(true);
+			// Clear any existing redirect URL since user can access this page
+			resetSessionRedirectUrl();
 			return;
 		}
 
