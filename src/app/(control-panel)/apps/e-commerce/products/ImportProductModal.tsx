@@ -356,6 +356,25 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                   const priceTaxIncl = parseFloat((product.price_tax_incl || product.price || 0).toString());
                   const comparedPrice = parseFloat((product.compared_price || 0).toString());
 
+                  // Get product name from multiple possible fields
+                  const productName = 
+                    product.name || 
+                    product.featured_image?.alt_text ||
+                    product.title || 
+                    product.product_name || 
+                    product.productName ||
+                    product.product_title ||
+                    product.productTitle ||
+                    product.display_name ||
+                    product.displayName ||
+                    product.label ||
+                    product.data?.name ||
+                    product.data?.title ||
+                    product.data?.product_name ||
+                    // Use SKU as last resort, but format it nicely
+                    (product.sku ? product.sku.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : null) ||
+                    `Product #${productId}`;
+
                   // Show strike-through if compared price is higher than current price
                   const showStrike = comparedPrice > 0 && comparedPrice > priceTaxIncl;
 
@@ -398,7 +417,7 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                             <CardMedia
                               component="img"
                               image={imageUrl}
-                              alt={product.name}
+                              alt={productName}
                               sx={{
                                 height: '100%',
                                 width: '100%',
@@ -417,10 +436,38 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
                                 bottom: 0,
                                 left: 0,
                                 right: 0,
-                                height: '40%',
-                                background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%)',
+                                height: '60%',
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%)',
                               }}
                             />
+
+                            {/* Product Name Overlay */}
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                bottom: 12,
+                                left: 12,
+                                right: 12,
+                                color: 'white',
+                                zIndex: 2,
+                              }}
+                            >
+                              <Typography
+                                variant="h6"
+                                sx={{
+                                  fontWeight: 700,
+                                  fontSize: '1rem',
+                                  textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                                  display: '-webkit-box',
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: 'vertical',
+                                  overflow: 'hidden',
+                                  lineHeight: 1.3,
+                                }}
+                              >
+                                {productName}
+                              </Typography>
+                            </Box>
 
                             {/* Category Badge */}
                             {product.main_category && (
@@ -506,28 +553,6 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
 
                           {/* Content Section */}
                           <CardContent sx={{ flexGrow: 1, p: 2.5, pb: 1 }}>
-                            {/* Product Name */}
-                            <Tooltip title={product.name} arrow>
-                              <Typography
-                                variant="h6"
-                                component="h3"
-                                sx={{
-                                  mb: 1.5,
-                                  fontWeight: 700,
-                                  fontSize: '1.1rem',
-                                  display: '-webkit-box',
-                                  WebkitLineClamp: 2,
-                                  WebkitBoxOrient: 'vertical',
-                                  overflow: 'hidden',
-                                  minHeight: 56,
-                                  lineHeight: 1.4,
-                                  color: 'text.primary',
-                                }}
-                              >
-                                {product.name}
-                              </Typography>
-                            </Tooltip>
-
                             {/* Store Info */}
                             <Box
                               display="flex"
