@@ -6,7 +6,7 @@ import { PartialDeep } from 'type-fest';
  */
 export type User = {
 	id: string;
-	store_id: string;
+	store_id?: string | null;
 	role: string[] | string | null;
 	displayName: string;
 	photoURL?: string;

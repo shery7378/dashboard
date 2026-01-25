@@ -49,9 +49,18 @@ export async function authUserSignOut(accessToken: string): Promise<Response> {
   }
 }
 
-export function authUpdateDbUser(user: PartialDeep<User>) {
-  return apiFetch(`/api/user/${user.id}`, {
+export function authUpdateDbUser(user: PartialDeep<User>, accessToken?: string) {
+  if (!user.id) {
+    throw new Error('User ID is required to update user');
+  }
+  
+  return apiFetchLaravel(`/api/user/${user.id}`, {
     method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(accessToken && { Authorization: `Bearer ${accessToken}` }),
+    },
+    credentials: 'include',
     body: JSON.stringify(user)
   });
 }

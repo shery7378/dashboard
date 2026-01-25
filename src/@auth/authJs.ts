@@ -48,6 +48,13 @@ export const providers: Provider[] = [
 
         if (!res.ok || !data.user) return null;
 
+        const storeId = data.user.store_id ? String(data.user.store_id) : null;
+        if (storeId) {
+          console.log('Authorize callback: store_id from login response:', storeId);
+        } else {
+          console.log('Authorize callback: No store_id in login response');
+        }
+        
         return {
           id: data.user.id,
           email: data.user.email,
@@ -57,7 +64,8 @@ export const providers: Provider[] = [
             : (data.user.roles && typeof data.user.roles === 'object'
               ? Object.values(data.user.roles)
               : [data.user.roles || 'guest']),
-          accessAuthToken: data.token
+          accessAuthToken: data.token,
+          storeId: storeId // Include store_id from login response
         };
       } catch (error) {
         console.error('Authorize error:', error);
@@ -95,6 +103,11 @@ const config = {
         if (user.accessAuthToken) {
           token.accessAuthToken = user.accessAuthToken;
         }
+        // Store storeId from the authorize function
+        if ((user as any).storeId !== undefined && (user as any).storeId !== null) {
+          token.storeId = String((user as any).storeId);
+          console.log('JWT callback: Storing storeId in token:', token.storeId);
+        }
       }
 
       if (trigger === 'update') {
@@ -131,7 +144,13 @@ const config = {
       }
 
       if (session && session.user) {
-        // Simplified session handling - use defaults without database fetch to prevent delays
+        // Always return a valid session - don't let API failures break authentication
+        // Store fetching will be handled on the client side for better reliability
+        const storeId = token.storeId ? String(token.storeId) : undefined;
+        if (storeId) {
+          console.log('Session callback: store_id from token:', storeId);
+        }
+        
         const defaultDbUser: User = {
           id: session.user.id || token.id?.toString() || '',
           email: session.user.email || token.email || '',
@@ -139,10 +158,10 @@ const config = {
           role: session.user.role || (Array.isArray(token.role) ? token.role : [token.role || 'guest']),
           photoURL: session.user.image || '/assets/images/avatars/brian-hughes.jpg',
           settings: { layout: {}, theme: {} },
-          shortcuts: ['apps.calendar', 'apps.mailbox', 'apps.contacts']
+          shortcuts: ['apps.calendar', 'apps.mailbox', 'apps.contacts'],
+          store_id: storeId // Include store_id from token
         } as User;
 
-        // Set session.db directly without database fetch to prevent timing issues
         session.db = defaultDbUser;
         return session;
       }

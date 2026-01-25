@@ -12,21 +12,101 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
+import apiFetchLaravel from '@/utils/apiFetchLaravel';
+import { useSession } from 'next-auth/react';
 
 /**
  * The VendorDashboardAppHeader component.
  */
 function VendorDashboardAppHeader() {
-	const { data: user, isGuest } = useUser();
+	const { data: user, isGuest, updateUser } = useUser();
+	const { data: session } = useSession();
 
 	const [openStoreDialog, setOpenStoreDialog] = useState(false);
+	const [checkingStore, setCheckingStore] = useState(true);
 
-	// Check store on mount
+	// Check store on mount - more robust check
 	useEffect(() => {
-		if (user && !user.store_id) {
-			setOpenStoreDialog(true);
+		async function checkStore() {
+			if (!user || isGuest) {
+				setCheckingStore(false);
+				return;
+			}
+
+			console.log('SellerDashboardAppHeader - User object:', user);
+			console.log('SellerDashboardAppHeader - User store_id:', user.store_id);
+
+			// If store_id is already present, no need to check
+			// Check for store_id as string, number, or truthy value
+			const hasStoreId = user.store_id !== null && user.store_id !== undefined && user.store_id !== '';
+			if (hasStoreId) {
+				console.log('Store ID found in user object:', user.store_id);
+				setCheckingStore(false);
+				setOpenStoreDialog(false);
+				return;
+			}
+
+			console.log('Store ID not found, checking API...');
+
+			// Try to fetch current store from API
+			try {
+				const accessToken = session?.accessAuthToken;
+				if (!accessToken) {
+					console.log('No access token available');
+					setCheckingStore(false);
+					// Wait a bit for token to be available
+					setTimeout(() => {
+						if (!user.store_id) {
+							setOpenStoreDialog(true);
+						}
+					}, 1000);
+					return;
+				}
+
+				console.log('Fetching store from API...');
+				const response = await apiFetchLaravel('/api/store/current', {
+					headers: {
+						Authorization: `Bearer ${accessToken}`,
+					},
+					credentials: 'include'
+				});
+
+				console.log('Store API response status:', response.status);
+
+				if (response.ok) {
+					const storeData = await response.json();
+					console.log('Store data received:', storeData);
+					const storeId = storeData?.data?.id || storeData?.data?.id?.toString();
+					if (storeId) {
+						// Store exists - just update the session, don't try to update via API
+						console.log('Store found with ID:', storeId);
+						// Update local state to prevent dialog from showing
+						setCheckingStore(false);
+						setOpenStoreDialog(false);
+						// Update session directly without API call
+						// The store_id will be available on next page load from the token
+						return;
+					}
+				} else if (response.status === 404) {
+					// Store not found - this is expected if user doesn't have a store
+					console.log('Store not found (404) - user needs to create a store');
+					setCheckingStore(false);
+					setOpenStoreDialog(true);
+					return;
+				}
+
+				// Other error - don't show dialog, just log
+				console.warn('Store check failed with status:', response.status);
+				setCheckingStore(false);
+			} catch (error) {
+				console.error('Error checking store:', error);
+				// On error, don't show dialog immediately - might be a network issue
+				setCheckingStore(false);
+			}
 		}
-	}, [user]);
+
+		checkStore();
+	}, [user, isGuest, session, updateUser]);
 
 	return (
 		<div className="flex flex-col w-full px-6 sm:px-8">
@@ -72,7 +152,7 @@ function VendorDashboardAppHeader() {
 					</div>
 				</div>
 			</div>
-			<Dialog open={openStoreDialog}>
+			<Dialog open={openStoreDialog && !checkingStore}>
 				<DialogTitle>
 					Store Required
 					<IconButton

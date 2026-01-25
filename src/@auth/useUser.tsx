@@ -31,7 +31,14 @@ function useUser(): useUser {
 	 * Uses current auth provider's updateUser method
 	 */
 	async function handleUpdateUser(_data: Partial<User>) {
-		const response = await authUpdateDbUser(_data);
+		if (!_data.id && !user?.id) {
+			throw new Error('User ID is required to update user');
+		}
+
+		const userId = _data.id || user?.id;
+		const accessToken = data?.accessAuthToken;
+		
+		const response = await authUpdateDbUser({ ..._data, id: userId }, accessToken);
 
 		if (!response.ok) {
 			throw new Error('Failed to update user');
