@@ -72,9 +72,6 @@ export const providers: Provider[] = [
 const config = {
   theme: { logo: '/assets/images/logo/logo.svg' },
   adapter: UnstorageAdapter(storage),
-  pages: {
-    signIn: '/sign-in'
-  },
   providers,
   basePath: '/auth',
   trustHost: true,
@@ -112,7 +109,7 @@ const config = {
       if (user?.accessAuthToken) {
         token.accessAuthToken = user.accessAuthToken;
       }
-      // console.log('jwt callback:', token);
+      
       return token;
     },
     async session({ session, token }) {
@@ -132,11 +129,9 @@ const config = {
         session.user.role = Array.isArray(token.role) ? token.role : [token.role || 'guest']; // Ensure role is an array
         session.accessToken = token.accessToken as string;
       }
-      // console.log('session callback:', session);
 
       if (session && session.user) {
-        // Always ensure session.db exists with data from token/session
-        // This prevents the session from failing even if database fetch fails
+        // Simplified session handling - use defaults without database fetch to prevent delays
         const defaultDbUser: User = {
           id: session.user.id || token.id?.toString() || '',
           email: session.user.email || token.email || '',
@@ -147,112 +142,7 @@ const config = {
           shortcuts: ['apps.calendar', 'apps.mailbox', 'apps.contacts']
         } as User;
 
-        // Only try to fetch from database if we have an access token
-        if (session.accessAuthToken) {
-          try {
-            /**
-             * Get the session user from database
-             */
-            const response = await authGetDbUserByEmail(session.user.email, session.accessAuthToken);
-
-            // Check if response is OK and has content before parsing
-            if (response.ok) {
-              // Check if response has content before parsing JSON
-              const contentType = response.headers.get('content-type');
-
-              if (contentType && contentType.includes('application/json')) {
-                try {
-                  // Read response text - handle empty responses
-                  const text = await response.text();
-
-                  if (text && text.trim() !== '') {
-                    try {
-                      const userDbData = JSON.parse(text) as User;
-                      // Merge database data with defaults
-                      session.db = {
-                        ...defaultDbUser,
-                        ...userDbData,
-                        role: session.user.role || (Array.isArray(userDbData.role) ? userDbData.role : [userDbData.role || 'guest']),
-                        displayName: session.user.name || userDbData.displayName || defaultDbUser.displayName,
-                      };
-                      return session;
-                    } catch (parseError) {
-                      console.warn('Failed to parse user data JSON, using defaults:', parseError);
-                    }
-                  } else {
-                    // Empty response - use defaults
-                    console.warn('Empty response from /api/user, using defaults');
-                  }
-                } catch (readError) {
-                  console.warn('Failed to read response body, using defaults:', readError);
-                }
-              } else {
-                // Non-JSON response - use defaults
-                console.warn('Non-JSON response from /api/user, using defaults');
-              }
-            } else {
-              // If response is not OK, check if it's 404 (user not found)
-              const errorStatus = response.status;
-              if (errorStatus === 404) {
-                try {
-                  const newUserResponse = await authCreateDbUser({
-                    email: session.user.email,
-                    role: session.user.role || ['admin'],
-                    displayName: session.user.name,
-                    photoURL: session.user.image
-                  });
-
-                  if (newUserResponse.ok) {
-                    try {
-                      const contentType = newUserResponse.headers.get('content-type');
-                      if (contentType && contentType.includes('application/json')) {
-                        const text = await newUserResponse.text();
-                        if (text && text.trim() !== '') {
-                          try {
-                            const newUser = JSON.parse(text) as User;
-                            session.db = {
-                              ...defaultDbUser,
-                              ...newUser,
-                              role: session.user.role || (Array.isArray(newUser.role) ? newUser.role : ['admin']),
-                            };
-                            return session;
-                          } catch (parseError) {
-                            console.warn('Failed to parse new user JSON, using defaults:', parseError);
-                          }
-                        } else {
-                          console.warn('Empty response from user creation, using defaults');
-                        }
-                      } else {
-                        console.warn('Non-JSON response from user creation, using defaults');
-                      }
-                    } catch (readError) {
-                      console.warn('Failed to read new user response, using defaults:', readError);
-                    }
-                  } else {
-                    console.warn('User creation failed with status:', newUserResponse.status);
-                  }
-                } catch (createError) {
-                  console.warn('Failed to create user, using defaults:', createError);
-                }
-              }
-            }
-          } catch (error) {
-            // Log error but don't fail - use default data
-            // Only log detailed error info in development to reduce noise
-            if (process.env.NODE_ENV === 'development') {
-              const errorMessage = error instanceof Error ? error.message : String(error);
-              const isFetchError = errorMessage.includes('FetchApiError');
-              if (isFetchError) {
-                // FetchApiError is already logged in apiFetchLaravel, so just log a brief message
-                console.warn('Server Error fetching user from database, using defaults:', errorMessage);
-              } else {
-                console.warn('Error fetching user from database, using defaults:', error);
-              }
-            }
-          }
-        }
-
-        // Use default data if database fetch failed or was skipped
+        // Set session.db directly without database fetch to prevent timing issues
         session.db = defaultDbUser;
         return session;
       }

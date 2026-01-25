@@ -282,7 +282,10 @@ function AuthJsCredentialsSignUpForm() {
                 redirect: false,
             });
 
+            console.log('SignIn result after registration:', signInResult);
+
             if (signInResult?.error) {
+                console.error('SignIn error:', signInResult.error);
                 setError('root', {
                     type: 'manual',
                     message: signInResult.error,
@@ -290,7 +293,21 @@ function AuthJsCredentialsSignUpForm() {
                 return false;
             }
 
-            router.push('/dashboards');
+            if (!signInResult?.ok) {
+                console.error('SignIn not ok:', signInResult);
+                setError('root', {
+                    type: 'manual',
+                    message: 'Sign in failed after registration. Please try logging in manually.',
+                });
+                return false;
+            }
+
+            console.log('SignIn successful, redirecting to dashboards...');
+            
+            // Add a small delay to ensure session is properly set before redirect
+            setTimeout(() => {
+                router.push('/dashboards');
+            }, 500);
             return true;
         } catch (error) {
             setError('root', {

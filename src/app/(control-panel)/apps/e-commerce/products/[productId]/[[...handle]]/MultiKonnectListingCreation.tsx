@@ -25,7 +25,7 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Chip from '@mui/material/Chip';
 import { useGetECommerceCategoriesQuery, useGetECommerceParentCategoriesQuery, useGetECommerceAllCategoriesQuery } from '../../../apis/CategoriesLaravelApi';
-import { useGetECommerceProductsQuery, useGetOtherVendorsProductsQuery } from '../../../apis/ProductsLaravelApi';
+import { useGetECommerceProductsQuery, useGetOtherSellersProductsQuery } from '../../../apis/ProductsLaravelApi';
 import { useGetECommerceStoreQuery } from '../../../apis/StoresLaravelApi';
 import { useGetAdminProductFeesSettingsQuery } from '../../../../../pages/settings/product-fees/ProductFeesAdminApi';
 import { slugify } from '../../models/ProductModel';
@@ -543,7 +543,7 @@ function MultiKonnectListingCreation() {
 	}, [pastProductsData, productId]);
 
 	// Fetch other vendors' products (excludes current vendor's products)
-	const { data: otherVendorsData, isLoading: loadingOtherVendors } = useGetOtherVendorsProductsQuery({
+	const { data: otherVendorsData, isLoading: loadingOtherVendors } = useGetOtherSellersProductsQuery({
 		page: 1,
 		perPage: 50
 	});

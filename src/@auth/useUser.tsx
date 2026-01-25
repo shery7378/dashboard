@@ -15,8 +15,16 @@ type useUser = {
 
 function useUser(): useUser {
 	const { data, update } = useSession();
-	const user = useMemo(() => data?.db, [data]);
-	const isGuest = useMemo(() => !user?.role || user?.role?.length === 0, [user]);
+	const user = useMemo(() => {
+		console.log('useUser - Session data:', data);
+		console.log('useUser - Extracted user (data.db):', data?.db);
+		return data?.db;
+	}, [data]);
+	const isGuest = useMemo(() => {
+		const guestStatus = !user?.role || user?.role?.length === 0;
+		console.log('useUser - Guest status:', guestStatus, 'User role:', user?.role);
+		return guestStatus;
+	}, [user]);
 
 	/**
 	 * Update user

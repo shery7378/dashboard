@@ -41,19 +41,35 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 
 	// Check user's permissions and set access granted state
 	useEffect(() => {
+		console.log('AuthGuardRedirect - Checking permissions:', {
+			auth,
+			userRole,
+			isGuest,
+			pathname
+		});
+
 		const isOnlyGuestAllowed = Array.isArray(auth) && auth.length === 0;
 		const userHasPermission = FuseUtils.hasPermission(auth, userRole);
 		const ignoredPaths = ['/', '/callback', '/sign-in', '/sign-out', '/logout', '/404'];
 
+		console.log('AuthGuardRedirect - Permission check:', {
+			isOnlyGuestAllowed,
+			userHasPermission,
+			ignoredPaths: ignoredPaths.includes(pathname)
+		});
+
 		if (!auth || (auth && userHasPermission) || (isOnlyGuestAllowed && isGuest)) {
+			console.log('AuthGuardRedirect - Access granted');
 			setAccessGranted(true);
 			return;
 		}
 
 		if (!userHasPermission) {
 			if (isGuest && !ignoredPaths.includes(pathname)) {
+				console.log('AuthGuardRedirect - Guest user, setting redirect URL');
 				setSessionRedirectUrl(pathname);
 			} else if (!isGuest && !ignoredPaths.includes(pathname)) {
+				console.log('AuthGuardRedirect - User without permission, redirecting to 401');
 				/**
 				 * If user is member but don't have permission to view the route
 				 * redirected to main route '/'
@@ -66,6 +82,7 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 			}
 		}
 
+		console.log('AuthGuardRedirect - Calling handleRedirection');
 		handleRedirection();
 	}, [auth, userRole, isGuest, pathname, handleRedirection]);
 
