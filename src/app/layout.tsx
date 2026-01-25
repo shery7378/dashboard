@@ -99,6 +99,27 @@ export default async function RootLayout({
 					  }
 					`}
 				</Script>
+				{/* Chunk loading error handler */}
+				<Script id="chunk-error-handler" strategy="beforeInteractive">
+					{`
+					  window.addEventListener('error', function(e) {
+					    if (e.target && e.target.tagName === 'SCRIPT' && e.target.src.includes('/_next/static/chunks/')) {
+					      console.warn('Chunk loading failed, attempting reload...');
+					      setTimeout(() => {
+					        window.location.reload();
+					      }, 1000);
+					    }
+					  });
+					  window.addEventListener('unhandledrejection', function(e) {
+					    if (e.reason && e.reason.message && e.reason.message.includes('Loading chunk')) {
+					      console.warn('Chunk loading failed, attempting reload...');
+					      setTimeout(() => {
+					        window.location.reload();
+					      }, 1000);
+					    }
+					  });
+					`}
+				</Script>
 				<SessionProvider
 					basePath="/auth"
 					session={session}

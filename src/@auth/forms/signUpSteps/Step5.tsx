@@ -159,7 +159,7 @@ export default function Step5({
                     color="secondary"
                     className="w-full font-bold"
                     aria-label="Register"
-                    disabled={_.isEmpty(dirtyFields) || !isValid}
+                    disabled={!isValid}
                     type="submit"
                     size="large"
                 >

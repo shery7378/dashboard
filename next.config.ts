@@ -99,6 +99,34 @@ const nextConfig: NextConfig = {
 			});
 		}
 
+		// Increase chunk loading timeout and optimize chunks
+		config.optimization = {
+			...config.optimization,
+			splitChunks: {
+				chunks: 'all',
+				cacheGroups: {
+					default: {
+						minChunks: 2,
+						priority: -20,
+						reuseExistingChunk: true,
+					},
+					vendor: {
+						test: /[\\/]node_modules[\\/]/,
+						name: 'vendors',
+						priority: -10,
+						chunks: 'all',
+					},
+					common: {
+						name: 'common',
+						minChunks: 2,
+						chunks: 'all',
+						priority: -30,
+						reuseExistingChunk: true,
+					},
+				},
+			},
+		};
+
 		return config;
 	}
 };
