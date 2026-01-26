@@ -29,6 +29,7 @@ import { useGetECommerceProductsQuery, useGetOtherSellersProductsQuery } from '.
 import { useGetECommerceStoreQuery } from '../../../apis/StoresLaravelApi';
 import { useGetAdminProductFeesSettingsQuery } from '../../../../../pages/settings/product-fees/ProductFeesAdminApi';
 import { slugify } from '../../models/ProductModel';
+import { sanitizeProduct } from '../../models/sanitizeProduct';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -63,7 +64,7 @@ interface Variant {
 }
 
 function MultiKonnectListingCreation() {
-	const { watch, setValue, control, formState, trigger } = useFormContext();
+	const { watch, setValue, control, formState, trigger, reset } = useFormContext();
 	const { errors } = formState;
 	const { productId } = useParams<{ productId: string }>();
 	const { data: session } = useSession();
@@ -346,29 +347,49 @@ function MultiKonnectListingCreation() {
 	}, [storeData]);
 
 	// Fetch and populate store postcode when store data is available
+	// Populate from store settings if field is empty (for both new and existing products)
 	useEffect(() => {
 		// Only set postcode if:
 		// 1. Store data is available
 		// 2. Store has a zip_code
-		// 3. Current store_postcode is empty (don't overwrite existing value from product)
-		if (storeData?.data?.zip_code && !storePostcode) {
+		// 3. Current store_postcode is empty/null/undefined (don't overwrite existing value)
+		const postcodeIsEmpty = !storePostcode || storePostcode === '' || storePostcode === null || storePostcode === undefined;
+		
+		if (storeData?.data?.zip_code && postcodeIsEmpty) {
 			setValue('store_postcode', storeData.data.zip_code, { shouldDirty: false });
 		}
-	}, [storeData, storePostcode, setValue]);
+	}, [storeData, setValue, storePostcode]);
 
 	// Populate delivery slot from store settings if not set on the form
+	// Only populate from store settings if product is new (not imported) and field is empty
 	useEffect(() => {
-		if (storeDeliverySlots.length === 0) return;
-		if (!deliverySlots) {
+		// Only set delivery slots if:
+		// 1. Product is new (productId === 'new' or undefined) - don't override imported products
+		// 2. Store has delivery slots
+		// 3. Current delivery_slots is empty/null/undefined (don't overwrite existing value from imported product)
+		const currentDeliverySlots = watch('delivery_slots');
+		const isNewProduct = productId === 'new' || !productId || productId === 'undefined';
+		const deliverySlotsIsEmpty = !currentDeliverySlots || currentDeliverySlots === '' || currentDeliverySlots === null || currentDeliverySlots === undefined;
+		
+		if (isNewProduct && storeDeliverySlots.length > 0 && deliverySlotsIsEmpty) {
 			setValue('delivery_slots', storeDeliverySlots[0], { shouldDirty: false });
 		}
-	}, [storeDeliverySlots, deliverySlots, setValue]);
+	}, [storeDeliverySlots, setValue, productId, watch]);
 
-	// Always sync delivery radius from store settings (non-editable on listing)
+	// Sync delivery radius from store settings ONLY if product is new and field is empty
+	// For imported products, keep the imported delivery radius from the source product
 	useEffect(() => {
-		if (storeDeliveryRadius === null) return;
-		setValue('delivery_radius', storeDeliveryRadius, { shouldDirty: false });
-	}, [storeDeliveryRadius, setValue]);
+		// Get the actual form value (not the default)
+		const currentDeliveryRadius = watch('delivery_radius');
+		
+		// Only set delivery radius if:
+		// 1. Product is new (productId === 'new' or undefined)
+		// 2. Store has delivery radius
+		// 3. Current delivery_radius is empty/null/undefined (don't overwrite existing value from imported product)
+		if ((productId === 'new' || !productId) && storeDeliveryRadius !== null && (currentDeliveryRadius === null || currentDeliveryRadius === undefined || currentDeliveryRadius === '')) {
+			setValue('delivery_radius', storeDeliveryRadius, { shouldDirty: false });
+		}
+	}, [storeDeliveryRadius, setValue, productId, watch]);
 
 	// Calculate pricing intelligence dynamically
 	const pricingIntelligence = useMemo(() => {
@@ -2346,11 +2367,20 @@ function MultiKonnectListingCreation() {
 		setValue('meta_keywords', product.meta_keywords || '', { shouldDirty: true });
 
 		// Categories - Handle both main_category and subcategories
+		// First check if main_category is already set (from sanitizeProduct)
+		if (product.main_category && product.main_category.id) {
+			console.log('Setting main_category from product.main_category:', product.main_category);
+			setValue('main_category_id', product.main_category.id, { shouldDirty: true });
+			setValue('main_category', { id: product.main_category.id, name: product.main_category.name }, { shouldDirty: true });
+		}
+		
+		// Also check categories array as fallback
 		if (product.categories && product.categories.length > 0) {
 			const mainCategory = product.categories.find((cat: any) => !cat.parent_id);
 			const subcategories = product.categories.filter((cat: any) => cat.parent_id);
 
-			if (mainCategory) {
+			if (mainCategory && !product.main_category) {
+				console.log('Setting main_category from categories array:', mainCategory);
 				setValue('main_category_id', mainCategory.id, { shouldDirty: true });
 				setValue('main_category', { id: mainCategory.id, name: mainCategory.name }, { shouldDirty: true });
 			}
@@ -2358,6 +2388,13 @@ function MultiKonnectListingCreation() {
 				setValue('subcategory_ids', subcategories.map((cat: any) => cat.id), { shouldDirty: true });
 				setValue('subcategory', subcategories.map((cat: any) => ({ id: cat.id, name: cat.name })), { shouldDirty: true });
 			}
+		}
+		
+		// Also handle subcategory from sanitized product
+		if (product.subcategory && Array.isArray(product.subcategory) && product.subcategory.length > 0) {
+			console.log('Setting subcategory from product.subcategory:', product.subcategory);
+			setValue('subcategory_ids', product.subcategory.map((cat: any) => cat.id), { shouldDirty: true });
+			setValue('subcategory', product.subcategory, { shouldDirty: true });
 		}
 
 		// Tags
@@ -2516,14 +2553,15 @@ function MultiKonnectListingCreation() {
 		setValue('warranty', product.warranty || '', { shouldDirty: true });
 		setValue('box_contents', product.box_contents || '', { shouldDirty: true });
 
-		// Delivery & Shipping
-		setValue('store_postcode', product.store_postcode || '', { shouldDirty: true });
-		setValue('delivery_radius', product.delivery_radius || 5, { shouldDirty: true });
-		setValue('delivery_slots', product.delivery_slots || '', { shouldDirty: true });
-		setValue('ready_in_minutes', product.ready_in_minutes || 45, { shouldDirty: true });
-		setValue('enable_pickup', product.enable_pickup || false, { shouldDirty: true });
-		setValue('shipping_charge_regular', product.shipping_charge_regular || 0, { shouldDirty: true });
-		setValue('shipping_charge_same_day', product.shipping_charge_same_day || 0, { shouldDirty: true });
+		// Delivery & Shipping - IMPORTANT: Use actual values from product, don't use defaults
+		// This ensures imported products keep their original delivery/shipping settings
+		setValue('store_postcode', product.store_postcode ?? '', { shouldDirty: true });
+		setValue('delivery_radius', product.delivery_radius ?? null, { shouldDirty: true });
+		setValue('delivery_slots', product.delivery_slots ?? '', { shouldDirty: true });
+		setValue('ready_in_minutes', product.ready_in_minutes ?? null, { shouldDirty: true });
+		setValue('enable_pickup', product.enable_pickup ?? false, { shouldDirty: true });
+		setValue('shipping_charge_regular', product.shipping_charge_regular ?? 0, { shouldDirty: true });
+		setValue('shipping_charge_same_day', product.shipping_charge_same_day ?? 0, { shouldDirty: true });
 
 		// Subscription
 		setValue('subscription_enabled', product.subscription_enabled || false, { shouldDirty: true });
@@ -2741,10 +2779,84 @@ function MultiKonnectListingCreation() {
 	};
 
 	const handleSelectVendorProduct = (product: any) => {
-		// Use the same comprehensive copying logic as handleSelectPastListing
-		// This ensures ALL product fields are copied, not just a few
-		handleSelectPastListing(product);
+		console.log('handleSelectVendorProduct called with product:', product);
+		console.log('Current productId from URL:', productId);
+		console.log('Product ID from imported product:', product?.id);
+		
+		// Get the product ID - check multiple possible locations
+		const importedProductId = product?.id || product?.data?.id || product?.product_id;
+		
+		// If product has an ID (imported product), navigate to edit page
+		// Check if we're on the "new" product page and product was imported (has ID)
+		if (importedProductId && (productId === 'new' || !productId || productId === 'undefined')) {
+			// Product was imported, navigate to edit the imported product
+			const editUrl = `/apps/e-commerce/products/${importedProductId}`;
+			console.log('Navigating to edit page:', editUrl);
+			
+			// Close modal first
+			setImportVendorDialogOpen(false);
+			
+			// Show success message
+			enqueueSnackbar('Product imported successfully! Redirecting to edit page...', {
+				variant: 'success',
+				anchorOrigin: { vertical: 'top', horizontal: 'right' }
+			});
+			
+			// Use setTimeout to ensure modal closes before navigation
+			setTimeout(() => {
+				try {
+					navigate(editUrl);
+				} catch (error) {
+					console.error('Navigation error, using window.location:', error);
+					// Fallback to window.location if navigate fails
+					window.location.href = editUrl;
+				}
+			}, 100);
+			
+			return;
+		}
+		
+		// Sanitize the product data to ensure it's in the correct format
+		// This is important for imported products which may have different data structures
+		const sanitizedProduct = sanitizeProduct(product);
+		
+		console.log('Sanitized product for form population:', sanitizedProduct);
+		console.log('Product name:', sanitizedProduct.name);
+		console.log('Product description:', sanitizedProduct.description);
+		console.log('Product categories:', sanitizedProduct.categories);
+		console.log('Product main_category:', sanitizedProduct.main_category);
+		console.log('Product gallery_images:', sanitizedProduct.gallery_images);
+		console.log('Product product_variants:', sanitizedProduct.product_variants);
+		
+		// First, use reset to populate all basic form fields at once
+		// This ensures the form state is properly initialized
+		reset(sanitizedProduct, {
+			keepDefaultValues: false,
+			keepDirty: false,
+			keepErrors: false,
+			keepIsSubmitted: false,
+			keepTouched: false,
+			keepIsValid: false,
+			keepSubmitCount: false,
+		});
+		
+		// Then use handleSelectPastListing to handle variants, images, and other complex fields
+		// This function handles variants, storage/color options, and other derived state
+		// Use setTimeout to ensure reset completes first
+		setTimeout(() => {
+			handleSelectPastListing(sanitizedProduct);
+			
+			// Force trigger validation to update form state
+			trigger();
+		}, 100);
+		
 		setImportVendorDialogOpen(false);
+		
+		// Show success message
+		enqueueSnackbar('Product imported successfully! All fields have been populated.', {
+			variant: 'success',
+			anchorOrigin: { vertical: 'top', horizontal: 'right' }
+		});
 	};
 
 	// Live Sync toggle handler
@@ -6181,8 +6293,8 @@ function MultiKonnectListingCreation() {
 				<ImportProductModal
 					open={importVendorDialogOpen}
 					onClose={() => setImportVendorDialogOpen(false)}
-					mode="select"
-					onProductSelect={handleSelectVendorProduct} // This will populate form with ALL fields
+					mode="import"
+					onProductSelect={handleSelectVendorProduct} // This will populate form with ALL fields after import
 				/>
 			)}
 

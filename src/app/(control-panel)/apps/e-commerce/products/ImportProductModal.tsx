@@ -30,8 +30,9 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useTranslation } from 'react-i18next';
-import { useGetOtherSellersProductsQuery, useImportProductMutation, EcommerceProduct } from '../apis/ProductsLaravelApi';
+import { useGetOtherSellersProductsQuery, useImportProductMutation, useGetECommerceProductQuery, EcommerceProduct } from '../apis/ProductsLaravelApi';
 import { useSnackbar } from 'notistack';
+import { useSession } from 'next-auth/react';
 import './i18n';
 
 interface ImportProductModalProps {
@@ -44,6 +45,7 @@ interface ImportProductModalProps {
 function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }: ImportProductModalProps) {
   const { t } = useTranslation('products');
   const { enqueueSnackbar } = useSnackbar();
+  const { data: session } = useSession();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -125,21 +127,55 @@ function ImportProductModal({ open, onClose, onProductSelect, mode = 'import' }:
       // If import returns product data and we have a callback, populate the form
       if (result.data?.product && onProductSelect) {
         // Use the imported product data to populate the form with ALL fields
+        console.log('Import successful - product data received:', result.data.product);
+        console.log('Product ID from import:', result.data.product?.id || result.data.product_id);
         onProductSelect(result.data.product);
-        enqueueSnackbar('Product imported and form populated with all details', {
-          variant: 'success',
-          anchorOrigin: { vertical: 'top', horizontal: 'right' }
-        });
+        // Don't show snackbar here - let handleSelectVendorProduct handle navigation and messaging
         onClose(); // Close modal after populating form
       } else if (result.data?.product_id && onProductSelect) {
-        // If only product_id is returned, try to fetch the full product
-        // Note: This would require importing useGetECommerceProductQuery
-        // For now, just show success message
-        enqueueSnackbar(result.message || t('product_imported_successfully'), {
-          variant: 'success',
-          anchorOrigin: { vertical: 'top', horizontal: 'right' }
-        });
-        // Don't close modal, let user continue importing
+        // If only product_id is returned, fetch the full product data
+        console.log('Import successful - fetching full product data for ID:', result.data.product_id);
+        try {
+          // Use the API to fetch the full product
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+          const response = await fetch(`${apiUrl}/api/products/${result.data.product_id}`, {
+            headers: {
+              'Authorization': `Bearer ${session?.accessAuthToken || ''}`,
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include'
+          });
+          
+          if (response.ok) {
+            const productResponse = await response.json();
+            const fullProduct = productResponse.data;
+            console.log('Full product data fetched:', fullProduct);
+            if (fullProduct && onProductSelect) {
+              console.log('Full product data fetched:', fullProduct);
+              console.log('Product ID from fetched product:', fullProduct?.id);
+              onProductSelect(fullProduct);
+              // Don't show snackbar here - let handleSelectVendorProduct handle navigation and messaging
+              onClose(); // Close modal after populating form
+            } else {
+              enqueueSnackbar(result.message || t('product_imported_successfully'), {
+                variant: 'success',
+                anchorOrigin: { vertical: 'top', horizontal: 'right' }
+              });
+            }
+          } else {
+            console.error('Failed to fetch full product data:', response.status);
+            enqueueSnackbar(result.message || t('product_imported_successfully'), {
+              variant: 'success',
+              anchorOrigin: { vertical: 'top', horizontal: 'right' }
+            });
+          }
+        } catch (fetchError) {
+          console.error('Error fetching full product data:', fetchError);
+          enqueueSnackbar(result.message || t('product_imported_successfully'), {
+            variant: 'success',
+            anchorOrigin: { vertical: 'top', horizontal: 'right' }
+          });
+        }
       } else {
         enqueueSnackbar(result.message || t('product_imported_successfully'), {
           variant: 'success',
