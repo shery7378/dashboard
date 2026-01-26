@@ -354,9 +354,11 @@ function MultiKonnectListingCreation() {
 		// 2. Store has a zip_code
 		// 3. Current store_postcode is empty/null/undefined (don't overwrite existing value)
 		const postcodeIsEmpty = !storePostcode || storePostcode === '' || storePostcode === null || storePostcode === undefined;
+		const storeZipCode = storeData?.data?.zip_code;
 		
-		if (storeData?.data?.zip_code && postcodeIsEmpty) {
-			setValue('store_postcode', storeData.data.zip_code, { shouldDirty: false });
+		if (storeZipCode && postcodeIsEmpty) {
+			// Ensure we set the value even if form hasn't fully initialized
+			setValue('store_postcode', storeZipCode, { shouldDirty: false, shouldValidate: false });
 		}
 	}, [storeData, setValue, storePostcode]);
 
@@ -2004,6 +2006,23 @@ function MultiKonnectListingCreation() {
 
 	const handlePublishClick = () => {
 		setIsPublishing(true);
+		
+		// Check if store_id is set (critical for product creation)
+		const currentStoreId = watch('store_id');
+		const userStoreId = user?.store_id || session?.db?.store_id || null;
+		
+		if (!currentStoreId && userStoreId) {
+			// Set store_id from session if not set in form
+			setValue('store_id', Number(userStoreId), { shouldDirty: true, shouldValidate: true });
+		} else if (!currentStoreId) {
+			enqueueSnackbar(
+				'Store is required. Please create a store first or refresh the page to reload your store information.',
+				{ variant: 'error', autoHideDuration: 8000 }
+			);
+			setIsPublishing(false);
+			return;
+		}
+		
 		// Validate "New" condition requires at least one picture
 		if (condition === 'New' && (!galleryImages || galleryImages.length === 0)) {
 			enqueueSnackbar('New condition requires at least one picture. Please add at least one image before publishing.', {
@@ -2063,7 +2082,22 @@ function MultiKonnectListingCreation() {
 
 		// Trigger validation to ensure form is valid before submitting
 		trigger().then((isValid) => {
-			// Small delay to ensure setValue and validation complete before clicking submit button
+			if (!isValid) {
+				// Show validation errors
+				const firstError = Object.values(errors)[0];
+				if (firstError) {
+					enqueueSnackbar(
+						firstError.message || 'Please fix validation errors before publishing',
+						{ variant: 'error' }
+					);
+				} else {
+					enqueueSnackbar('Please fix validation errors before publishing', { variant: 'error' });
+				}
+				setIsPublishing(false);
+				return;
+			}
+
+			// Longer delay to ensure setValue and validation complete before clicking submit button
 			setTimeout(() => {
 				// Try to find create button first (for new products)
 				let submitButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
@@ -2076,12 +2110,20 @@ function MultiKonnectListingCreation() {
 				if (submitButton) {
 					// Check if button is disabled
 					if (submitButton.disabled) {
+						const buttonType = submitButton.getAttribute('data-product-create-button') ? 'create' : 'save';
 						console.warn('handlePublishClick: Submit button is disabled', {
-							buttonType: submitButton.getAttribute('data-product-create-button') ? 'create' : 'save',
+							buttonType,
 							productId,
 							isValid,
-							formState: formState
+							formState: formState,
+							errors: Object.keys(errors)
 						});
+						
+						// Show user-friendly error message
+						enqueueSnackbar(
+							'Cannot publish: Please fill all required fields and fix validation errors',
+							{ variant: 'error', autoHideDuration: 6000 }
+						);
 						setIsPublishing(false);
 					} else {
 						console.log('handlePublishClick: Clicking submit button', {
@@ -2089,9 +2131,13 @@ function MultiKonnectListingCreation() {
 							productId,
 							isValid
 						});
+						
+						// Use a more reliable click method
+						submitButton.focus();
 						submitButton.click();
-						// Reset publishing state after a short delay
-						setTimeout(() => setIsPublishing(false), 1000);
+						
+						// Reset publishing state after a longer delay to allow for API call
+						setTimeout(() => setIsPublishing(false), 2000);
 					}
 				} else {
 					console.error('handlePublishClick: Submit button not found', {
@@ -2099,9 +2145,22 @@ function MultiKonnectListingCreation() {
 						createButton: document.querySelector('[data-product-create-button]'),
 						saveButton: document.querySelector('[data-product-save-button]')
 					});
+					
+					// Show user-friendly error message
+					enqueueSnackbar(
+						'Error: Submit button not found. Please try refreshing the page.',
+						{ variant: 'error', autoHideDuration: 6000 }
+					);
 					setIsPublishing(false);
 				}
-			}, 150); // Increased delay to ensure setValue completes
+			}, 300); // Increased delay to ensure setValue and validation complete
+		}).catch((error) => {
+			console.error('handlePublishClick: Validation error', error);
+			enqueueSnackbar(
+				'Error validating form. Please check all required fields.',
+				{ variant: 'error', autoHideDuration: 6000 }
+			);
+			setIsPublishing(false);
 		});
 	};
 
@@ -4348,6 +4407,7 @@ function MultiKonnectListingCreation() {
 										render={({ field }) => (
 											<TextField
 												{...field}
+												value={field.value || storeData?.data?.zip_code || ''}
 												label="Store postcode"
 												placeholder="E12 6PH"
 												fullWidth
