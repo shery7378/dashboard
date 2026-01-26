@@ -181,7 +181,7 @@ function MultiKonnectListingCreation() {
 	const boxContents = watch('box_contents') || '';
 	const storePostcode = watch('store_postcode') || '';
 	const deliveryRadius = watch('delivery_radius') || 5;
-	const deliverySlots = watch('delivery_slots') || '12-3pm';
+	const deliverySlots = watch('delivery_slots') || ''; // Don't use default value - check actual form value
 	const readyInMinutes = watch('ready_in_minutes') || 45;
 	const enablePickup = watch('enable_pickup') || false;
 	const subscriptionEnabled = watch('subscription_enabled') || false;
@@ -647,8 +647,10 @@ function MultiKonnectListingCreation() {
 
 		// Same-day configuration
 		// Check if both store_postcode and delivery_slots are properly set
+		// Also check storeDeliverySlots as fallback (for new products that haven't set delivery_slots yet)
 		const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
-		const hasDeliverySlots = deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '';
+		const hasDeliverySlots = (deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') || 
+			(storeDeliverySlots.length > 0); // Also check store settings as fallback
 
 		if (!hasStorePostcode || !hasDeliverySlots) {
 			items.push({
@@ -731,7 +733,8 @@ function MultiKonnectListingCreation() {
 				return !!(priceTaxExcl || variants.some(v => v.price));
 			case 5: // Same-day & stores
 				const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
-				const hasDeliverySlots = deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '';
+				const hasDeliverySlots = (deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') || 
+					(storeDeliverySlots.length > 0); // Also check store settings as fallback
 				return !!(hasStorePostcode && hasDeliverySlots);
 			case 6: // Copy & SEO
 				return !!(seoTitle && description && description.length >= 50);
@@ -746,7 +749,7 @@ function MultiKonnectListingCreation() {
 			default:
 				return false;
 		}
-	}, [productTitle, galleryImages.length, variants, priceTaxExcl, storePostcode, deliverySlots, seoTitle, description, condition, returns, kycTier, safeSellingLimit, watch]);
+	}, [productTitle, galleryImages.length, variants, priceTaxExcl, storePostcode, deliverySlots, storeDeliverySlots, seoTitle, description, condition, returns, kycTier, safeSellingLimit, watch]);
 
 	const steps: ListingStep[] = useMemo(() => [
 		{ id: 1, title: 'Identity', description: 'MPID, title', completed: getStepCompletion(1) },
@@ -4450,24 +4453,31 @@ function MultiKonnectListingCreation() {
 									<Controller
 										name="delivery_slots"
 										control={control}
-										render={({ field }) => (
-											<TextField
-												{...field}
-												label="Delivery slots"
-												fullWidth
-												size="small"
-												disabled
-												value={storeDeliverySlots.length > 0 ? storeDeliverySlots.join(', ') : '12-3pm, 3-6pm, 6-9pm'}
-												sx={{
-													'& .MuiOutlinedInput-root': {
-														borderRadius: '12px',
-														fontSize: '14px',
-														backgroundColor: '#f5f5f5',
-													},
-												}}
-												helperText="Configured in store settings"
-											/>
-										)}
+										render={({ field }) => {
+											// Use field value if it exists, otherwise fall back to store settings
+											const displayValue = field.value && field.value.trim().length > 0 
+												? field.value 
+												: (storeDeliverySlots.length > 0 ? storeDeliverySlots.join(', ') : '12-3pm, 3-6pm, 6-9pm');
+											
+											return (
+												<TextField
+													{...field}
+													value={displayValue}
+													label="Delivery slots"
+													fullWidth
+													size="small"
+													disabled
+													sx={{
+														'& .MuiOutlinedInput-root': {
+															borderRadius: '12px',
+															fontSize: '14px',
+															backgroundColor: '#f5f5f5',
+														},
+													}}
+													helperText="Configured in store settings"
+												/>
+											);
+										}}
 									/>
 									<Controller
 										name="ready_in_minutes"
