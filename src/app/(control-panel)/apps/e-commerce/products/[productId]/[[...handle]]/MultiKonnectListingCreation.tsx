@@ -647,8 +647,10 @@ function MultiKonnectListingCreation() {
 
 		// Same-day configuration
 		// Check if both store_postcode and delivery_slots are properly set
-		// Also check storeDeliverySlots as fallback (for new products that haven't set delivery_slots yet)
-		const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
+		// Also check store settings as fallback (for products using store defaults)
+		const storeZipCode = storeData?.data?.zip_code;
+		const hasStorePostcode = (storePostcode && storePostcode.trim().length > 0) || 
+			(storeZipCode && storeZipCode.trim().length > 0); // Check store settings as fallback
 		const hasDeliverySlots = (deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') || 
 			(storeDeliverySlots.length > 0); // Also check store settings as fallback
 
@@ -718,7 +720,7 @@ function MultiKonnectListingCreation() {
 		}
 
 		return items;
-	}, [galleryImages.length, variants, storePostcode, deliverySlots, seoTitle, description, colorOptions, colorImages]);
+	}, [galleryImages.length, variants, storePostcode, deliverySlots, storeDeliverySlots, storeData, seoTitle, description, colorOptions, colorImages]);
 
 	// Calculate step completion status dynamically
 	const getStepCompletion = useCallback((stepId: number): boolean => {
@@ -732,7 +734,9 @@ function MultiKonnectListingCreation() {
 			case 4: // Pricing & intel
 				return !!(priceTaxExcl || variants.some(v => v.price));
 			case 5: // Same-day & stores
-				const hasStorePostcode = storePostcode && storePostcode.trim().length > 0;
+				const storeZipCode = storeData?.data?.zip_code;
+				const hasStorePostcode = (storePostcode && storePostcode.trim().length > 0) || 
+					(storeZipCode && storeZipCode.trim().length > 0); // Check store settings as fallback
 				const hasDeliverySlots = (deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') || 
 					(storeDeliverySlots.length > 0); // Also check store settings as fallback
 				return !!(hasStorePostcode && hasDeliverySlots);
@@ -749,7 +753,7 @@ function MultiKonnectListingCreation() {
 			default:
 				return false;
 		}
-	}, [productTitle, galleryImages.length, variants, priceTaxExcl, storePostcode, deliverySlots, storeDeliverySlots, seoTitle, description, condition, returns, kycTier, safeSellingLimit, watch]);
+	}, [productTitle, galleryImages.length, variants, priceTaxExcl, storePostcode, deliverySlots, storeDeliverySlots, storeData, seoTitle, description, condition, returns, kycTier, safeSellingLimit, watch]);
 
 	const steps: ListingStep[] = useMemo(() => [
 		{ id: 1, title: 'Identity', description: 'MPID, title', completed: getStepCompletion(1) },
