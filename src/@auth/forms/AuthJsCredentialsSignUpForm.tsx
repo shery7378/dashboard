@@ -99,9 +99,19 @@ function AuthJsCredentialsSignUpForm() {
         try {
             setIsSendingCode(true);
             setCountdown(60);
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
-                credentials: 'include',
-            });
+            
+            // Try to get CSRF cookie, but don't fail if it's not available (API routes might not need it)
+            try {
+                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
+                    credentials: 'include',
+                }).catch(() => {
+                    // Silently fail - CSRF might not be needed for API routes
+                    console.log('CSRF cookie endpoint not available, continuing anyway');
+                });
+            } catch (csrfError) {
+                // Continue even if CSRF fails
+                console.log('CSRF cookie request failed, continuing:', csrfError);
+            }
 
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/send-code`, {
                 method: 'POST',
@@ -116,7 +126,7 @@ function AuthJsCredentialsSignUpForm() {
                 // Check if response is JSON before parsing
                 const contentType = res.headers.get('content-type');
                 let errorMessage = 'Failed to send verification code. Please try again.';
-                
+
                 if (contentType && contentType.includes('application/json')) {
                     try {
                         const errorData = await res.json();
@@ -130,10 +140,13 @@ function AuthJsCredentialsSignUpForm() {
                     const text = await res.text();
                     console.error('Non-JSON error response:', text.substring(0, 200));
                 }
-                
+
                 throw new Error(errorMessage);
             }
 
+            // Small delay to ensure code is stored in cache/database
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
             setError('root', {
                 type: 'manual',
                 message: 'Verification code sent to your email.',
@@ -152,21 +165,48 @@ function AuthJsCredentialsSignUpForm() {
 
     async function handleVerifyCode() {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
-                credentials: 'include',
-            });
+            // Try to get CSRF cookie, but don't fail if it's not available
+            try {
+                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
+                    credentials: 'include',
+                }).catch(() => {
+                    // Silently fail - CSRF might not be needed for API routes
+                    console.log('CSRF cookie endpoint not available, continuing anyway');
+                });
+            } catch (csrfError) {
+                // Continue even if CSRF fails
+                console.log('CSRF cookie request failed, continuing:', csrfError);
+            }
 
             // Trim and normalize the code before sending
-            const normalizedCode = emailVerificationCode.trim().replace(/\s+/g, '');
+            const normalizedCode = emailVerificationCode.trim().replace(/\s+/g, '').replace(/[^0-9]/g, '');
+            const normalizedEmail = email?.trim().toLowerCase();
             
+            // Validate code length
+            if (!normalizedCode || normalizedCode.length < 4) {
+                setError('root', {
+                    type: 'manual',
+                    message: 'Please enter a valid verification code.',
+                });
+                return;
+            }
+
+            console.log('Verifying code:', {
+                email: normalizedEmail,
+                code_original: emailVerificationCode,
+                code_normalized: normalizedCode,
+                code_length: normalizedCode.length,
+            });
+
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/verify-code`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    email: email?.trim().toLowerCase(),
+                    email: normalizedEmail,
                     code: normalizedCode,
                 }),
             });
@@ -175,11 +215,20 @@ function AuthJsCredentialsSignUpForm() {
                 // Check if response is JSON before parsing
                 const contentType = res.headers.get('content-type');
                 let errorMessage = 'Invalid verification code. Please try again.';
+                let errorDetails = null;
                 
                 if (contentType && contentType.includes('application/json')) {
                     try {
                         const errorData = await res.json();
                         errorMessage = errorData.message || errorMessage;
+                        errorDetails = errorData.debug || errorData.errors || null;
+                        
+                        console.error('Verification error:', {
+                            status: res.status,
+                            message: errorMessage,
+                            details: errorDetails,
+                            full_response: errorData,
+                        });
                     } catch (jsonError) {
                         // If JSON parsing fails, use default message
                         console.error('Failed to parse error response as JSON:', jsonError);
@@ -187,11 +236,18 @@ function AuthJsCredentialsSignUpForm() {
                 } else {
                     // If response is HTML (error page), use default message
                     const text = await res.text();
-                    console.error('Non-JSON error response:', text.substring(0, 200));
+                    console.error('Non-JSON error response:', {
+                        status: res.status,
+                        statusText: res.statusText,
+                        preview: text.substring(0, 200),
+                    });
                 }
                 
                 throw new Error(errorMessage);
             }
+
+            const responseData = await res.json();
+            console.log('Verification successful:', responseData);
 
             setIsVerified(true);
             clearErrors('root');
@@ -259,7 +315,7 @@ function AuthJsCredentialsSignUpForm() {
                 // Check if response is JSON before parsing
                 const contentType = res.headers.get('content-type');
                 let errorMessage = 'Registration failed. Please check your details and try again.';
-                
+
                 if (contentType && contentType.includes('application/json')) {
                     try {
                         const errorData = await res.json();
@@ -273,7 +329,7 @@ function AuthJsCredentialsSignUpForm() {
                     const text = await res.text();
                     console.error('Non-JSON error response:', text.substring(0, 200));
                 }
-                
+
                 throw new Error(errorMessage);
             }
 
@@ -314,7 +370,7 @@ function AuthJsCredentialsSignUpForm() {
             }
 
             console.log('SignIn successful, redirecting to dashboards...');
-            
+
             // Use window.location.href for more reliable redirect and longer delay
             // to ensure session is fully established
             setTimeout(() => {
@@ -409,7 +465,7 @@ function AuthJsCredentialsSignUpForm() {
                 <Step4
                     control={control}
                     errors={errors}
-					setValue={setValue}
+                    setValue={setValue}
                     handleNextStep={handleNextStep}
                     handleBackStep={handleBackStep}
                 />

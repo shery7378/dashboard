@@ -12,6 +12,7 @@ import usePathname from '@fuse/hooks/usePathname';
 import FuseLoading from '@fuse/core/FuseLoading';
 import useNavigate from '@fuse/hooks/useNavigate';
 import useUser from './useUser';
+import { useSession } from 'next-auth/react';
 
 type AuthGuardProps = {
 	auth: FuseRouteObjectType['auth'];
@@ -23,6 +24,7 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 	const { data: user, isGuest } = useUser();
 	const userRole = user?.role;
 	const navigate = useNavigate();
+	const { status } = useSession();
 
 	const [accessGranted, setAccessGranted] = useState<boolean>(false);
 	const pathname = usePathname();
@@ -41,25 +43,62 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 
 	// Check user's permissions and set access granted state
 	useEffect(() => {
+		// Wait for session to finish loading
+		if (status === 'loading') {
+			console.log('AuthGuardRedirect - Session loading, waiting...');
+			return;
+		}
+
 		console.log('AuthGuardRedirect - Checking permissions:', {
 			auth,
 			userRole,
 			isGuest,
-			pathname
+			pathname,
+			status,
 		});
 
 		const isOnlyGuestAllowed = Array.isArray(auth) && auth.length === 0;
 		const userHasPermission = FuseUtils.hasPermission(auth, userRole);
-		const ignoredPaths = ['/', '/callback', '/sign-in', '/sign-out', '/logout', '/404'];
+		const ignoredPaths = ['/', '/callback', '/sign-in', '/sign-up', '/sign-out', '/logout', '/404'];
 
 		console.log('AuthGuardRedirect - Permission check:', {
 			isOnlyGuestAllowed,
 			userHasPermission,
-			ignoredPaths: ignoredPaths.includes(pathname)
+			ignoredPaths: ignoredPaths.includes(pathname),
+			pathname,
+			isGuest,
+			status,
 		});
 
+		// If pathname is in ignoredPaths, always grant access (public pages)
+		if (ignoredPaths.includes(pathname)) {
+			console.log('AuthGuardRedirect - Public page, access granted');
+			setAccessGranted(true);
+			resetSessionRedirectUrl();
+			return;
+		}
+
+		// For onlyGuest pages (like signup/signin), allow access if:
+		// 1. User is a guest (not authenticated)
+		// 2. Session is unauthenticated
+		// 3. Or if no auth requirement is set
+		if (isOnlyGuestAllowed) {
+			if (isGuest || status === 'unauthenticated' || !user) {
+				console.log('AuthGuardRedirect - Guest page, guest user - access granted');
+				setAccessGranted(true);
+				resetSessionRedirectUrl();
+				return;
+			} else {
+				// Authenticated user trying to access guest-only page (like signup/signin)
+				// Redirect them to dashboard/home
+				console.log('AuthGuardRedirect - Authenticated user on guest page, redirecting to home');
+				navigate('/');
+				return;
+			}
+		}
+
 		// If user has permission, grant access and clear any existing redirect URL
-		if (!auth || (auth && userHasPermission) || (isOnlyGuestAllowed && isGuest)) {
+		if (!auth || (auth && userHasPermission)) {
 			console.log('AuthGuardRedirect - Access granted');
 			setAccessGranted(true);
 			// Clear any existing redirect URL since user can access this page
@@ -68,7 +107,7 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 		}
 
 		if (!userHasPermission) {
-			if (isGuest && !ignoredPaths.includes(pathname)) {
+			if ((isGuest || status === 'unauthenticated') && !ignoredPaths.includes(pathname)) {
 				console.log('AuthGuardRedirect - Guest user, setting redirect URL');
 				setSessionRedirectUrl(pathname);
 			} else if (!isGuest && !ignoredPaths.includes(pathname)) {
@@ -87,7 +126,7 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 
 		console.log('AuthGuardRedirect - Calling handleRedirection');
 		handleRedirection();
-	}, [auth, userRole, isGuest, pathname, handleRedirection]);
+	}, [auth, userRole, isGuest, pathname, handleRedirection, status]);
 
 	// Return children if access is granted, otherwise null
 	return accessGranted ? children : <FuseLoading />;
