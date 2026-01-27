@@ -290,6 +290,10 @@ function AuthJsCredentialsSignUpForm() {
                     type: 'manual',
                     message: signInResult.error,
                 });
+                // Redirect to sign-in page with a message
+                setTimeout(() => {
+                    window.location.href = '/sign-in?message=Registration successful. Please sign in.';
+                }, 1000);
                 return false;
             }
 
@@ -299,15 +303,20 @@ function AuthJsCredentialsSignUpForm() {
                     type: 'manual',
                     message: 'Sign in failed after registration. Please try logging in manually.',
                 });
+                // Redirect to sign-in page with a message
+                setTimeout(() => {
+                    window.location.href = '/sign-in?message=Registration successful. Please sign in.';
+                }, 1000);
                 return false;
             }
 
             console.log('SignIn successful, redirecting to dashboards...');
             
-            // Add a small delay to ensure session is properly set before redirect
+            // Use window.location.href for more reliable redirect and longer delay
+            // to ensure session is fully established
             setTimeout(() => {
-                router.push('/dashboards');
-            }, 500);
+                window.location.href = '/dashboards';
+            }, 1000);
             return true;
         } catch (error) {
             setError('root', {

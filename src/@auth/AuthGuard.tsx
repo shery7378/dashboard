@@ -74,7 +74,7 @@ export default function AuthGuard({
 
     const isOnlyGuestAllowed = Array.isArray(auth) && auth.length === 0;
     const userHasPermission = !auth || FuseUtils.hasPermission(auth, userRole);
-    const ignoredPaths = ['/', '/callback', '/sign-in', '/sign-out', '/logout', '/404'];
+    const ignoredPaths = ['/', '/callback', '/sign-in', '/sign-up', '/sign-out', '/logout', '/404'];
 
     if (userHasPermission || (isOnlyGuestAllowed && isGuest)) {
       setAccessGranted(true);
