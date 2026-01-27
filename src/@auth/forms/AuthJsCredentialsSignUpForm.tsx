@@ -156,6 +156,9 @@ function AuthJsCredentialsSignUpForm() {
                 credentials: 'include',
             });
 
+            // Trim and normalize the code before sending
+            const normalizedCode = emailVerificationCode.trim().replace(/\s+/g, '');
+            
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/verify-code`, {
                 method: 'POST',
                 headers: {
@@ -163,8 +166,8 @@ function AuthJsCredentialsSignUpForm() {
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    email,
-                    code: emailVerificationCode,
+                    email: email?.trim().toLowerCase(),
+                    code: normalizedCode,
                 }),
             });
 
