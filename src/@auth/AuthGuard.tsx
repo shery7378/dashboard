@@ -76,6 +76,12 @@ export default function AuthGuard({
     const userHasPermission = !auth || FuseUtils.hasPermission(auth, userRole);
     const ignoredPaths = ['/', '/callback', '/sign-in', '/sign-up', '/sign-out', '/logout', '/404'];
 
+    // If pathname is in ignoredPaths, always grant access (public pages)
+    if (ignoredPaths.includes(pathname)) {
+      setAccessGranted(true);
+      return;
+    }
+
     if (userHasPermission || (isOnlyGuestAllowed && isGuest)) {
       setAccessGranted(true);
       return;
