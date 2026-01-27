@@ -112,10 +112,68 @@ export default function Step4({
 			const formattedAddress = place?.formatted_address || '';
 			const geometry = place?.geometry;
 
+			console.log('[Step4] Place data:', { components, formattedAddress });
+
 			let city = '';
 			let postalCode = '';
 			let street = '';
 			let route = '';
+
+			// Helper function to extract postal code from components
+			const extractPostalCode = (comps: any[]): string => {
+				let code = '';
+				let prefix = '';
+				for (const c of comps) {
+					const types: string[] = c.types || [];
+					if (types.includes('postal_code')) {
+						// Try long_name first, fallback to short_name
+						return c.long_name || c.short_name || '';
+					}
+					// Some countries use postal_code_prefix (e.g., Brazil)
+					if (types.includes('postal_code_prefix')) {
+						prefix = c.long_name || c.short_name || '';
+					}
+					// Some countries use postal_code_suffix
+					if (types.includes('postal_code_suffix') && prefix) {
+						const suffix = c.long_name || c.short_name || '';
+						return `${prefix}-${suffix}`;
+					}
+				}
+				// Return prefix if no full postal code found
+				return prefix;
+			};
+
+			// Extract postal code from components
+			postalCode = extractPostalCode(components);
+
+			// If postal code not found in components, try to extract from formatted_address
+			if (!postalCode && formattedAddress) {
+				// Common postal code patterns:
+				// UK: SW1A 1AA, M1 1AA, etc.
+				// US: 12345 or 12345-6789
+				// Canada: A1A 1A1
+				// Generic: Look for patterns like "12345" or "SW1A 1AA" at end of address parts
+				const postalCodePatterns = [
+					/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2})\b/i, // UK format
+					/\b(\d{5}(-\d{4})?)\b/, // US format
+					/\b([A-Z]\d[A-Z]\s?\d[A-Z]\d)\b/i, // Canadian format
+					/\b(\d{4,6})\b/, // Generic numeric (4-6 digits)
+					/\b([A-Z]{1,2}\d{1,4})\b/i, // Generic alphanumeric
+				];
+
+				const addressParts = formattedAddress.split(',').reverse(); // Check from end
+				for (const part of addressParts) {
+					for (const pattern of postalCodePatterns) {
+						const match = part.trim().match(pattern);
+						if (match && match[1]) {
+							postalCode = match[1].trim();
+							console.log('[Step4] Extracted postal code from formatted_address:', postalCode);
+							break;
+						}
+					}
+					if (postalCode) break;
+				}
+			}
 
 			for (const c of components) {
 				const types: string[] = c.types || [];
@@ -124,7 +182,6 @@ export default function Step4({
 				if (types.includes('locality')) city = c.long_name;
 				if (types.includes('postal_town') && !city) city = c.long_name;
 				if (types.includes('administrative_area_level_2') && !city) city = c.long_name;
-				if (types.includes('postal_code')) postalCode = c.long_name;
 			}
 
 			const addressLine = street || route ? `${street}${street && route ? ' ' : ''}${route}`.trim() : (formattedAddress.split(',')[0]?.trim() || '');
@@ -141,7 +198,11 @@ export default function Step4({
 			console.log('[Step4] Setting form fields:', { addressLine, city, postalCode, latitude, longitude });
 			setValue('address', addressLine, { shouldValidate: true, shouldDirty: true });
 			if (city) setValue('city', city, { shouldValidate: true, shouldDirty: true });
-			if (postalCode) setValue('zipCode', postalCode, { shouldValidate: true, shouldDirty: true });
+			if (postalCode) {
+				setValue('zipCode', postalCode, { shouldValidate: true, shouldDirty: true });
+			} else {
+				console.warn('[Step4] Postal code not found in address components or formatted address');
+			}
 			if (latitude !== null && longitude !== null) {
 				setValue('latitude', latitude, { shouldValidate: false, shouldDirty: true });
 				setValue('longitude', longitude, { shouldValidate: false, shouldDirty: true });
@@ -169,10 +230,68 @@ export default function Step4({
 					const formattedAddress = place?.formatted_address || '';
 					const geometry = place?.geometry;
 
+					console.log('[Step4] Place data (retry):', { components, formattedAddress });
+
 					let city = '';
 					let postalCode = '';
 					let street = '';
 					let route = '';
+
+					// Helper function to extract postal code from components
+					const extractPostalCode = (comps: any[]): string => {
+						let code = '';
+						let prefix = '';
+						for (const c of comps) {
+							const types: string[] = c.types || [];
+							if (types.includes('postal_code')) {
+								// Try long_name first, fallback to short_name
+								return c.long_name || c.short_name || '';
+							}
+							// Some countries use postal_code_prefix (e.g., Brazil)
+							if (types.includes('postal_code_prefix')) {
+								prefix = c.long_name || c.short_name || '';
+							}
+							// Some countries use postal_code_suffix
+							if (types.includes('postal_code_suffix') && prefix) {
+								const suffix = c.long_name || c.short_name || '';
+								return `${prefix}-${suffix}`;
+							}
+						}
+						// Return prefix if no full postal code found
+						return prefix;
+					};
+
+					// Extract postal code from components
+					postalCode = extractPostalCode(components);
+
+					// If postal code not found in components, try to extract from formatted_address
+					if (!postalCode && formattedAddress) {
+						// Common postal code patterns:
+						// UK: SW1A 1AA, M1 1AA, etc.
+						// US: 12345 or 12345-6789
+						// Canada: A1A 1A1
+						// Generic: Look for patterns like "12345" or "SW1A 1AA" at end of address parts
+						const postalCodePatterns = [
+							/\b([A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2})\b/i, // UK format
+							/\b(\d{5}(-\d{4})?)\b/, // US format
+							/\b([A-Z]\d[A-Z]\s?\d[A-Z]\d)\b/i, // Canadian format
+							/\b(\d{4,6})\b/, // Generic numeric (4-6 digits)
+							/\b([A-Z]{1,2}\d{1,4})\b/i, // Generic alphanumeric
+						];
+
+						const addressParts = formattedAddress.split(',').reverse(); // Check from end
+						for (const part of addressParts) {
+							for (const pattern of postalCodePatterns) {
+								const match = part.trim().match(pattern);
+								if (match && match[1]) {
+									postalCode = match[1].trim();
+									console.log('[Step4] Extracted postal code from formatted_address (retry):', postalCode);
+									break;
+								}
+							}
+							if (postalCode) break;
+						}
+					}
 
 					for (const c of components) {
 						const types: string[] = c.types || [];
@@ -181,7 +300,6 @@ export default function Step4({
 						if (types.includes('locality')) city = c.long_name;
 						if (types.includes('postal_town') && !city) city = c.long_name;
 						if (types.includes('administrative_area_level_2') && !city) city = c.long_name;
-						if (types.includes('postal_code')) postalCode = c.long_name;
 					}
 
 					const addressLine = street || route ? `${street}${street && route ? ' ' : ''}${route}`.trim() : (formattedAddress.split(',')[0]?.trim() || '');
@@ -198,7 +316,11 @@ export default function Step4({
 					console.log('[Step4] Setting form fields (retry):', { addressLine, city, postalCode, latitude, longitude });
 					setValue('address', addressLine, { shouldValidate: true, shouldDirty: true });
 					if (city) setValue('city', city, { shouldValidate: true, shouldDirty: true });
-					if (postalCode) setValue('zipCode', postalCode, { shouldValidate: true, shouldDirty: true });
+					if (postalCode) {
+						setValue('zipCode', postalCode, { shouldValidate: true, shouldDirty: true });
+					} else {
+						console.warn('[Step4] Postal code not found in address components or formatted address (retry)');
+					}
 					if (latitude !== null && longitude !== null) {
 						setValue('latitude', latitude, { shouldValidate: false, shouldDirty: true });
 						setValue('longitude', longitude, { shouldValidate: false, shouldDirty: true });
