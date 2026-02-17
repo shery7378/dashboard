@@ -13,6 +13,7 @@ import Button from '@mui/material/Button';
 import { signIn, getSession } from 'next-auth/react';
 import { Alert } from '@mui/material';
 import signinErrors from './signinErrors';
+import AuthJsProviderSelect from './AuthJsProviderSelect';
 // import { useSnackbar } from 'notistack';
 
 /**
@@ -92,7 +93,7 @@ async function onSubmit(formData: FormType) {
 		<form
 			name="loginForm"
 			noValidate
-			className="mt-4 flex w-full flex-col justify-center"
+			className="mt-4 flex w-full flex-col justify-center gap-6"
 			onSubmit={handleSubmit(onSubmit)}
 		>
 			{errors?.root?.message && (
@@ -113,7 +114,13 @@ async function onSubmit(formData: FormType) {
 				render={({ field }) => (
 					<TextField
 						{...field}
-						className="mb-6"
+						className="mb-8"
+						sx={{
+							'& .MuiInputBase-input:-webkit-autofill': {
+								WebkitBoxShadow: '0 0 0 1000px white inset',
+								WebkitTextFillColor: 'black',
+							},
+						}}
 						label="Email"
 						autoFocus
 						type="email"
@@ -131,7 +138,13 @@ async function onSubmit(formData: FormType) {
 				render={({ field }) => (
 					<TextField
 						{...field}
-						className="mb-1"
+						className="mb-6"
+						sx={{
+							'& .MuiInputBase-input:-webkit-autofill': {
+								WebkitBoxShadow: '0 0 0 1000px white inset',
+								WebkitTextFillColor: 'black',
+							},
+						}}
 						label="Password"
 						type="password"
 						error={!!errors.password}
@@ -179,6 +192,7 @@ async function onSubmit(formData: FormType) {
 			>
 				Sign in
 			</Button>
+			<AuthJsProviderSelect />
 		</form>
 	);
 }

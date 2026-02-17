@@ -13,6 +13,7 @@ import Step2 from './signUpSteps/Step2';
 import Step3 from './signUpSteps/Step3';
 import Step4 from './signUpSteps/Step4';
 import Step5 from './signUpSteps/Step5';
+import AuthJsProviderSelect from './AuthJsProviderSelect';
 
 /**
  * Form Validation Schema
@@ -414,7 +415,7 @@ function AuthJsCredentialsSignUpForm() {
             className="mt-4 flex w-full flex-col justify-center"
             onSubmit={handleSubmit(onSubmit)}
         >
-            {errors?.root?.message && (
+            {errors?.root?.message && step !== 2 && (
                 <Alert
                     className="mb-4"
                     severity={errors?.root?.message.includes('sent') ? 'success' : 'error'}
@@ -441,6 +442,7 @@ function AuthJsCredentialsSignUpForm() {
                     handleSendCode={handleSendCode}
                 />
             )}
+            {step === 1 && <AuthJsProviderSelect />}
 
             {step === 2 && (
                 <Step2

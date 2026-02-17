@@ -1,51 +1,58 @@
-import Typography from '@mui/material/Typography';
-import Link from '@fuse/core/Link';
-import Paper from '@mui/material/Paper';
-import CardContent from '@mui/material/CardContent';
-import AuthJsForm from '@auth/forms/AuthJsForm';
+"use client";
 
-/**
- * The sign in page.
- */
-function SignInPage() {
-	return (
-		<div className="flex min-h-screen w-full items-center justify-center bg-[#F7F7F8]">
-			<Paper className="w-full max-w-[420px] rounded-[20px] p-7.5 shadow-sm border border-gray-200 bg-white">
-				<CardContent className="w-full flex flex-col items-center p-0">
-					{/* Logo */}
-					{/* <img
-						src="/assets/images/logo/logo.svg"
-						alt="MultiKonnect Logo"
-						className="w-16 mb-4"
-					/> */}
-					{/* Header */}
-					<Typography color="primary" className="text-4xl font-extrabold leading-[1.25] tracking-tight text-center">
-						MultiKonnect
-					</Typography>
-					{/* Heading */}
-					<Typography className="text-3xl font-bold tracking-tight text-center">
-						Sign in
-					</Typography>
+import AuthJsForm from "@auth/forms/AuthJsForm";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
 
-					{/* Subtitle */}
-					<Typography color="textSecondary" className="mt-2 text-sm text-center">
-						Welcome back 👋
-					</Typography>
+export default function SignInPage() {
+  return (
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      
+      {/* Header */}
+      <Header />
 
-					{/* Form */}
-					<div className="w-full">
-						<AuthJsForm formType="signin" />
-					</div>
+      {/* Main Content */}
+      <main className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+          
+          {/* Logo */}
+          <div className="mb-6 text-center">
+            <h1 className="text-3xl font-bold text-red-600">
+              MultiKonnect
+            </h1>
+          </div>
 
-					{/* Footer link */}
-					<div className="mt-6 flex items-center justify-center gap-1 font-medium">
-						<Typography className="text-gray-600" variant="body2">Don't have an account?</Typography>
-						<Link className="font-semibold" to="/sign-up">Sign up</Link>
-					</div>
-				</CardContent>
-			</Paper>
-		</div>
-	);
+          {/* Heading */}
+          <h2 className="mb-2 text-center text-2xl font-bold">
+            Welcome back 👋
+          </h2>
+
+          {/* Subtitle */}
+          <p className="mb-6 text-center text-sm text-gray-500">
+            Sign in to your account to continue
+          </p>
+
+          {/* Form */}
+          <AuthJsForm formType="signin" />
+
+          {/* Footer Link */}
+          <div className="mt-6 text-center text-sm">
+            <span className="text-gray-600">
+              Don’t have an account?
+            </span>
+            <a
+              href="/sign-up"
+              className="ml-1 font-semibold text-red-600 hover:text-red-700"
+            >
+              Sign up
+            </a>
+          </div>
+
+        </div>
+      </main>
+
+      {/* Footer */}
+      <Footer />
+    </div>
+  );
 }
-
-export default SignInPage;

@@ -5,6 +5,8 @@ import { useEffect } from 'react';
 export default function ServiceWorkerRegistration() {
   useEffect(() => {
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      console.log('[Service Worker] Browser supports service workers');
+      
       // Register service worker
       navigator.serviceWorker
         .register('/service-worker.js', {
@@ -12,6 +14,7 @@ export default function ServiceWorkerRegistration() {
         })
         .then((registration) => {
           console.log('[Service Worker] Registration successful:', registration.scope);
+          console.log('[Service Worker] Registration object:', registration);
 
           // Check for updates every hour
           setInterval(() => {
@@ -48,6 +51,8 @@ export default function ServiceWorkerRegistration() {
           window.location.reload();
         }
       });
+    } else {
+      console.log('[Service Worker] Service workers not supported');
     }
   }, []);
 

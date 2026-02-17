@@ -55,11 +55,11 @@ const navigationConfig: FuseNavItemType[] = [
 			},
 			divider(),
 			{
-				id: 'admin.vendors',
+				id: 'admin.sellers',
 				title: 'Sellers',
 				type: 'item',
 				icon: 'feather:user-check',
-				url: '/vendors',
+				url: '/sellers',
 				end: true,
 			},
 			divider(),
@@ -282,15 +282,15 @@ const navigationConfig: FuseNavItemType[] = [
 		],
 	},
 
-	// Vendor menu (vendors can buy from suppliers - wholesale catalog access)
+	// Seller menu (sellers can buy from suppliers - wholesale catalog access)
 	{
-		id: 'vendor',
+		id: 'seller',
 		type: 'group',
 		icon: 'heroicons-outline:shopping-bag',
-		auth: [...authRoles.vendor, ...authRoles.supplier], // Allow vendor and supplier roles only
+		auth: [...authRoles.vendor, ...authRoles.supplier], // Allow seller and supplier roles only
 		children: [
 			{
-				id: 'vendor.dashboards',
+				id: 'seller.dashboards',
 				title: 'Dashboard',
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-document-check',
@@ -306,7 +306,7 @@ const navigationConfig: FuseNavItemType[] = [
 				auth: authRoles.supplier,
 			},
 			{
-				id: 'vendor.analytics',
+				id: 'seller.analytics',
 				title: 'Analytics',
 				type: 'item',
 				icon: 'heroicons-outline:chart-bar',
@@ -323,7 +323,7 @@ const navigationConfig: FuseNavItemType[] = [
 			},
 			divider(),
 			{
-				id: 'vendor.orders',
+				id: 'seller.orders',
 				title: 'Orders',
 				type: 'item',
 				icon: 'feather:package',
@@ -332,20 +332,20 @@ const navigationConfig: FuseNavItemType[] = [
 			},
 			divider(),
 			{
-				id: 'vendor.products',
+				id: 'seller.products',
 				title: 'Products',
 				type: 'collapse',
 				icon: 'heroicons-outline:shopping-cart',
 				children: [
 					{
-						id: 'vendor.products.all',
+						id: 'seller.products.all',
 						title: 'Products',
 						type: 'item',
 						url: '/apps/e-commerce/products',
 						end: true,
 					},
 					{
-						id: 'vendor.products.wholesale',
+						id: 'seller.products.wholesale',
 						title: 'Wholesale Catalog',
 						type: 'item',
 						url: '/apps/e-commerce/wholesale-catalog',
@@ -356,31 +356,31 @@ const navigationConfig: FuseNavItemType[] = [
 			},
 			divider(),
 			{
-				id: 'vendor.live-selling',
+				id: 'seller.live-selling',
 				title: 'Live Selling',
 				type: 'item',
 				url: '/apps/e-commerce/live-selling',
 				icon: 'heroicons-outline:video-camera',
-				auth: [...authRoles.vendor], // Vendor only
+				auth: [...authRoles.vendor], // Seller only
 				end: true,
 			},
 			divider(),
 			{
-				id: 'vendor.payouts',
+				id: 'seller.payouts',
 				title: 'Payouts',
 				type: 'item',
 				url: '/apps/e-commerce/payouts',
 				icon: 'heroicons-outline:currency-dollar',
-				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both vendor and supplier roles
+				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
 				end: true,
 			},
 			// {
-			// 	id: 'vendor.order-settings',
+			// 	id: 'seller.order-settings',
 			// 	title: 'Order Options',
 			// 	type: 'item',
 			// 	url: '/apps/e-commerce/order-settings',
 			// 	icon: 'heroicons-outline:cog-6-tooth',
-			// 	auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both vendor and supplier roles
+			// 	auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
 			// 	end: true,
 			// },
 			divider(),
@@ -404,22 +404,22 @@ const navigationConfig: FuseNavItemType[] = [
 			},
 			divider(),
 			{
-				id: 'vendor.messages',
+				id: 'seller.messages',
 				title: 'Messages',
 				type: 'item',
 				icon: 'heroicons-outline:chat-bubble-left-right',
 				url: '/apps/messages',
-				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both vendor and supplier roles
+				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
 				end: true,
 			},
 			divider(),
 			{
-				id: 'vendor.kyc',
+				id: 'seller.kyc',
 				title: 'KYC Verification',
 				type: 'item',
 				icon: 'heroicons-outline:identification',
 				url: '/pages/kyc',
-				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both vendor and supplier roles
+				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
 			},
 			divider(),
 

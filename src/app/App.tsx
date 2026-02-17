@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { SnackbarProvider } from 'notistack';
 import { useMemo } from 'react';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';

@@ -148,9 +148,9 @@
     "typescript-plugin-css-modules": "5.1.0"
   },
   "scripts": {
-    "dev": "next dev --hostname vendor.multikonnect.test --port 3001 --turbopack",
+    "dev": "next dev --hostname localhost --port 3001 --turbopack",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build --webpack",
-    "start": "next start --hostname vendor.multikonnect.test --port 3001",
+    "start": "next start --hostname localhost --port 3001",
     "lint": "eslint ./src --config ./eslint.config.mjs",
     "lint:fix": "eslint --fix ./src --config ./eslint.config.mjs",
     "build-docs": "npx tsx  \"./src/app/(public)/documentation/material-ui-components/utils/build.ts\"",

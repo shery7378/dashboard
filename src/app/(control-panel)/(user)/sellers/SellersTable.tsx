@@ -19,7 +19,7 @@ import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
 import { useSnackbar } from 'notistack';
 import Link from '@fuse/core/Link';
 
-function vendorsTable() {
+function SellersTable() {
     const isMountedRef = useIsMounted();
     const { enqueueSnackbar } = useSnackbar();
 
@@ -43,7 +43,7 @@ function vendorsTable() {
     });
 
 
-    // Fetch vendors with pagination
+    // Fetch sellers with pagination
     const { data: profilesRes, isLoading, error } = useGetProfilesByRoleQuery({
         role: 'vendor',
         page: pagination.pageIndex + 1, // Convert to 1-based indexing for API
@@ -143,10 +143,10 @@ function vendorsTable() {
     useEffect(() => {
         if (!isMountedRef.current) return;
         if (profilesRes) {
-            console.log('Fetched Vendor Profiles:', profilesRes);
+            console.log('Fetched Seller Profiles:', profilesRes);
         }
         if (error) {
-            console.error('Failed to load Vendor Profiles:', error);
+            console.error('Failed to load Seller Profiles:', error);
         }
     }, [profilesRes, error, isMountedRef]);
 
@@ -162,8 +162,8 @@ function vendorsTable() {
             if (succeeded > 0) {
                 const message =
                     succeeded === 1
-                        ? 'Vendor deleted successfully'
-                        : `${succeeded} vendors deleted successfully`;
+                        ? 'Seller deleted successfully'
+                        : `${succeeded} sellers deleted successfully`;
                 enqueueSnackbar(message, { variant: 'success' });
                 setSuccessMessage(message);
                 setSuccessDialogOpen(true);
@@ -203,7 +203,7 @@ function vendorsTable() {
     };
 
     if (isLoading) return <FuseLoading />;
-    if (error) return <Typography color="error">Failed to load Vendors</Typography>;
+    if (error) return <Typography color="error">Failed to load Sellers</Typography>;
 
     return (
         <Paper
@@ -294,4 +294,4 @@ function vendorsTable() {
     );
 }
 
-export default vendorsTable;
+export default SellersTable;
