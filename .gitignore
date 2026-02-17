@@ -14,8 +14,6 @@ out/
 # ======================
 # Environment variables
 # ======================
-.env
-.env.local
 .env.*.local
 
 # ======================
@@ -59,3 +57,4 @@ amplify-build-config.json
 # Secrets
 # ======================
 .secret-*
+config.bat

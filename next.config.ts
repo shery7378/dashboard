@@ -68,7 +68,7 @@ const nextConfig: NextConfig = {
 
 	// Rewrites for API proxy to avoid CORS issues
 	async rewrites() {
-		const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://vendor.multikonnect.test';
+		const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 		return [
 			{
 				source: '/api/admin/maps-radius-settings',

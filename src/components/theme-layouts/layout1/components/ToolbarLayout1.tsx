@@ -22,6 +22,7 @@ import { Layout1ConfigDefaultsType } from '@/components/theme-layouts/layout1/La
 import useThemeMediaQuery from '../../../../@fuse/hooks/useThemeMediaQuery';
 import AddStoreButton from '../../components/AddStoreButton';
 import useUser from '@auth/useUser';
+import UserMenu from '../../components/UserMenu';
 
 type ToolbarLayout1Props = {
 	className?: string;
@@ -99,6 +100,22 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
 						<div style={{ position: 'relative', zIndex: 1000, pointerEvents: 'auto' }}>
 							<NotificationPanelToggleButton />
 						</div>
+						{!isMobile && (
+							<UserMenu
+								className="border border-solid"
+								arrowIcon="heroicons-outline:chevron-down"
+								popoverProps={{
+									anchorOrigin: {
+										vertical: 'bottom',
+										horizontal: 'center'
+									},
+									transformOrigin: {
+										vertical: 'top',
+										horizontal: 'center'
+									}
+								}}
+							/>
+						)}
 					</div>
 
 					{config.navbar.display && config.navbar.position === 'right' && (

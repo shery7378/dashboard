@@ -87,32 +87,38 @@ function useUser(): useUser {
 			// Get the accessAuthToken from the session
 			const accessAuthToken = data?.accessAuthToken;
 
-			if (!accessAuthToken) {
-				throw new Error('No access token available for logout');
+			// Try to call the Laravel logout endpoint (best-effort)
+			if (accessAuthToken) {
+				try {
+					const response = await authUserSignOut(accessAuthToken);
+					if (response.ok) {
+						console.log('Backend logout successful');
+					} else {
+						console.warn('Backend logout returned non-OK status, continuing with local cleanup');
+					}
+				} catch (backendErr) {
+					console.warn('Backend logout failed, continuing with local cleanup:', backendErr);
+					// Don't block sign-out if backend call fails
+				}
+			} else {
+				console.warn('No access token available, skipping backend logout');
 			}
 
-			// Call the Laravel logout endpoint
-			const response = await authUserSignOut(accessAuthToken);
-
-			if (!response.ok) {
-				throw new Error('Failed to log out from backend');
-			}
-
-			console.log('Logout successful');
-
-			// Clear auth_token from localStorage (if used)
-			// localStorage.removeItem('auth_token');
+			// Always clear local auth tokens
+			localStorage.removeItem('auth_token');
+			localStorage.removeItem('token');
 
 			// Call NextAuth signOut to terminate the session
-			// return signOut();
-			await signOut({ redirect: false }); // Prevent default redirect to handle it manually
+			await signOut({ redirect: false });
 
 			// Redirect to sign-in page
 			window.location.href = '/sign-in';
 		} catch (err) {
 			console.error('Logout failed:', err);
-			// Optionally handle the error (e.g., show a message to the user)
-			throw err; // Re-throw to allow the caller to handle the error if needed
+			// Even if something unexpected fails, still try to redirect
+			localStorage.removeItem('auth_token');
+			localStorage.removeItem('token');
+			window.location.href = '/sign-in';
 		}
 	}
 
