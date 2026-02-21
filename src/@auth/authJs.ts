@@ -10,6 +10,7 @@ import type { Provider } from 'next-auth/providers';
 import Credentials from 'next-auth/providers/credentials';
 import Facebook from 'next-auth/providers/facebook';
 import Google from 'next-auth/providers/google';
+import Apple from 'next-auth/providers/apple';
 import { authGetDbUserByEmail, authCreateDbUser } from './authApi';
 import { FetchApiError } from '@/utils/apiFetch';
 
@@ -79,6 +80,7 @@ export const providers: Provider[] = [
     }
   }),
   Google,
+  Apple,
   Facebook
 ];
 

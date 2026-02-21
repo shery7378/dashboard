@@ -135,7 +135,7 @@ export default function Footer() {
           <div className="w-full sm:w-auto flex-shrink-0 sm:max-w-xs">
             <div className="mb-8 pt-8">
               <img 
-                src={getStorageUrl('/storage/images/logo/MultiKonnect.png')}
+                src={getStorageUrl('/assets/images/MultiKonnect.svg')}
                 alt="MultiKonnect" 
                 className="h-6 w-auto object-contain"
               />

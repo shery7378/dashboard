@@ -1,9 +1,8 @@
 import { Controller, Control, FieldErrors } from 'react-hook-form';
-import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import Typography from '@mui/material/Typography';
 import { useRef, useState } from 'react';
 import { FormType } from '../AuthJsCredentialsSignUpForm';
+import { AuthTitle, AuthInput, AuthButton } from '@/components/auth';
 
 interface Step5Props {
     control: Control<FormType>;
@@ -70,45 +69,39 @@ export default function Step5({
             </div>
 
             {/* Title */}
-            <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Setup Your Store Password!</h2>
-            </div>
+            <AuthTitle
+                heading="Setup Your Store Password!"
+                align="center"
+            />
 
             {/* Form Fields */}
             <div className="space-y-4 mb-8">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Password</label>
-                    <Controller
-                        name="password"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                type="password"
-                                placeholder="Your name" 
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                    {errors.password && <p className="mt-1 text-xs text-red-500 ml-1">{errors.password.message}</p>}
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Confirm Password</label>
-                    <Controller
-                        name="passwordConfirm"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                type="password"
-                                placeholder="Your name"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                    {errors.passwordConfirm && <p className="mt-1 text-xs text-red-500 ml-1">{errors.passwordConfirm.message}</p>}
-                </div>
+                <Controller
+                    name="password"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            label="Password"
+                            type="password"
+                            placeholder="Your password"
+                            error={errors.password?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="passwordConfirm"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            label="Confirm Password"
+                            type="password"
+                            placeholder="Confirm your password"
+                            error={errors.passwordConfirm?.message}
+                        />
+                    )}
+                />
             </div>
 
             {/* Hidden KYC Input */}
@@ -135,37 +128,21 @@ export default function Step5({
 
             {/* Actions */}
             <div className="flex gap-4">
-                <Button
-                    className="flex-1 py-3 text-red-500 font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 normal-case shadow-none border border-transparent hover:border-gray-300 transition-all"
+                <AuthButton
+                    variant="secondary"
+                    className="flex-1 h-12 py-3 font-semibold"
                     onClick={handleFileUpload}
-                    variant="contained"
-                    disableElevation
-                    sx={{
-                        color: '#EF4444',
-                        bgcolor: '#F3F4F6',
-                        '&:hover': { bgcolor: '#E5E7EB' },
-                        textTransform: 'none',
-                        fontWeight: 600
-                    }}
+                    type="button"
                 >
                     Upload KYC Verification
-                </Button>
-
-                <Button
-                    className={`flex-1 py-3 font-semibold rounded-lg normal-case shadow-none text-white bg-[#FF4500] hover:bg-[#FF3000]`}
+                </AuthButton>
+                <AuthButton
+                    variant="primary"
+                    className="flex-1 h-12 py-3"
                     type="submit"
-                    variant="contained"
-                    disableElevation
-                     sx={{
-                        bgcolor: '#EF4444', 
-                        '&:hover': { bgcolor: '#DC2626' },
-                        textTransform: 'none',
-                        fontSize: '1rem',
-                        py: 1.5
-                    }}
                 >
                     Continue
-                </Button>
+                </AuthButton>
             </div>
             
             {/* Footer Removed as requested */}

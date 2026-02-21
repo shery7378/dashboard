@@ -10,7 +10,9 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import Footer from "@/components/layout/Footer";
 import { getStorageUrl } from '@/utils/urlHelpers';
-
+import { AuthButton, AuthTitle } from "@/components/auth";
+import StepBar from "@/components/StepBar";
+ 
 export default function VerifyOtpPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -307,7 +309,7 @@ export default function VerifyOtpPage() {
                {/* Logo - Left Side */}
                <Link href="/home">
                  <img 
-                   src={getStorageUrl('/storage/images/logo/MultiKonnect.png')}
+                   src={getStorageUrl('/assets/images/MultiKonnect.svg')}
                    alt="MultiKonnect" 
                    className="h-4 w-auto object-contain cursor-pointer brightness-0 invert"
                  />
@@ -339,57 +341,29 @@ export default function VerifyOtpPage() {
       {/* Main Content Area - Dark Gray Background */}
       <main className="flex-1 flex justify-center items-center py-12 px-4 bg-white">
         {/* White Card */}
-        <div className="bg-white rounded-2xl w-full max-w-[449px] p-8 shadow-lg relative">
+        <div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white !rounded-lg border border-[#D8DADC] relative">
           {/* Back Button - Top Left */}
           <button 
             onClick={() => router.back()}
-            className="absolute top-8 left-8 p-2 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
+            className="absolute top-8 left-8 p-2 z-30 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
           >
             <ArrowBackIcon className="h-5 w-5 text-black" />
           </button>
 
           {/* Brand Name - Centered */}
-          <div className="text-center mb-8">
-            <h1 className="text-[#FF6B35] text-2xl font-bold">
-              MultiKonnect
-            </h1>
+          <div className="text-center mb-8 z-20 flex justify-center items-center">
+            <img src={'/assets/images/MultiKonnect.svg'} alt="MultiKonnect" className="h-8 w-36 object-contain cursor-pointer" />
           </div>
 
-          {/* Progress Indicator */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            {/* Step 1 - Active (Red/Orange) */}
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              1
-            </div>
-            {/* Dashed Line */}
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            {/* Step 2 - Inactive (Red outline with gray dot) */}
-            <div className="h-8 w-8 rounded-full border-2 border-[#FF6B35] bg-white flex items-center justify-center relative">
-              <div className="h-2 w-2 rounded-full bg-gray-400"></div>
-            </div>
-            {/* Dashed Line */}
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            {/* Step 3 - Inactive (Red outline with gray dot) */}
-            <div className="h-8 w-8 rounded-full border-2 border-[#FF6B35] bg-white flex items-center justify-center relative">
-              <div className="h-2 w-2 rounded-full bg-gray-400"></div>
-            </div>
-            {/* Dashed Line */}
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            {/* Step 4 - Inactive (Red outline with gray dot) */}
-            <div className="h-8 w-8 rounded-full border-2 border-[#FF6B35] bg-white flex items-center justify-center relative">
-              <div className="h-2 w-2 rounded-full bg-gray-400"></div>
-            </div>
-          </div>
+          <StepBar currentStep={1} totalSteps={4} />
 
           {/* Heading - Left Aligned */}
-          <h2 className="text-[#2A2A2A] text-2xl font-bold mb-2 text-left">
-            Enter the 4 Digit code Sent to you
-          </h2>
+          <AuthTitle
+           heading="Enter the 4 Digit code Sent to you"
+           subtitle={email || "rajasaifali125@gmail.com"}
+           align="left"
+          />
           
-          {/* Email Display - Left Aligned */}
-          <p className="text-gray-500 text-base mb-6 text-left">
-            {email || "rajasaifali125@gmail.com"}
-          </p>
 
           {/* OTP Inputs */}
           <style>{`
@@ -399,7 +373,7 @@ export default function VerifyOtpPage() {
               border-width: 2px !important;
             }
           `}</style>
-          <div className="flex justify-center gap-4 mb-6">
+          <div className="flex justify-between gap-4 mb-6">
             {otp.map((digit, index) => {
               const isFirstInput = index === 0;
               const hasValue = digit.length > 0;
@@ -412,7 +386,7 @@ export default function VerifyOtpPage() {
                   value={digit}
                   onChange={(e) => handleOtpChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-14 h-14 bg-[#F5F5F5] rounded-lg text-center text-xl font-semibold outline-none transition-all border-2 border-[#F5F5F5] otp-input"
+                  className="w-20 h-16 text-center rounded-md focus:outline-none focus:ring-0 focus:ring-vivid-red border-0 bg-gray-100"
                   maxLength={1}
                   placeholder=""
                 />
@@ -433,32 +407,22 @@ export default function VerifyOtpPage() {
           </p>
           {/* Buttons - Resend left, Verify Code right */}
           <div className="flex gap-4 mb-6">
-            <button 
+            <AuthButton 
               onClick={handleResend}
               disabled={countdown > 0 || isResending}
-              className={`flex-1 py-3 font-medium rounded-lg transition-colors ${
-                countdown > 0 || isResending
-                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              variant="secondary"
+              fullWidth={true}
             >
-              {isResending 
-                ? 'Sending...' 
-                : countdown > 0 
-                  ? `Resend (${countdown}s)` 
-                  : 'Resend'}
-            </button>
-            <button 
+              Resend
+            </AuthButton>
+            <AuthButton 
               onClick={handleVerify}
               disabled={otp.join("").length !== 4 || isSubmitting}
-              className={`flex-1 py-3 font-medium rounded-lg transition-colors ${
-                otp.join("").length === 4 && !isSubmitting
-                  ? "bg-[#FF6B35] text-white hover:bg-[#FF5722]"
-                  : "bg-gray-300 text-gray-500 cursor-not-allowed"
-              }`}
+              variant="primary"
+              fullWidth={true}
             >
-              {isSubmitting ? 'Verifying...' : 'Verify Code'}
-            </button>
+              Verify Code
+            </AuthButton>
           </div>
 
           {/* Footer Link */}

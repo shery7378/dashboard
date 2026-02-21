@@ -3,34 +3,29 @@
 import AuthJsForm from "@auth/forms/AuthJsForm";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { AuthTitle } from "@/components/auth";
 
 export default function SignInPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      
+
       {/* Header */}
       <Header />
 
       {/* Main Content */}
       <main className="flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
-          
+      <div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white !rounded-lg border border-[#D8DADC] relative">
+
           {/* Logo */}
-          <div className="mb-6 text-center">
-            <h1 className="text-3xl font-bold text-red-600">
-              MultiKonnect
-            </h1>
+          <div className="mb-6 text-center flex justify-center items-center">
+            <img src={'/assets/images/MultiKonnect.svg'} alt="MultiKonnect" className="h-8 w-36 object-contain cursor-pointer" />
           </div>
 
-          {/* Heading */}
-          <h2 className="mb-2 text-center text-2xl font-bold">
-            Welcome back 👋
-          </h2>
-
-          {/* Subtitle */}
-          <p className="mb-6 text-center text-sm text-gray-500">
-            Sign in to your account to continue
-          </p>
+          <AuthTitle
+            heading="Welcome back 👋"
+            subtitle="Sign in to your account to continue"
+            align="center"
+           />
 
           {/* Form */}
           <AuthJsForm formType="signin" />

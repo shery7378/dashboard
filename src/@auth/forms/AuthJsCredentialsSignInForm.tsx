@@ -14,6 +14,7 @@ import { signIn, getSession } from 'next-auth/react';
 import { Alert } from '@mui/material';
 import signinErrors from './signinErrors';
 import AuthJsProviderSelect from './AuthJsProviderSelect';
+import { AuthButton, AuthInput } from '@/components/auth';
 // import { useSnackbar } from 'notistack';
 
 /**
@@ -93,7 +94,7 @@ async function onSubmit(formData: FormType) {
 		<form
 			name="loginForm"
 			noValidate
-			className="mt-4 flex w-full flex-col justify-center gap-6"
+			className="mt-4 flex w-full flex-col justify-center gap-3"
 			onSubmit={handleSubmit(onSubmit)}
 		>
 			{errors?.root?.message && (
@@ -110,48 +111,27 @@ async function onSubmit(formData: FormType) {
 			)}
 			<Controller
 				name="email"
+
 				control={control}
 				render={({ field }) => (
-					<TextField
+					<AuthInput
 						{...field}
-						className="mb-8"
-						sx={{
-							'& .MuiInputBase-input:-webkit-autofill': {
-								WebkitBoxShadow: '0 0 0 1000px white inset',
-								WebkitTextFillColor: 'black',
-							},
-						}}
-						label="Email"
-						autoFocus
+ 						label="Email"
 						type="email"
-						error={!!errors.email}
-						helperText={errors?.email?.message}
-						variant="outlined"
-						required
-						fullWidth
+						error={errors?.email?.message}
 					/>
+				
 				)}
 			/>
 			<Controller
 				name="password"
 				control={control}
 				render={({ field }) => (
-					<TextField
-						{...field}
-						className="mb-6"
-						sx={{
-							'& .MuiInputBase-input:-webkit-autofill': {
-								WebkitBoxShadow: '0 0 0 1000px white inset',
-								WebkitTextFillColor: 'black',
-							},
-						}}
+					<AuthInput
+						{...field}						 
 						label="Password"
 						type="password"
-						error={!!errors.password}
-						helperText={errors?.password?.message}
-						variant="outlined"
-						required
-						fullWidth
+						error={errors?.password?.message}
 					/>
 				)}
 			/>
@@ -181,17 +161,14 @@ async function onSubmit(formData: FormType) {
 					Forgot password?
 				</Link>
 			</div>
-			<Button
-				variant="contained"
-				color="secondary"
-				className="mt-4 w-full font-bold"
-				aria-label="Sign in"
+			<AuthButton
+				variant="primary"
+				className="mt-4 w-full"
 				disabled={_.isEmpty(dirtyFields) || !isValid}
 				type="submit"
-				size="large"
 			>
 				Sign in
-			</Button>
+			</AuthButton>
 			<AuthJsProviderSelect />
 		</form>
 	);

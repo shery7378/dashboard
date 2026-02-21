@@ -1,7 +1,7 @@
 import { Controller, Control, FieldErrors } from 'react-hook-form';
-import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { FormType } from '../AuthJsCredentialsSignUpForm';
+import { AuthTitle, AuthInput, AuthButton } from '@/components/auth';
 
 interface Step3Props {
     control: Control<FormType>;
@@ -54,64 +54,51 @@ export default function Step3({
             </div>
 
             {/* Title */}
-            <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Setup Your Store Name Here</h2>
-            </div>
+            <AuthTitle
+                heading="Setup Your Store Name Here"
+                align="center"
+            />
 
             {/* Form Fields */}
             <div className="space-y-4 mb-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Store Name</label>
-                    <Controller
-                        name="storeName"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                type="text"
-                                placeholder="Your name"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                    {errors.storeName && <p className="mt-1 text-xs text-red-500 ml-1">{errors.storeName.message}</p>}
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Name</label>
-                    <Controller
-                        name="ownerName"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                type="text"
-                                placeholder="Your name"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                    {errors.ownerName && <p className="mt-1 text-xs text-red-500 ml-1">{errors.ownerName.message}</p>}
-                </div>
+                <Controller
+                    name="storeName"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            label="Store Name"
+                            type="text"
+                            placeholder="Your store name"
+                            error={errors.storeName?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="ownerName"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            label="Name"
+                            type="text"
+                            placeholder="Your name"
+                            error={errors.ownerName?.message}
+                        />
+                    )}
+                />
             </div>
 
             {/* Continue Button */}
-            <Button
-                className={`w-full py-3 font-semibold rounded-lg normal-case shadow-none text-white bg-[#FF4500] hover:bg-[#FF3000]`}
+            <AuthButton
+                variant="primary"
+                fullWidth
                 onClick={handleNextStep}
                 disabled={!!errors.storeName || !!errors.ownerName}
-                variant="contained"
-                disableElevation
-                sx={{
-                    bgcolor: '#EF4444', 
-                    '&:hover': { bgcolor: '#DC2626' },
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    py: 1.5
-                }}
+                className="h-12 py-3"
             >
                 Continue
-            </Button>
+            </AuthButton>
 
 
         </div>

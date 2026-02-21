@@ -6,7 +6,9 @@ import Link from "next/link";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { signIn, getSession } from "next-auth/react";
 import Footer from "@/components/layout/Footer";
-
+import { AuthButton, AuthInput, AuthTitle } from "@/components/auth";
+import StepBar from "@/components/StepBar";
+ 
 export default function StoreSetupStep4() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -202,7 +204,7 @@ export default function StoreSetupStep4() {
       {/* Main Content Area - Dark Gray Background */}
       <main className="flex-1 flex justify-center items-center py-12 px-4 ">
         {/* White Card */}
-        <div className="bg-white rounded-2xl w-full max-w-[449px] p-8 shadow-lg relative">
+        <div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white !rounded-lg border border-[#D8DADC] relative">
           {/* Back Button - Top Left */}
           <button
             onClick={() => router.back()}
@@ -212,89 +214,63 @@ export default function StoreSetupStep4() {
           </button>
 
           {/* Brand Name - Centered */}
-          <div className="text-center mb-8">
-            <h1 className="text-[#FF6B35] text-2xl font-bold">MultiKonnect</h1>
+          <div className="text-center mb-8 flex justify-center items-center">
+            <img src={'/assets/images/MultiKonnect.svg'} alt="MultiKonnect" className="h-8 w-36 object-contain cursor-pointer" />
           </div>
 
-          {/* Progress Indicator */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            {/* Step 1 - Completed */}
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              1
-            </div>
-            {/* Dashed Line */}
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            {/* Step 2 - Completed */}
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              2
-            </div>
-            {/* Dashed Line */}
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            {/* Step 3 - Completed */}
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              3
-            </div>
-            {/* Dashed Line */}
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            {/* Step 4 - Active (Red/Orange) */}
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              4
-            </div>
-          </div>
+          <StepBar currentStep={4} totalSteps={4} />
 
           {/* Heading - Left Aligned */}
-          <h2 className="text-[#2A2A2A] text-2xl font-bold mb-6 text-left">
-            Setup Your Store Password!
-          </h2>
+          <AuthTitle
+            heading="Setup Your Store Password!"
+            align="center"
+          />
 
           {/* Form Fields */}
           <div className="space-y-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 ml-1 text-left">
-                Password
-              </label>
-              <input
+              <AuthInput
+                label="Password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 ml-1 text-left">
-                Confirm Password
-              </label>
-              <input
+              <AuthInput
+                label="Confirm Password"
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm password"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
               />
             </div>
           </div>
 
           {/* Hidden File Input */}
-          <input
+          <AuthInput
+            label="Upload KYC Verification"
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
-            ref={fileInputRef}
+            ref={fileInputRef as any}
             onChange={handleFileChange}
-            style={{ display: "none" }}
+            value={selectedFileName || "Upload KYC Verification"}
           />
 
           {/* Action Buttons */}
           <div className="flex gap-4 mb-6">
-            <button
+            <input
               onClick={handleFileUpload}
-              className="flex-1 py-3 font-semibold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors truncate px-2"
-              title={selectedFileName || "Upload KYC Verification"}
-            >
-              {selectedFileName || "Upload KYC Verification"}
-            </button>
-            <button
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              ref={fileInputRef as any}
+              onChange={handleFileChange}
+              value={selectedFileName || "Upload KYC Verification"}
+            />
+              
+            <AuthButton
               onClick={handleContinue}
               disabled={
                 !password.trim() ||
@@ -312,7 +288,7 @@ export default function StoreSetupStep4() {
               }`}
             >
               {isSubmitting ? "Creating..." : "Continue"}
-            </button>
+            </AuthButton>
           </div>
 
           {/* Footer Link */}

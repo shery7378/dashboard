@@ -1,9 +1,8 @@
 import { Controller, Control, FieldErrors, UseFormSetValue } from 'react-hook-form';
-import TextField from '@mui/material/TextField';
-import Button from '@mui/material/Button';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { FormType } from '../AuthJsCredentialsSignUpForm';
 import { useEffect, useRef, useState } from 'react';
+import { AuthTitle, AuthInput, AuthButton } from '@/components/auth';
 
 declare global {
 	interface Window {
@@ -378,106 +377,81 @@ export default function Step4({
             </div>
 
             {/* Title */}
-            <div className="text-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">Setup Your Store Name Here</h2>
-            </div>
+            <AuthTitle
+                heading="Setup Your Store Location"
+                align="center"
+            />
 
              {/* Form Fields */}
              <div className="space-y-4 mb-6">
-                {/* Phone */}
-                <div>
-                     <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Phone Number</label>
-                    <Controller
-                        name="phone"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                type="tel"
-                                placeholder="Your name" // Placeholder from image
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                    {errors.phone && <p className="mt-1 text-xs text-red-500 ml-1">{errors.phone.message}</p>}
-                </div>
-
-                {/* City */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">City</label>
-                    <Controller
-                        name="city"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                type="text"
-                                placeholder="Your name"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                    {errors.city && <p className="mt-1 text-xs text-red-500 ml-1">{errors.city.message}</p>}
-                </div>
-
-                {/* Zip Code */}
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Zip Code</label>
-                    <Controller
-                        name="zipCode"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                type="text"
-                                placeholder="Your name"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                    {(errors as any).zipCode && <p className="mt-1 text-xs text-red-500 ml-1">{(errors as any).zipCode.message}</p>}
-                </div>
-
-                 {/* Address */}
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 ml-1">Address</label>
-                    <Controller
-                        name="address"
-                        control={control}
-                        render={({ field }) => (
-                            <input
-                                {...field}
-                                ref={(el) => {
-                                    addressInputRef.current = el;
-                                    field.ref(el);
-                                }}
-                                type="text"
-                                placeholder="Your name"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-                            />
-                        )}
-                    />
-                     {errors.address && <p className="mt-1 text-xs text-red-500 ml-1">{errors.address.message}</p>}
-                </div>
+                <Controller
+                    name="phone"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            label="Phone Number"
+                            type="tel"
+                            placeholder="Your phone number"
+                            error={errors.phone?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="city"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            label="City"
+                            type="text"
+                            placeholder="Your city"
+                            error={errors.city?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="zipCode"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            label="Zip Code"
+                            type="text"
+                            placeholder="Your zip code"
+                            error={(errors as any).zipCode?.message}
+                        />
+                    )}
+                />
+                <Controller
+                    name="address"
+                    control={control}
+                    render={({ field }) => (
+                        <AuthInput
+                            {...field}
+                            ref={(el) => {
+                                addressInputRef.current = el;
+                                field.ref(el);
+                            }}
+                            label="Address"
+                            type="text"
+                            placeholder="Start typing your address"
+                            error={errors.address?.message}
+                        />
+                    )}
+                />
             </div>
 
              {/* Continue Button */}
-             <Button
-                className={`w-full py-3 font-semibold rounded-lg normal-case shadow-none text-white bg-[#FF4500] hover:bg-[#FF3000]`}
+             <AuthButton
+                variant="primary"
+                fullWidth
                 onClick={handleNextStep}
                 disabled={!!errors.phone || !!errors.city || !!(errors as any).zipCode || !!errors.address}
-                variant="contained"
-                disableElevation
-                 sx={{
-                    bgcolor: '#EF4444', 
-                    '&:hover': { bgcolor: '#DC2626' },
-                    textTransform: 'none',
-                    fontSize: '1rem',
-                    py: 1.5
-                }}
+                className="h-12 py-3"
             >
                 Continue
-            </Button>
+            </AuthButton>
 
 
         </div>

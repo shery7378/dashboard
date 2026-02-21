@@ -1,6 +1,11 @@
-import type { Config } from "tailwindcss";
+/** @see https://tailwindcss.com/docs/configuration */
+interface TailwindConfig {
+  content: string[];
+  theme?: { extend?: Record<string, unknown> };
+  plugins?: unknown[];
+}
 
-const config: Config = {
+const config: TailwindConfig = {
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",

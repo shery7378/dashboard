@@ -1,8 +1,10 @@
-import { Box, Button, Typography } from '@mui/material';
 import { signIn } from 'next-auth/react';
 import { authJsProviderMap } from '@auth/authJs';
 
-const providerLogoPath = 'https://authjs.dev/img/providers';
+const providerConfig = [
+	{ id: 'google', name: 'Google', logo: '/assets/images/google.svg' },
+	{ id: 'apple', name: 'Apple', logo: '/assets/images/apple.svg' }
+];
 
 function AuthJsProviderSelect() {
 	function handleSignIn(providerId: string) {
@@ -13,7 +15,11 @@ function AuthJsProviderSelect() {
 		}
 	}
 
-	if (!authJsProviderMap || Object.keys(authJsProviderMap).length === 0) {
+	// Show only Google & Apple (from providerConfig) that are enabled in authJs
+	const enabledIds = new Set(authJsProviderMap?.map((p) => p.id) ?? []);
+	const providersToShow = providerConfig.filter((p) => enabledIds.has(p.id));
+
+	if (providersToShow.length === 0) {
 		return null;
 	}
 
@@ -21,56 +27,30 @@ function AuthJsProviderSelect() {
 		<div className="w-full">
 			{/* Divider */}
 			<div className="flex items-center mb-4">
-				<div className="mt-px flex-auto border-t" />
-				<Typography className="mx-2" color="text.secondary">
-					Or continue with
-				</Typography>
-				<div className="mt-px flex-auto border-t" />
-			</div>
+            <div className="flex-auto border-t border-gray-200" />
+            <span className="mx-2 text-[15.22px] font-normal text-[#6B6B6B]">Or continue with</span>
+            <div className="flex-auto border-t border-gray-200" />
+          </div>
 
 			{/* Social Login Buttons */}
 			<div className="flex flex-col gap-3">
-				{Object.values(authJsProviderMap)
-					.filter((provider) => provider.id !== 'credentials')
-					.map((provider) => (
-						<Button
-							key={provider.id}
-							onClick={() => handleSignIn(provider.id)}
-							fullWidth
-							variant="outlined"
-							size="large"
-							sx={{
-								backgroundColor: '#ffffff',
-								borderColor: '#e5e7eb', // Tailwind's gray-200
-								color: 'text.primary',
-								justifyContent: 'space-between',
-								textTransform: 'none',
-								fontSize: '0.95rem',
-								'&:hover': {
-									backgroundColor: '#f9fafb', // light hover
-									borderColor: '#d1d5db', // slightly darker border on hover
-								},
-							}}
-							endIcon={
-								<Box className="rounded-full flex items-center justify-center w-8 h-8 bg-white">
-									<img
-										className="w-5 h-5"
-										src={`${providerLogoPath}/${provider.id}.svg`}
-										alt={provider.name}
-									/>
-								</Box>
-							}
-						>
-							Sign in with {provider.name}
-						</Button>
-					))}
-				{/* <Button
-					className="text-md"
-					href="https://authjs.dev/getting-started#official-providers"
-					target="_blank"
-				>
-					+ more auth providers
-				</Button> */}
+				{providersToShow.map((provider) => (
+					<button
+						key={provider.id}
+						type="button"
+						onClick={() => handleSignIn(provider.id)}
+						className="flex items-center justify-center gap-3 w-full h-14 rounded-2xl border border-[#DCDEE0] bg-white text-[#DCDEE0] transition-colors px-4 hover:bg-gray-50 hover:border-gray-300"
+					>
+						<img
+							src={provider.logo}
+							alt={provider.name}
+							className="w-6 h-6 shrink-0"
+						/>
+						<span className="text-[#111111] text-base">
+							Continue with {provider.name}
+						</span>
+					</button>
+				))}
 			</div>
 		</div>
 	);

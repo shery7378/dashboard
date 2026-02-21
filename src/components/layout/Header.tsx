@@ -31,7 +31,7 @@ export default function LandingPageHeader() {
         <nav className="container mx-auto flex justify-between items-center h-16 px-4">
           {/* Logo */}
           <Link href="/home">
-            <span className="text-base font-normal text-white">MultiKonnect</span>
+            <img src={'/assets/images/MultiKonnect.svg'} alt="MultiKonnect" className="h-4 w-auto object-contain cursor-pointer brightness-0 invert" />
 
           </Link>
 
