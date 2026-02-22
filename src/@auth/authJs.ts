@@ -104,12 +104,12 @@ const config = {
 				token.id = user.id;
 				token.name = user.name;
 				token.email = user.email;
-				token.role = user.role; // Use role (array) from authorize
-				token.accessToken = user.accessToken;
+				token.role = (user as any).role; // Use role (array) from authorize
+				token.accessToken = (user as any).accessToken;
 
 				// Store accessAuthToken from the authorize function
-				if (user.accessAuthToken) {
-					token.accessAuthToken = user.accessAuthToken;
+				if ((user as any).accessAuthToken) {
+					token.accessAuthToken = (user as any).accessAuthToken;
 				}
 
 				// Store storeId from the authorize function
@@ -125,7 +125,7 @@ const config = {
 				}
 			}
 
-			if (trigger === 'update') {
+			if (trigger === 'update' && user) {
 				token.name = user.name;
 			}
 
@@ -133,14 +133,13 @@ const config = {
 				return { ...token, accessToken: account.access_token };
 			}
 
-			// Add accessAuthToken to the token if available from the user object (Credentials provider)
-			if (user?.accessAuthToken) {
-				token.accessAuthToken = user.accessAuthToken;
-			}
-
 			return token;
 		},
 		async session({ session, token }) {
+			if (!token) {
+				return session;
+			}
+
 			if (token.accessToken && typeof token.accessToken === 'string') {
 				session.accessToken = token.accessToken;
 			}
@@ -150,30 +149,22 @@ const config = {
 				session.accessAuthToken = token.accessAuthToken;
 			}
 
-			if (token && session.user) {
-				session.user.id = token.id as string;
+			if (session.user) {
+				session.user.id = (token.id as string) || (token.sub as string);
 				session.user.name = token.name as string;
 				session.user.email = token.email as string;
 				session.user.role = Array.isArray(token.role) ? token.role : [token.role || 'guest']; // Ensure role is an array
 				session.accessToken = token.accessToken as string;
 			}
 
-			if (session && session.user) {
+			if (session.user) {
 				// Always return a valid session - don't let API failures break authentication
 				// Store fetching will be handled on the client side for better reliability
 				const storeId = token.storeId ? String(token.storeId) : undefined;
 				const profileId = token.profileId ? String(token.profileId) : undefined;
 
-				if (storeId) {
-					console.log('Session callback: store_id from token:', storeId);
-				}
-
-				if (profileId) {
-					console.log('Session callback: profile_id from token:', profileId);
-				}
-
 				const defaultDbUser: User = {
-					id: session.user.id || token.id?.toString() || '',
+					id: session.user.id || (token.id as string) || '',
 					email: session.user.email || token.email || '',
 					displayName: session.user.name || token.name || '',
 					role: session.user.role || (Array.isArray(token.role) ? token.role : [token.role || 'guest']),
@@ -185,10 +176,9 @@ const config = {
 				} as User;
 
 				session.db = defaultDbUser;
-				return session;
 			}
 
-			return null;
+			return session;
 		}
 	},
 	experimental: {
