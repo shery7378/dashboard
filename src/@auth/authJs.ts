@@ -13,7 +13,7 @@ import Google from 'next-auth/providers/google';
 import Apple from 'next-auth/providers/apple';
 
 const storage = createStorage({
-	driver: process.env.VERCEL
+	driver: (process.env.VERCEL && process.env.AUTH_KV_REST_API_URL)
 		? vercelKVDriver({
 				url: process.env.AUTH_KV_REST_API_URL,
 				token: process.env.AUTH_KV_REST_API_TOKEN,
@@ -78,10 +78,9 @@ export const providers: Provider[] = [
 				return null;
 			}
 		}
-	}),
-	Google,
-	Apple,
-	Facebook
+	})
+	// Only add OAuth providers if you have their IDs in .env
+	// Google({ clientId: process.env.GOOGLE_CLIENT_ID, clientSecret: process.env.GOOGLE_CLIENT_SECRET }),
 ];
 
 const config = {
@@ -202,17 +201,23 @@ export type AuthJsProvider = {
 
 export const authJsProviderMap: AuthJsProvider[] = providers
 	.map((provider) => {
-		const providerData = typeof provider === 'function' ? provider() : provider;
+		try {
+			const providerData = typeof provider === 'function' ? provider() : provider;
+			if (!providerData || !providerData.id) return null;
 
-		return {
-			id: providerData.id,
-			name: providerData.name,
-			style: {
-				text: (providerData as { style?: { text: string } }).style?.text,
-				bg: (providerData as { style?: { bg: string } }).style?.bg
-			}
-		};
+			return {
+				id: providerData.id,
+				name: providerData.name,
+				style: {
+					text: (providerData as any).style?.text,
+					bg: (providerData as any).style?.bg
+				}
+			};
+		} catch (e) {
+			console.error('Error mapping provider:', e);
+			return null;
+		}
 	})
-	.filter((provider) => provider.id !== 'credentials');
+	.filter((provider): provider is AuthJsProvider => provider !== null && provider.id !== 'credentials');
 
 export const { handlers, auth, signIn, signOut } = NextAuth(config);
