@@ -6,6 +6,7 @@ export function sanitizeCategory(data: Partial<EcommerceCategory>): EcommerceCat
 
 	// Handle image_url from API response - construct full URL if needed
 	let imageValue = data.image ?? null;
+
 	if (data.image_url) {
 		// Use image_url from API if available
 		if (data.image_url.startsWith('http://') || data.image_url.startsWith('https://')) {
@@ -19,8 +20,13 @@ export function sanitizeCategory(data: Partial<EcommerceCategory>): EcommerceCat
 		}
 	} else if (data.image) {
 		// If image_url is not available but image is, construct URL if needed
-		if (!data.image.startsWith('http://') && !data.image.startsWith('https://') && !data.image.startsWith('data:')) {
+		if (
+			!data.image.startsWith('http://') &&
+			!data.image.startsWith('https://') &&
+			!data.image.startsWith('data:')
+		) {
 			const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
 			if (data.image.startsWith('/')) {
 				imageValue = `${apiBaseUrl}${data.image}`;
 			} else {
@@ -40,6 +46,6 @@ export function sanitizeCategory(data: Partial<EcommerceCategory>): EcommerceCat
 		description: data.description ?? '',
 		image: imageValue,
 		parent_id: data.parent_id ?? null,
-		active: data.active ?? 0,
+		active: data.active ?? 0
 	};
 }

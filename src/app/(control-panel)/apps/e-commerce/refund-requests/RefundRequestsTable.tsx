@@ -3,7 +3,21 @@
 import { useMemo, useState, useEffect } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import { ListItemIcon, MenuItem, Paper, Typography, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert, IconButton } from '@mui/material';
+import {
+	ListItemIcon,
+	MenuItem,
+	Paper,
+	Typography,
+	Chip,
+	Button,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	TextField,
+	Alert,
+	IconButton
+} from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { useSession } from 'next-auth/react';
@@ -20,9 +34,11 @@ const formatAmount = (amount: number | string | undefined | null): string => {
 	if (amount === null || amount === undefined) {
 		return '0.00';
 	}
+
 	if (typeof amount === 'number' && !isNaN(amount)) {
 		return amount.toFixed(2);
 	}
+
 	const amountStr = String(amount);
 	const parsed = parseFloat(amountStr);
 	return isNaN(parsed) ? '0.00' : parsed.toFixed(2);
@@ -31,40 +47,40 @@ const formatAmount = (amount: number | string | undefined | null): string => {
 // Helper function to normalize file paths - replaces localhost/127.0.0.1 with API URL from env
 function normalizeFileUrl(filePath: string | undefined): string | null {
 	if (!filePath) return null;
-	
+
 	// Get API URL from environment
 	const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-	
+
 	// Extract the base URL from the API URL (remove trailing slashes and ensure clean format)
 	let apiBaseUrl = apiUrl.replace(/\/+$/, '');
-	
+
 	// Ensure apiBaseUrl doesn't have duplicate ports (clean it up)
 	// Remove any trailing :port if it exists incorrectly
 	apiBaseUrl = apiBaseUrl.replace(/:(\d+):(\d+)/, ':$1'); // Fix double ports like :8000:8000
-	
+
 	try {
 		// Try to parse the URL to extract components
 		const url = new URL(filePath);
-		
+
 		// Parse the API base URL to get its components
 		const apiUrlObj = new URL(apiBaseUrl);
-		
+
 		// If it's localhost or 127.0.0.1, replace with API URL from env
 		if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
 			// Reconstruct URL with the API base URL, preserving path, search, and hash
 			return `${apiUrlObj.protocol}//${apiUrlObj.host}${url.pathname}${url.search}${url.hash}`;
 		}
-		
+
 		// If already using the correct domain, return as is
 		return filePath;
 	} catch (e) {
 		// If URL parsing fails, try regex replacement as fallback
 		// Match: protocol://host/path?query#hash
 		const urlMatch = filePath.match(/^(https?:\/\/)([^\/]+)(\/.*)$/);
-		
+
 		if (urlMatch) {
 			const [, protocol, host, path] = urlMatch;
-			
+
 			// Check if host is localhost or 127.0.0.1 (with or without port)
 			if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
 				// Parse API base URL if possible
@@ -75,13 +91,14 @@ function normalizeFileUrl(filePath: string | undefined): string | null {
 					// If parsing fails, use simple replacement
 					// Extract just the host from apiBaseUrl
 					const apiHostMatch = apiBaseUrl.match(/^https?:\/\/([^\/]+)/);
+
 					if (apiHostMatch) {
 						return `${protocol}${apiHostMatch[1]}${path}`;
 					}
 				}
 			}
 		}
-		
+
 		// If it's a relative path, make it absolute using the API URL
 		if (filePath.startsWith('/')) {
 			try {
@@ -91,14 +108,26 @@ function normalizeFileUrl(filePath: string | undefined): string | null {
 				return `${apiBaseUrl}${filePath}`;
 			}
 		}
-		
+
 		// Return original if we can't normalize
 		return filePath;
 	}
 }
 
 // Component to display images with authentication
-function ImageWithAuth({ fileId, filename, refundId, token, filePath }: { fileId: number; filename: string; refundId: number; token: string | null; filePath?: string }) {
+function ImageWithAuth({
+	fileId,
+	filename,
+	refundId,
+	token,
+	filePath
+}: {
+	fileId: number;
+	filename: string;
+	refundId: number;
+	token: string | null;
+	filePath?: string;
+}) {
 	const [imageSrc, setImageSrc] = useState<string>('');
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState(false);
@@ -113,14 +142,14 @@ function ImageWithAuth({ fileId, filename, refundId, token, filePath }: { fileId
 		const fetchImage = async () => {
 			try {
 				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				
+
 				// Always use API endpoint to avoid CORS issues with storage URLs
 				// The API endpoint properly handles authentication and CORS headers
 				const url = `${apiUrl}/api/admin/refunds/${refundId}/download-attachment/${encodeURIComponent(filename)}`;
 
 				const response = await fetch(url, {
 					headers: {
-						'Authorization': `Bearer ${token}`
+						Authorization: `Bearer ${token}`
 					}
 				});
 
@@ -153,7 +182,12 @@ function ImageWithAuth({ fileId, filename, refundId, token, filePath }: { fileId
 	if (loading) {
 		return (
 			<div className="w-full h-32 bg-gray-100 flex items-center justify-center">
-				<Typography variant="caption" color="text.secondary">Loading...</Typography>
+				<Typography
+					variant="caption"
+					color="text.secondary"
+				>
+					Loading...
+				</Typography>
 			</div>
 		);
 	}
@@ -174,7 +208,6 @@ function ImageWithAuth({ fileId, filename, refundId, token, filePath }: { fileId
 		/>
 	);
 }
-
 
 function RefundRequestsTable() {
 	const { data: session } = useSession();
@@ -207,12 +240,13 @@ function RefundRequestsTable() {
 
 		// Try session first (NextAuth)
 		const sessionToken = (session as any)?.accessAuthToken || (session as any)?.accessToken;
+
 		if (sessionToken) return sessionToken;
 
 		// Fallback to localStorage
-		return localStorage.getItem('token') ||
-			localStorage.getItem('auth_token') ||
-			localStorage.getItem('access_token');
+		return (
+			localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token')
+		);
 	};
 
 	const handleRequestMoreDetails = async () => {
@@ -222,7 +256,7 @@ function RefundRequestsTable() {
 			await requestMoreDetails({
 				id: selectedRefund.id,
 				admin_question: adminQuestion,
-				admin_notes: adminNotes || undefined,
+				admin_notes: adminNotes || undefined
 			}).unwrap();
 			setRequestDetailsDialogOpen(false);
 			setSelectedRefund(null);
@@ -255,7 +289,9 @@ function RefundRequestsTable() {
 
 		// Check if refund can be rejected (must be pending status)
 		if (selectedRefund.status !== 'pending') {
-			alert(`This refund request cannot be rejected. Current status: ${selectedRefund.status.toUpperCase()}. Only pending refund requests can be rejected.`);
+			alert(
+				`This refund request cannot be rejected. Current status: ${selectedRefund.status.toUpperCase()}. Only pending refund requests can be rejected.`
+			);
 			return;
 		}
 
@@ -282,10 +318,10 @@ function RefundRequestsTable() {
 		} catch (err: any) {
 			console.error('Failed to reject refund:', err);
 			console.error('Error details:', JSON.stringify(err, null, 2));
-			
+
 			// Show user-friendly error message
 			let errorMessage = 'Failed to reject refund. Please try again.';
-			
+
 			if (err?.data) {
 				if (err.data.message) {
 					errorMessage = err.data.message;
@@ -294,12 +330,14 @@ function RefundRequestsTable() {
 					const errorMessages = Object.values(err.data.errors).flat().join('\n');
 					errorMessage = errorMessages || errorMessage;
 				} else if (err.data.status === 400) {
-					errorMessage = err.data.message || 'This refund request cannot be rejected. It may have already been processed or is in an invalid state.';
+					errorMessage =
+						err.data.message ||
+						'This refund request cannot be rejected. It may have already been processed or is in an invalid state.';
 				}
 			} else if (err?.message) {
 				errorMessage = err.message;
 			}
-			
+
 			alert(errorMessage);
 		}
 	};
@@ -328,47 +366,54 @@ function RefundRequestsTable() {
 			{
 				accessorKey: 'request_number',
 				header: 'Request #',
-				size: 120,
+				size: 120
 			},
 			{
 				accessorKey: 'user.name',
 				header: 'Customer',
 				Cell: ({ row }) => (
 					<div>
-						<Typography variant="body2" fontWeight="medium">
+						<Typography
+							variant="body2"
+							fontWeight="medium"
+						>
 							{row.original.user?.name ?? '—'}
 						</Typography>
-						<Typography variant="caption" color="text.secondary">
+						<Typography
+							variant="caption"
+							color="text.secondary"
+						>
 							{row.original.user?.email ?? '—'}
 						</Typography>
 					</div>
-				),
+				)
 			},
 			{
 				accessorKey: 'order.order_number',
 				header: 'Order #',
 				size: 120,
-				Cell: ({ row }) => row.original.order?.order_number ?? `#${row.original.order_id}`,
+				Cell: ({ row }) => row.original.order?.order_number ?? `#${row.original.order_id}`
 			},
 			{
 				accessorKey: 'requested_amount',
 				header: 'Amount',
 				size: 100,
 				Cell: ({ row }) => (
-					<Typography fontWeight="medium">
-						£{formatAmount(row.original.requested_amount)}
-					</Typography>
-				),
+					<Typography fontWeight="medium">£{formatAmount(row.original.requested_amount)}</Typography>
+				)
 			},
 			{
 				accessorKey: 'reason',
 				header: 'Reason',
 				size: 150,
 				Cell: ({ row }) => (
-					<Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+					<Typography
+						variant="body2"
+						sx={{ textTransform: 'capitalize' }}
+					>
 						{row.original.reason?.replace(/_/g, ' ') ?? '—'}
 					</Typography>
-				),
+				)
 			},
 			{
 				accessorKey: 'status',
@@ -380,7 +425,7 @@ function RefundRequestsTable() {
 						color={getStatusColor(row.original.status) as any}
 						size="small"
 					/>
-				),
+				)
 			},
 			{
 				accessorKey: 'needs_more_details',
@@ -388,21 +433,43 @@ function RefundRequestsTable() {
 				size: 100,
 				Cell: ({ row }) => {
 					const refund = row.original;
+
 					if (refund.needs_more_details) {
-						return <Chip label="Yes" color="warning" size="small" />;
+						return (
+							<Chip
+								label="Yes"
+								color="warning"
+								size="small"
+							/>
+						);
 					}
+
 					if (refund.has_customer_response || refund.customer_responded_at) {
-						return <Chip label="Received" color="success" size="small" />;
+						return (
+							<Chip
+								label="Received"
+								color="success"
+								size="small"
+							/>
+						);
 					}
-					return <Typography variant="body2" color="text.secondary">—</Typography>;
-				},
+
+					return (
+						<Typography
+							variant="body2"
+							color="text.secondary"
+						>
+							—
+						</Typography>
+					);
+				}
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Requested',
 				size: 120,
-				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
-			},
+				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString()
+			}
 		],
 		[]
 	);
@@ -453,7 +520,7 @@ function RefundRequestsTable() {
 								</ListItemIcon>
 								View Details
 							</MenuItem>,
-							(refund.status === 'pending' && !refund.has_customer_response) && (
+							refund.status === 'pending' && !refund.has_customer_response && (
 								<MenuItem
 									key="request-details"
 									onClick={() => {
@@ -499,33 +566,45 @@ function RefundRequestsTable() {
 									</ListItemIcon>
 									Reject
 								</MenuItem>
-							),
+							)
 						].filter(Boolean);
 					}}
 				/>
 			</Paper>
 
 			{/* View Details Dialog - For reviewing customer information */}
-			<Dialog open={viewDetailsDialogOpen} onClose={() => {
-				setViewDetailsDialogOpen(false);
-				setSelectedRefundId(null);
-			}} maxWidth="md" fullWidth>
+			<Dialog
+				open={viewDetailsDialogOpen}
+				onClose={() => {
+					setViewDetailsDialogOpen(false);
+					setSelectedRefundId(null);
+				}}
+				maxWidth="md"
+				fullWidth
+			>
 				<DialogTitle>Refund Request Details</DialogTitle>
 				<DialogContent>
 					{displayRefund && (
 						<div className="space-y-4 pt-4">
 							{/* Basic Information */}
 							<div className="p-4 bg-gray-50 rounded-lg border">
-								<Typography variant="h6" className="mb-3">Basic Information</Typography>
+								<Typography
+									variant="h6"
+									className="mb-3"
+								>
+									Basic Information
+								</Typography>
 								<div className="space-y-2">
 									<Typography>
 										<strong>Request #:</strong> {displayRefund.request_number}
 									</Typography>
 									<Typography>
-										<strong>Customer:</strong> {displayRefund.user?.name} ({displayRefund.user?.email})
+										<strong>Customer:</strong> {displayRefund.user?.name} (
+										{displayRefund.user?.email})
 									</Typography>
 									<Typography>
-										<strong>Order #:</strong> {displayRefund.order?.order_number ?? `#${displayRefund.order_id}`}
+										<strong>Order #:</strong>{' '}
+										{displayRefund.order?.order_number ?? `#${displayRefund.order_id}`}
 									</Typography>
 									<Typography>
 										<strong>Amount:</strong> £{formatAmount(displayRefund.requested_amount)}
@@ -534,7 +613,8 @@ function RefundRequestsTable() {
 										<strong>Reason:</strong> {displayRefund.reason?.replace(/_/g, ' ')}
 									</Typography>
 									<Typography component="div">
-										<strong>Status:</strong> <Chip
+										<strong>Status:</strong>{' '}
+										<Chip
 											label={displayRefund.status.toUpperCase()}
 											color={getStatusColor(displayRefund.status) as any}
 											size="small"
@@ -542,7 +622,8 @@ function RefundRequestsTable() {
 										/>
 									</Typography>
 									<Typography>
-										<strong>Requested:</strong> {new Date(displayRefund.created_at).toLocaleString()}
+										<strong>Requested:</strong>{' '}
+										{new Date(displayRefund.created_at).toLocaleString()}
 									</Typography>
 								</div>
 							</div>
@@ -550,12 +631,23 @@ function RefundRequestsTable() {
 							{/* Admin Question (if asked) */}
 							{displayRefund.admin_question && (
 								<div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-									<Typography variant="h6" className="mb-2">Admin Question</Typography>
-									<Typography variant="body2" className="mb-2">
+									<Typography
+										variant="h6"
+										className="mb-2"
+									>
+										Admin Question
+									</Typography>
+									<Typography
+										variant="body2"
+										className="mb-2"
+									>
 										{displayRefund.admin_question}
 									</Typography>
 									{displayRefund.admin_questioned_at && (
-										<Typography variant="caption" color="text.secondary">
+										<Typography
+											variant="caption"
+											color="text.secondary"
+										>
 											Asked: {new Date(displayRefund.admin_questioned_at).toLocaleString()}
 										</Typography>
 									)}
@@ -565,12 +657,25 @@ function RefundRequestsTable() {
 							{/* Customer's Additional Information */}
 							{displayRefund.customer_additional_info ? (
 								<div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-									<Typography variant="h6" className="mb-2">Customer's Response</Typography>
-									<Typography variant="body2" className="mb-3" style={{ whiteSpace: 'pre-wrap' }}>
+									<Typography
+										variant="h6"
+										className="mb-2"
+									>
+										Customer's Response
+									</Typography>
+									<Typography
+										variant="body2"
+										className="mb-3"
+										style={{ whiteSpace: 'pre-wrap' }}
+									>
 										{displayRefund.customer_additional_info}
 									</Typography>
 									{displayRefund.customer_responded_at && (
-										<Typography variant="caption" color="text.secondary" className="block mb-2">
+										<Typography
+											variant="caption"
+											color="text.secondary"
+											className="block mb-2"
+										>
 											Responded: {new Date(displayRefund.customer_responded_at).toLocaleString()}
 										</Typography>
 									)}
@@ -578,35 +683,44 @@ function RefundRequestsTable() {
 									{/* Attachments */}
 									{displayRefund.attachment_files && displayRefund.attachment_files.length > 0 && (
 										<div className="mt-3 pt-3 border-t border-blue-300">
-											<Typography variant="subtitle2" fontWeight="bold" className="mb-2">
+											<Typography
+												variant="subtitle2"
+												fontWeight="bold"
+												className="mb-2"
+											>
 												Attachments ({displayRefund.attachment_files.length}):
 											</Typography>
 											<div className="flex flex-wrap gap-3">
 												{displayRefund.attachment_files.map((file: any) => {
 													// Get token from session or localStorage
 													const token = getAuthToken();
-													const isImage = file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+													const isImage =
+														file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
 
 													const handleFileClick = async (e: React.MouseEvent) => {
 														e.preventDefault();
-														
+
 														if (!token) {
 															alert('Authentication required. Please log in again.');
 															return;
 														}
 
 														try {
-															const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+															const apiUrl =
+																process.env.NEXT_PUBLIC_API_URL ||
+																'http://127.0.0.1:8000';
 															let url = '';
-															
+
 															// Normalize file path if available
 															const normalizedPath = normalizeFileUrl(file.path);
-															
+
 															if (normalizedPath) {
 																// Add token to normalized path
-																const separator = normalizedPath.includes('?') ? '&' : '?';
+																const separator = normalizedPath.includes('?')
+																	? '&'
+																	: '?';
 																url = `${normalizedPath}${separator}token=${encodeURIComponent(token)}`;
-																
+
 																// For images, try direct URL first
 																if (isImage) {
 																	setPreviewImageUrl(url);
@@ -617,13 +731,14 @@ function RefundRequestsTable() {
 																	try {
 																		const response = await fetch(url, {
 																			headers: {
-																				'Authorization': `Bearer ${token}`
+																				Authorization: `Bearer ${token}`
 																			}
 																		});
-																		
+
 																		if (response.ok) {
 																			const blob = await response.blob();
-																			const blobUrl = window.URL.createObjectURL(blob);
+																			const blobUrl =
+																				window.URL.createObjectURL(blob);
 																			const link = document.createElement('a');
 																			link.href = blobUrl;
 																			link.download = file.filename || 'download';
@@ -640,14 +755,16 @@ function RefundRequestsTable() {
 																	}
 																}
 															}
-															
+
 															// Fallback to API endpoint if no path or if direct failed
-															const filename = encodeURIComponent(file.filename || 'file');
+															const filename = encodeURIComponent(
+																file.filename || 'file'
+															);
 															url = `${apiUrl}/api/admin/refunds/${displayRefund.id}/download-attachment/${filename}`;
 
 															const response = await fetch(url, {
 																headers: {
-																	'Authorization': `Bearer ${token}`
+																	Authorization: `Bearer ${token}`
 																}
 															});
 
@@ -690,10 +807,13 @@ function RefundRequestsTable() {
 																	filename={file.filename}
 																	refundId={displayRefund.id}
 																	token={token}
-																filePath={file.path}
+																	filePath={file.path}
 																/>
 																<div className="p-2 bg-white">
-																	<Typography variant="caption" className="text-gray-600 block truncate">
+																	<Typography
+																		variant="caption"
+																		className="text-gray-600 block truncate"
+																	>
 																		{file.filename}
 																	</Typography>
 																</div>
@@ -708,8 +828,13 @@ function RefundRequestsTable() {
 																className="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer"
 																style={{ minWidth: '150px' }}
 															>
-																<FuseSvgIcon className="text-gray-600">heroicons-outline:document</FuseSvgIcon>
-																<Typography variant="body2" className="text-gray-700 truncate flex-1">
+																<FuseSvgIcon className="text-gray-600">
+																	heroicons-outline:document
+																</FuseSvgIcon>
+																<Typography
+																	variant="body2"
+																	className="text-gray-700 truncate flex-1"
+																>
 																	{file.filename}
 																</Typography>
 															</a>
@@ -722,7 +847,10 @@ function RefundRequestsTable() {
 								</div>
 							) : displayRefund.needs_more_details ? (
 								<div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-									<Typography variant="body2" color="text.secondary">
+									<Typography
+										variant="body2"
+										color="text.secondary"
+									>
 										Waiting for customer to provide additional information...
 									</Typography>
 								</div>
@@ -731,8 +859,16 @@ function RefundRequestsTable() {
 							{/* Admin Notes (if any) */}
 							{displayRefund.admin_notes && (
 								<div className="p-4 bg-gray-50 rounded-lg border">
-									<Typography variant="h6" className="mb-2">Admin Notes</Typography>
-									<Typography variant="body2" style={{ whiteSpace: 'pre-wrap' }}>
+									<Typography
+										variant="h6"
+										className="mb-2"
+									>
+										Admin Notes
+									</Typography>
+									<Typography
+										variant="body2"
+										style={{ whiteSpace: 'pre-wrap' }}
+									>
 										{displayRefund.admin_notes}
 									</Typography>
 								</div>
@@ -741,10 +877,14 @@ function RefundRequestsTable() {
 					)}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => {
-						setViewDetailsDialogOpen(false);
-						setSelectedRefundId(null);
-					}}>Close</Button>
+					<Button
+						onClick={() => {
+							setViewDetailsDialogOpen(false);
+							setSelectedRefundId(null);
+						}}
+					>
+						Close
+					</Button>
 					{displayRefund && displayRefund.status === 'pending' && (
 						<>
 							<Button
@@ -773,7 +913,12 @@ function RefundRequestsTable() {
 			</Dialog>
 
 			{/* Request More Details Dialog */}
-			<Dialog open={requestDetailsDialogOpen} onClose={() => setRequestDetailsDialogOpen(false)} maxWidth="md" fullWidth>
+			<Dialog
+				open={requestDetailsDialogOpen}
+				onClose={() => setRequestDetailsDialogOpen(false)}
+				maxWidth="md"
+				fullWidth
+			>
 				<DialogTitle>Request More Details</DialogTitle>
 				<DialogContent>
 					{selectedRefund && (
@@ -782,7 +927,8 @@ function RefundRequestsTable() {
 								<strong>Customer:</strong> {selectedRefund.user?.name}
 							</Typography>
 							<Typography>
-								<strong>Order #:</strong> {selectedRefund.order?.order_number ?? `#${selectedRefund.order_id}`}
+								<strong>Order #:</strong>{' '}
+								{selectedRefund.order?.order_number ?? `#${selectedRefund.order_id}`}
 							</Typography>
 							<Typography>
 								<strong>Request #:</strong> {selectedRefund.request_number}
@@ -825,10 +971,15 @@ function RefundRequestsTable() {
 			</Dialog>
 
 			{/* Approve Dialog */}
-			<Dialog open={approveDialogOpen} onClose={() => {
-				setApproveDialogOpen(false);
-				setSelectedRefundId(null);
-			}} maxWidth="md" fullWidth>
+			<Dialog
+				open={approveDialogOpen}
+				onClose={() => {
+					setApproveDialogOpen(false);
+					setSelectedRefundId(null);
+				}}
+				maxWidth="md"
+				fullWidth
+			>
 				<DialogTitle>Approve Refund Request</DialogTitle>
 				<DialogContent>
 					{displayRefund && (
@@ -837,7 +988,8 @@ function RefundRequestsTable() {
 								<strong>Customer:</strong> {displayRefund.user?.name}
 							</Typography>
 							<Typography>
-								<strong>Order #:</strong> {displayRefund.order?.order_number ?? `#${displayRefund.order_id}`}
+								<strong>Order #:</strong>{' '}
+								{displayRefund.order?.order_number ?? `#${displayRefund.order_id}`}
 							</Typography>
 							<Typography>
 								<strong>Amount:</strong> £{formatAmount(displayRefund.requested_amount)}
@@ -849,20 +1001,34 @@ function RefundRequestsTable() {
 							{/* Show customer's additional information if provided */}
 							{displayRefund.customer_additional_info && (
 								<div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-									<Typography variant="subtitle2" fontWeight="bold" className="mb-2">
+									<Typography
+										variant="subtitle2"
+										fontWeight="bold"
+										className="mb-2"
+									>
 										Customer's Additional Information:
 									</Typography>
-									<Typography variant="body2" className="mb-2">
+									<Typography
+										variant="body2"
+										className="mb-2"
+									>
 										{displayRefund.customer_additional_info}
 									</Typography>
 									{displayRefund.customer_responded_at && (
-										<Typography variant="caption" color="text.secondary">
+										<Typography
+											variant="caption"
+											color="text.secondary"
+										>
 											Responded: {new Date(displayRefund.customer_responded_at).toLocaleString()}
 										</Typography>
 									)}
 									{displayRefund.attachment_files && displayRefund.attachment_files.length > 0 && (
 										<div className="mt-2">
-											<Typography variant="caption" fontWeight="bold" className="block mb-1">
+											<Typography
+												variant="caption"
+												fontWeight="bold"
+												className="block mb-1"
+											>
 												Attachments ({displayRefund.attachment_files.length}):
 											</Typography>
 											<div className="flex flex-wrap gap-2">
@@ -873,7 +1039,7 @@ function RefundRequestsTable() {
 													// Normalize file path and append token if needed
 													const normalizedPath = normalizeFileUrl(file.path);
 													let fileUrl = normalizedPath || file.path || '';
-													
+
 													if (token && fileUrl) {
 														const separator = fileUrl.includes('?') ? '&' : '?';
 														fileUrl = `${fileUrl}${separator}token=${encodeURIComponent(token)}`;
@@ -896,24 +1062,32 @@ function RefundRequestsTable() {
 														finalUrl: fileUrl
 													});
 
-													const handleFileClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
+													const handleFileClick = async (
+														e: React.MouseEvent<HTMLAnchorElement>
+													) => {
 														e.preventDefault();
+
 														if (!token) {
 															alert('Authentication required. Please log in again.');
 															return;
 														}
 
 														try {
-															const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-															const isImage = file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
-															
+															const apiUrl =
+																process.env.NEXT_PUBLIC_API_URL ||
+																'http://127.0.0.1:8000';
+															const isImage =
+																file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
+
 															// Try using normalized file path first if available
 															const normalizedPath = normalizeFileUrl(file.path);
-															
+
 															if (normalizedPath) {
-																const separator = normalizedPath.includes('?') ? '&' : '?';
+																const separator = normalizedPath.includes('?')
+																	? '&'
+																	: '?';
 																const url = `${normalizedPath}${separator}token=${encodeURIComponent(token)}`;
-																
+
 																if (isImage) {
 																	// For images, try direct URL
 																	setPreviewImageUrl(url);
@@ -924,13 +1098,14 @@ function RefundRequestsTable() {
 																	try {
 																		const response = await fetch(url, {
 																			headers: {
-																				'Authorization': `Bearer ${token}`
+																				Authorization: `Bearer ${token}`
 																			}
 																		});
-																		
+
 																		if (response.ok) {
 																			const blob = await response.blob();
-																			const blobUrl = window.URL.createObjectURL(blob);
+																			const blobUrl =
+																				window.URL.createObjectURL(blob);
 																			const link = document.createElement('a');
 																			link.href = blobUrl;
 																			link.download = file.filename || 'download';
@@ -945,14 +1120,16 @@ function RefundRequestsTable() {
 																	}
 																}
 															}
-															
+
 															// Fallback to API endpoint
-															const filename = encodeURIComponent(file.filename || file.path?.split('/').pop() || 'file');
+															const filename = encodeURIComponent(
+																file.filename || file.path?.split('/').pop() || 'file'
+															);
 															const url = `${apiUrl}/api/admin/refunds/${displayRefund.id}/download-attachment/${filename}`;
 
 															const response = await fetch(url, {
 																headers: {
-																	'Authorization': `Bearer ${token}`
+																	Authorization: `Bearer ${token}`
 																}
 															});
 
@@ -1002,12 +1179,14 @@ function RefundRequestsTable() {
 
 							{displayRefund.admin_question && (
 								<div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
-									<Typography variant="subtitle2" fontWeight="bold" className="mb-2">
+									<Typography
+										variant="subtitle2"
+										fontWeight="bold"
+										className="mb-2"
+									>
 										Admin Question:
 									</Typography>
-									<Typography variant="body2">
-										{displayRefund.admin_question}
-									</Typography>
+									<Typography variant="body2">{displayRefund.admin_question}</Typography>
 								</div>
 							)}
 
@@ -1021,45 +1200,72 @@ function RefundRequestsTable() {
 								placeholder="Internal notes"
 								className="mt-4"
 							/>
-							<Alert severity="info" className="mt-4">
-								The refund amount will be deducted from the vendor/supplier wallet balance automatically.
+							<Alert
+								severity="info"
+								className="mt-4"
+							>
+								The refund amount will be deducted from the vendor/supplier wallet balance
+								automatically.
 							</Alert>
 						</div>
 					)}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => {
-						setApproveDialogOpen(false);
-						setSelectedRefundId(null);
-					}}>Cancel</Button>
-					<Button onClick={handleApprove} variant="contained" color="primary">
+					<Button
+						onClick={() => {
+							setApproveDialogOpen(false);
+							setSelectedRefundId(null);
+						}}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleApprove}
+						variant="contained"
+						color="primary"
+					>
 						Approve Refund
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Reject Dialog */}
-			<Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)}>
+			<Dialog
+				open={rejectDialogOpen}
+				onClose={() => setRejectDialogOpen(false)}
+			>
 				<DialogTitle>Reject Refund Request</DialogTitle>
 				<DialogContent>
 					{selectedRefund && (
 						<div className="space-y-4 pt-4">
 							{selectedRefund.status !== 'pending' && (
-								<Alert severity="warning" sx={{ mb: 2 }}>
-									This refund request has status: <strong>{selectedRefund.status.toUpperCase()}</strong>. Only pending refund requests can be rejected.
+								<Alert
+									severity="warning"
+									sx={{ mb: 2 }}
+								>
+									This refund request has status:{' '}
+									<strong>{selectedRefund.status.toUpperCase()}</strong>. Only pending refund requests
+									can be rejected.
 								</Alert>
 							)}
 							<Typography>
 								<strong>Customer:</strong> {selectedRefund.user?.name}
 							</Typography>
 							<Typography>
-								<strong>Order #:</strong> {selectedRefund.order?.order_number ?? `#${selectedRefund.order_id}`}
+								<strong>Order #:</strong>{' '}
+								{selectedRefund.order?.order_number ?? `#${selectedRefund.order_id}`}
 							</Typography>
 							<Typography>
 								<strong>Amount:</strong> £{formatAmount(selectedRefund.requested_amount)}
 							</Typography>
 							<Typography component="div">
-								<strong>Status:</strong> <Chip label={selectedRefund.status.toUpperCase()} color={getStatusColor(selectedRefund.status) as any} size="small" sx={{ ml: 1 }} />
+								<strong>Status:</strong>{' '}
+								<Chip
+									label={selectedRefund.status.toUpperCase()}
+									color={getStatusColor(selectedRefund.status) as any}
+									size="small"
+									sx={{ ml: 1 }}
+								/>
 							</Typography>
 							<TextField
 								fullWidth
@@ -1087,8 +1293,8 @@ function RefundRequestsTable() {
 						color="error"
 						disabled={
 							selectedRefund?.status !== 'pending' ||
-							!rejectionReason.trim() || 
-							rejectionReason.trim().length < 10 || 
+							!rejectionReason.trim() ||
+							rejectionReason.trim().length < 10 ||
 							rejectionReason.trim().length > 1000
 						}
 					>
@@ -1102,9 +1308,11 @@ function RefundRequestsTable() {
 				open={imagePreviewOpen}
 				onClose={() => {
 					setImagePreviewOpen(false);
+
 					if (previewImageUrl) {
 						window.URL.revokeObjectURL(previewImageUrl);
 					}
+
 					setPreviewImageUrl('');
 				}}
 				maxWidth="lg"
@@ -1115,9 +1323,11 @@ function RefundRequestsTable() {
 					<IconButton
 						onClick={() => {
 							setImagePreviewOpen(false);
+
 							if (previewImageUrl) {
 								window.URL.revokeObjectURL(previewImageUrl);
 							}
+
 							setPreviewImageUrl('');
 						}}
 						sx={{ position: 'absolute', right: 8, top: 8 }}
@@ -1142,4 +1352,3 @@ function RefundRequestsTable() {
 }
 
 export default RefundRequestsTable;
-

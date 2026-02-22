@@ -27,7 +27,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-document-check',
 				url: '/dashboards/project'
-			},
+			}
 			// {
 			// 	id: 'dashboards.analytics',
 			// 	title: 'Analytics',
@@ -126,7 +126,7 @@ const navigationConfig: FuseNavItemType[] = [
 								title: 'New category',
 								type: 'item',
 								url: '/apps/e-commerce/categories/new'
-							},
+							}
 						]
 					},
 					{

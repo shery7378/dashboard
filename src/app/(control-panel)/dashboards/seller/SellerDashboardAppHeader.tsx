@@ -39,6 +39,7 @@ function VendorDashboardAppHeader() {
 			// If store_id is already present, no need to check
 			// Check for store_id as string, number, or truthy value
 			const hasStoreId = user.store_id !== null && user.store_id !== undefined && user.store_id !== '';
+
 			if (hasStoreId) {
 				console.log('Store ID found in user object:', user.store_id);
 				setCheckingStore(false);
@@ -51,6 +52,7 @@ function VendorDashboardAppHeader() {
 			// Try to fetch current store from API
 			try {
 				const accessToken = session?.accessAuthToken;
+
 				if (!accessToken) {
 					console.log('No access token available');
 					setCheckingStore(false);
@@ -66,7 +68,7 @@ function VendorDashboardAppHeader() {
 				console.log('Fetching store from API...');
 				const response = await apiFetchLaravel('/api/store/current', {
 					headers: {
-						Authorization: `Bearer ${accessToken}`,
+						Authorization: `Bearer ${accessToken}`
 					},
 					credentials: 'include'
 				});
@@ -77,6 +79,7 @@ function VendorDashboardAppHeader() {
 					const storeData = await response.json();
 					console.log('Store data received:', storeData);
 					const storeId = storeData?.data?.id || storeData?.data?.id?.toString();
+
 					if (storeId) {
 						// Store exists - just update the session, don't try to update via API
 						console.log('Store found with ID:', storeId);
@@ -162,16 +165,14 @@ function VendorDashboardAppHeader() {
 							position: 'absolute',
 							right: 8,
 							top: 8,
-							color: (theme) => theme.palette.grey[500],
+							color: (theme) => theme.palette.grey[500]
 						}}
 					>
 						<CloseIcon />
 					</IconButton>
 				</DialogTitle>
 				<DialogContent>
-					<Typography>
-						Please add a store before proceeding.
-					</Typography>
+					<Typography>Please add a store before proceeding.</Typography>
 				</DialogContent>
 				<DialogActions>
 					<Button
@@ -197,4 +198,3 @@ function VendorDashboardAppHeader() {
 }
 
 export default VendorDashboardAppHeader;
-

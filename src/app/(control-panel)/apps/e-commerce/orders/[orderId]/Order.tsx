@@ -29,7 +29,7 @@ export default function Order() {
 
 	/**  Fetch order (skip for new order) */
 	const { data, isLoading, isError } = useGetECommerceOrderQuery(orderId, {
-		skip: isNew || !orderId,
+		skip: isNew || !orderId
 	});
 
 	/** Local UI state */
@@ -49,7 +49,7 @@ export default function Order() {
 			image: '',
 			name: '',
 			shipping_status: 'pending', // Default string for new
-			payment_status: 'pending',
+			payment_status: 'pending'
 			// Add other | null fields as needed, e.g., price: '0',
 		};
 
@@ -58,7 +58,7 @@ export default function Order() {
 			...rawData,
 			shipping_status: rawData.shipping_status ?? 'pending', // null → 'pending'
 			payment_status: rawData.payment_status ?? 'pending',
-			shipping_address: rawData.shipping_address ?? '',
+			shipping_address: rawData.shipping_address ?? ''
 			// Extend for other string | null fields if they have Selects
 		};
 	}, [data]);
@@ -66,7 +66,7 @@ export default function Order() {
 	/**  Shared react-hook-form context */
 	const methods = useForm<EcommerceOrder>({
 		defaultValues: orderData,
-		mode: 'onChange',
+		mode: 'onChange'
 	});
 
 	// Update form when orderData changes (e.g., after refetch)
@@ -87,7 +87,10 @@ export default function Order() {
 				animate={{ opacity: 1, transition: { delay: 0.1 } }}
 				className="flex flex-col flex-1 items-center justify-center h-full"
 			>
-				<Typography color="text.secondary" variant="h5">
+				<Typography
+					color="text.secondary"
+					variant="h5"
+				>
 					There is no such order!
 				</Typography>
 				<Button
@@ -111,8 +114,15 @@ export default function Order() {
 				content={
 					<div className="p-4 sm:p-6 w-full">
 						{/* Tabs */}
-						<FuseTabs className="mb-8" value={tabValue} onChange={handleTabChange}>
-							<FuseTab value="details" label="Order Details" />
+						<FuseTabs
+							className="mb-8"
+							value={tabValue}
+							onChange={handleTabChange}
+						>
+							<FuseTab
+								value="details"
+								label="Order Details"
+							/>
 							{/* <FuseTab value="products" label="Products" />
 							<FuseTab value="invoice" label="Invoice" /> */}
 						</FuseTabs>

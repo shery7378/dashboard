@@ -4,41 +4,39 @@ import { apiServiceLaravel as api } from '@/store/apiServiceLaravel';
 export const addTagTypes = ['order_settings'] as const;
 
 // Enhance base API with order settings support
-const OrderSettingsApi = api
-	.enhanceEndpoints({ addTagTypes })
-	.injectEndpoints({
-		endpoints: (build) => ({
-			// Get order settings
-			getOrderSettings: build.query<GetOrderSettingsApiResponse, GetOrderSettingsApiArg>({
-				query: (params) => ({
-					url: `/api/vendor/order-settings`,
-					params
-				}),
-				providesTags: ['order_settings']
+const OrderSettingsApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
+	endpoints: (build) => ({
+		// Get order settings
+		getOrderSettings: build.query<GetOrderSettingsApiResponse, GetOrderSettingsApiArg>({
+			query: (params) => ({
+				url: `/api/vendor/order-settings`,
+				params
 			}),
-
-			// Update order settings
-			updateOrderSettings: build.mutation<UpdateOrderSettingsApiResponse, UpdateOrderSettingsApiArg>({
-				query: (body) => ({
-					url: `/api/vendor/order-settings`,
-					method: 'PUT',
-					body
-				}),
-				invalidatesTags: ['order_settings']
-			}),
-
-			// Reset order settings to defaults
-			resetOrderSettings: build.mutation<ResetOrderSettingsApiResponse, ResetOrderSettingsApiArg>({
-				query: (body) => ({
-					url: `/api/vendor/order-settings/reset`,
-					method: 'POST',
-					body
-				}),
-				invalidatesTags: ['order_settings']
-			}),
+			providesTags: ['order_settings']
 		}),
-		overrideExisting: false
-	});
+
+		// Update order settings
+		updateOrderSettings: build.mutation<UpdateOrderSettingsApiResponse, UpdateOrderSettingsApiArg>({
+			query: (body) => ({
+				url: `/api/vendor/order-settings`,
+				method: 'PUT',
+				body
+			}),
+			invalidatesTags: ['order_settings']
+		}),
+
+		// Reset order settings to defaults
+		resetOrderSettings: build.mutation<ResetOrderSettingsApiResponse, ResetOrderSettingsApiArg>({
+			query: (body) => ({
+				url: `/api/vendor/order-settings/reset`,
+				method: 'POST',
+				body
+			}),
+			invalidatesTags: ['order_settings']
+		})
+	}),
+	overrideExisting: false
+});
 
 export default OrderSettingsApi;
 
@@ -121,14 +119,5 @@ export type ResetOrderSettingsApiArg = {
  * RTK HOOK EXPORTS
  * ----------------------------------------------------------------- */
 
-export const {
-	useGetOrderSettingsQuery,
-	useUpdateOrderSettingsMutation,
-	useResetOrderSettingsMutation
-} = OrderSettingsApi;
-
-
-
-
-
-
+export const { useGetOrderSettingsQuery, useUpdateOrderSettingsMutation, useResetOrderSettingsMutation } =
+	OrderSettingsApi;

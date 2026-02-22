@@ -1,9 +1,9 @@
 export const API_BASE_URL =
 	process.env.NODE_ENV === 'development'
 		? `${process.env.NEXT_PUBLIC_API_URL}`
-		// ? `http://localhost:${process.env.NEXT_PUBLIC_PORT || 3000}`
-		// ? process.env.NEXTAUTH_URL
-		: process.env.NEXT_PUBLIC_API_URL || '/';
+		: // ? `http://localhost:${process.env.NEXT_PUBLIC_PORT || 3000}`
+			// ? process.env.NEXTAUTH_URL
+			process.env.NEXT_PUBLIC_API_URL || '/';
 
 // Define the types for options and configuration
 type FetchOptions = RequestInit;
@@ -55,6 +55,7 @@ const apiFetchLaravel = async (endpoint: string, options: FetchOptions = {}) => 
 			// Try to parse error response, but handle empty/invalid JSON gracefully
 			let errorData;
 			const contentType = response.headers.get('content-type');
+
 			if (contentType && contentType.includes('application/json')) {
 				try {
 					const text = await response.text();
@@ -71,7 +72,7 @@ const apiFetchLaravel = async (endpoint: string, options: FetchOptions = {}) => 
 					errorData = { message: `HTTP ${response.status}` };
 				}
 			}
-			
+
 			// Log server errors (500+) with more context
 			if (response.status >= 500) {
 				console.error(`Server Error in apiFetch: Error: FetchApiError: ${response.status}`, {
@@ -81,7 +82,7 @@ const apiFetchLaravel = async (endpoint: string, options: FetchOptions = {}) => 
 					hasAuthHeader: config.headers && 'Authorization' in (config.headers as Record<string, string>)
 				});
 			}
-			
+
 			throw new FetchApiError(response.status, errorData);
 		}
 
@@ -91,6 +92,7 @@ const apiFetchLaravel = async (endpoint: string, options: FetchOptions = {}) => 
 		if (!(error instanceof FetchApiError)) {
 			console.error('Error in apiFetch:', error);
 		}
+
 		throw error;
 	}
 };

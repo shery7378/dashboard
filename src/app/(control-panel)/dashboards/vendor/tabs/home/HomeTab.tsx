@@ -4,11 +4,7 @@ import OverdueWidget from './widgets/OverdueWidget';
 import IssuesWidget from './widgets/IssuesWidget';
 import FeaturesWidget from './widgets/FeaturesWidget';
 import GithubIssuesWidget from './widgets/GithubIssuesWidget';
-import TaskDistributionWidget from './widgets/TaskDistributionWidget';
-import ScheduleWidget from './widgets/ScheduleWidget';
 import OrdersTableForHome from '@/app/(control-panel)/apps/e-commerce/orders/OrdersTableForHome';
-import Product from '@/app/(control-panel)/apps/e-commerce/products/[productId]/[[...handle]]/Product';
-import Products from '@/app/(control-panel)/apps/e-commerce/products/Products';
 import ProductsTableForHome from '@/app/(control-panel)/apps/e-commerce/products/ProductsTableForHome';
 
 /**

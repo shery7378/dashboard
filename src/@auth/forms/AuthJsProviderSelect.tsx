@@ -27,10 +27,10 @@ function AuthJsProviderSelect() {
 		<div className="w-full">
 			{/* Divider */}
 			<div className="flex items-center mb-4">
-            <div className="flex-auto border-t border-gray-200" />
-            <span className="mx-2 text-[15.22px] font-normal text-[#6B6B6B]">Or continue with</span>
-            <div className="flex-auto border-t border-gray-200" />
-          </div>
+				<div className="flex-auto border-t border-gray-200" />
+				<span className="mx-2 text-[15.22px] font-normal text-[#6B6B6B]">Or continue with</span>
+				<div className="flex-auto border-t border-gray-200" />
+			</div>
 
 			{/* Social Login Buttons */}
 			<div className="flex flex-col gap-3">
@@ -46,9 +46,7 @@ function AuthJsProviderSelect() {
 							alt={provider.name}
 							className="w-6 h-6 shrink-0"
 						/>
-						<span className="text-[#111111] text-base">
-							Continue with {provider.name}
-						</span>
+						<span className="text-[#111111] text-base">Continue with {provider.name}</span>
 					</button>
 				))}
 			</div>

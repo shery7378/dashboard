@@ -17,6 +17,7 @@ import DetailsTab from './tabs/details/DetailsTab';
 import ProductsTab from './tabs/products/ProductsTab';
 import { useGetECommerceOrderQuery as oldOrderQuery } from '../../ECommerceApi';
 import { useGetECommerceOrderQuery } from '../../apis/ECommerceOrdersApi';
+
 /**
  * The order.
  */
@@ -32,9 +33,13 @@ function Order() {
 		skip: !orderId
 	});
 
-	const { data: newOrder, isLoading: newLoading, isError: newError } = useGetECommerceOrderQuery(orderId, { skip: !orderId });
+	const {
+		data: newOrder,
+		isLoading: newLoading,
+		isError: newError
+	} = useGetECommerceOrderQuery(orderId, { skip: !orderId });
 
-	console.log(newOrder,'order from order page');
+	console.log(newOrder, 'order from order page');
 	const isMobile = useThemeMediaQuery((_theme) => _theme.breakpoints.down('lg'));
 
 	const [tabValue, setTabValue] = useState('details');

@@ -18,19 +18,23 @@ export function useUnreadMessagesCount() {
 	const getAuthToken = async () => {
 		try {
 			const session = await getSession();
-			const token = 
-				session?.accessAuthToken || 
-				session?.accessToken || 
-				(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') : null);
+			const token =
+				session?.accessAuthToken ||
+				session?.accessToken ||
+				(typeof window !== 'undefined'
+					? localStorage.getItem('token') || localStorage.getItem('auth_token')
+					: null);
 			return token;
 		} catch (error) {
 			// Only log in development
 			if (process.env.NODE_ENV === 'development') {
 				console.error('Error getting session:', error);
 			}
+
 			if (typeof window !== 'undefined') {
 				return localStorage.getItem('token') || localStorage.getItem('auth_token');
 			}
+
 			return null;
 		}
 	};
@@ -38,34 +42,37 @@ export function useUnreadMessagesCount() {
 	// Fetch unread count
 	const fetchUnreadCount = async () => {
 		if (!isMountedRef.current) return;
-		
+
 		try {
 			const token = await getAuthToken();
+
 			if (!token) {
 				if (isMountedRef.current) {
 					setUnreadCount(0);
 					setIsLoading(false);
 				}
+
 				return;
 			}
 
 			const response = await fetch(`${API_URL}/api/chat/conversations`, {
 				headers: {
-					'Authorization': `Bearer ${token}`,
+					Authorization: `Bearer ${token}`,
 					'Content-Type': 'application/json',
-					'Accept': 'application/json',
+					Accept: 'application/json'
 				},
-				credentials: 'include',
+				credentials: 'include'
 			});
 
 			if (response.ok) {
 				const data = await response.json();
+
 				if (data.success && data.data && Array.isArray(data.data)) {
 					// Calculate total unread messages across all conversations
-					let totalUnread = data.data.reduce((sum: number, conv: any) => {
+					const totalUnread = data.data.reduce((sum: number, conv: any) => {
 						return sum + (conv.unread_count || 0);
 					}, 0);
-					
+
 					if (isMountedRef.current) {
 						setUnreadCount(totalUnread);
 					}
@@ -93,10 +100,12 @@ export function useUnreadMessagesCount() {
 				// Don't update state to preserve last known count
 				return;
 			}
+
 			// Log other errors only in development
 			if (process.env.NODE_ENV === 'development') {
 				console.error('[Bell Icon] Error fetching unread message count:', error);
 			}
+
 			if (isMountedRef.current) {
 				setUnreadCount(0);
 			}
@@ -111,7 +120,7 @@ export function useUnreadMessagesCount() {
 	useEffect(() => {
 		isMountedRef.current = true;
 		fetchUnreadCount();
-		
+
 		return () => {
 			isMountedRef.current = false;
 		};
@@ -120,7 +129,7 @@ export function useUnreadMessagesCount() {
 	// Poll for updates every 5 seconds (reduced from 10s for better responsiveness)
 	useEffect(() => {
 		if (!isMountedRef.current) return;
-		
+
 		pollIntervalRef.current = setInterval(() => {
 			if (isMountedRef.current) {
 				fetchUnreadCount();
@@ -158,4 +167,3 @@ export function useUnreadMessagesCount() {
 
 	return { unreadCount, isLoading, refresh };
 }
-

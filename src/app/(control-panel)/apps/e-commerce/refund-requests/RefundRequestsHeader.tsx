@@ -32,7 +32,3 @@ function RefundRequestsHeader() {
 }
 
 export default RefundRequestsHeader;
-
-
-
-

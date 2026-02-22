@@ -189,7 +189,10 @@ function BasicInfoTab() {
 
 			{/* ---------- PASSWORD SECTION ---------- */}
 			<Divider className="!my-8" />
-			<Typography variant="h6" className="font-semibold text-gray-700">
+			<Typography
+				variant="h6"
+				className="font-semibold text-gray-700"
+			>
 				Security Settings
 			</Typography>
 

@@ -15,16 +15,18 @@ export const makeStore = (preloadedState?: Partial<RootState>) => {
 		apiServiceLaravel.middleware,
 		// ECommerceLaravelApi.middleware,
 		// ProfileLaravelApi.middleware,
-		dynamicMiddleware,
+		dynamicMiddleware
 	];
 
-	console.log('Middleware signatures:', middlewareArray.map(m => m.toString()));
+	console.log(
+		'Middleware signatures:',
+		middlewareArray.map((m) => m.toString())
+	);
 
 	const store = configureStore({
 		reducer: rootReducer,
-		middleware: getDefaultMiddleware => getDefaultMiddleware({ serializableCheck: false }).concat(middlewareArray),
+		middleware: (getDefaultMiddleware) => getDefaultMiddleware({ serializableCheck: false }).concat(middlewareArray)
 	});
-
 
 	setupListeners(store.dispatch);
 	return store;

@@ -10,15 +10,18 @@ export function sanitizeStore(data: Partial<EcommerceStore>): EcommerceStore {
 
 	const normalizedDeliverySlots: string[] = (() => {
 		const raw: any = (data as any).delivery_slots;
+
 		if (Array.isArray(raw)) {
 			return raw.map((s) => String(s).trim()).filter(Boolean);
 		}
+
 		if (typeof raw === 'string') {
 			return raw
 				.split(/[,\n]/g)
 				.map((s) => s.trim())
 				.filter(Boolean);
 		}
+
 		return [];
 	})();
 

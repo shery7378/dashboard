@@ -1,399 +1,269 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useState, useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import { AuthButton, AuthInput, AuthTitle } from '@/components/auth';
+import StepBar from '@/components/StepBar';
 
 declare global {
-  interface Window {
-    google: any;
-  }
+	interface Window {
+		google: any;
+	}
 }
 
 export default function StoreSetupStep3() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const addressInputRef = useRef<HTMLInputElement | null>(null);
+	const router = useRouter();
+	const searchParams = useSearchParams();
+	const addressInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [address, setAddress] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [mapsLoaded, setMapsLoaded] = useState(false);
-  const [apiKey, setApiKey] = useState<string>("");
+	const [phone, setPhone] = useState('');
+	const [city, setCity] = useState('');
+	const [zipCode, setZipCode] = useState('');
+	const [address, setAddress] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
+	const [mapsLoaded, setMapsLoaded] = useState(false);
+	const [apiKey, setApiKey] = useState<string>('');
 
-  const email =
-    searchParams.get("email") ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("signupEmail")
-      : "") ||
-    "";
-  const userType =
-    searchParams.get("userType") ||
-    (typeof window !== "undefined"
-      ? localStorage.getItem("signupUserType")
-      : "seller") ||
-    "seller";
+	const email =
+		searchParams.get('email') || (typeof window !== 'undefined' ? localStorage.getItem('signupEmail') : '') || '';
+	const userType =
+		searchParams.get('userType') ||
+		(typeof window !== 'undefined' ? localStorage.getItem('signupUserType') : 'seller') ||
+		'seller';
 
-  useEffect(() => {
-    const fetchApiKey = async () => {
-      try {
-        const envKey =
-          process.env.NEXT_PUBLIC_MAP_KEY ||
-          process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-          "";
-        const apiUrl =
-          process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
-        const response = await fetch(`${apiUrl}/api/google-maps-api-key`, {
-          headers: { Accept: "application/json" },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          const fetchedKey = data?.data?.google_maps_api_key || "";
-          if (fetchedKey) {
-            setApiKey(fetchedKey);
-            return;
-          }
-        }
-        setApiKey(envKey);
-      } catch (err) {
-        setApiKey(
-          process.env.NEXT_PUBLIC_MAP_KEY ||
-            process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
-            "",
-        );
-      }
-    };
-    fetchApiKey();
-  }, []);
+	useEffect(() => {
+		const fetchApiKey = async () => {
+			try {
+				const envKey = process.env.NEXT_PUBLIC_MAP_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '';
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				const response = await fetch(`${apiUrl}/api/google-maps-api-key`, {
+					headers: { Accept: 'application/json' }
+				});
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (window.google?.maps?.places) {
-      setMapsLoaded(true);
-      return;
-    }
-    if (!apiKey || mapsLoaded) return;
+				if (response.ok) {
+					const data = await response.json();
+					const fetchedKey = data?.data?.google_maps_api_key || '';
 
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setMapsLoaded(true);
-    document.head.appendChild(script);
+					if (fetchedKey) {
+						setApiKey(fetchedKey);
+						return;
+					}
+				}
 
-    return () => {
-      if (document.head.contains(script)) {
-        document.head.removeChild(script);
-      }
-    };
-  }, [apiKey, mapsLoaded]);
+				setApiKey(envKey);
+			} catch (err) {
+				setApiKey(process.env.NEXT_PUBLIC_MAP_KEY || process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || '');
+			}
+		};
+		fetchApiKey();
+	}, []);
 
-  useEffect(() => {
-    if (!mapsLoaded || !addressInputRef.current || !window.google?.maps?.places)
-      return;
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
 
-    const autocomplete = new window.google.maps.places.Autocomplete(
-      addressInputRef.current,
-      {
-        types: ["address"],
-        fields: ["address_components", "formatted_address", "geometry"],
-      },
-    );
+		if (window.google?.maps?.places) {
+			setMapsLoaded(true);
+			return;
+		}
 
-    autocomplete.addListener("place_changed", () => {
-      const place = autocomplete.getPlace();
-      const components = place?.address_components || [];
-      const formattedAddress = place?.formatted_address || "";
+		if (!apiKey || mapsLoaded) return;
 
-      let foundCity = "";
-      let foundZip = "";
-      let street = "";
-      let route = "";
+		const script = document.createElement('script');
+		script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+		script.async = true;
+		script.defer = true;
+		script.onload = () => setMapsLoaded(true);
+		document.head.appendChild(script);
 
-      for (const c of components) {
-        const types = c.types || [];
-        if (types.includes("street_number")) street = c.long_name;
-        if (types.includes("route")) route = c.long_name;
-        if (types.includes("locality")) foundCity = c.long_name;
-        if (types.includes("postal_code")) foundZip = c.long_name;
-      }
+		return () => {
+			if (script && document.head.contains(script)) {
+				document.head.removeChild(script);
+			}
+		};
+	}, [apiKey, mapsLoaded]);
 
-      const addressLine =
-        street || route
-          ? `${street} ${route}`.trim()
-          : formattedAddress.split(",")[0] || "";
-      setAddress(addressLine);
-      if (foundCity) setCity(foundCity);
-      if (foundZip) setZipCode(foundZip);
-    });
-  }, [mapsLoaded]);
+	useEffect(() => {
+		if (!mapsLoaded || !addressInputRef.current || !window.google?.maps?.places) return;
 
-  const handleContinue = () => {
-    if (!phone.trim() || !city.trim() || !address.trim()) return;
+		const autocomplete = new window.google.maps.places.Autocomplete(addressInputRef.current, {
+			types: ['address'],
+			fields: ['address_components', 'formatted_address', 'geometry']
+		});
 
-    setIsSubmitting(true);
+		autocomplete.addListener('place_changed', () => {
+			const place = autocomplete.getPlace();
+			const components = place?.address_components || [];
+			const formattedAddress = place?.formatted_address || '';
 
-    localStorage.setItem("phone", phone.trim());
-    localStorage.setItem("city", city.trim());
-    localStorage.setItem("zipCode", zipCode.trim());
-    localStorage.setItem("address", address.trim());
+			let foundCity = '';
+			let foundZip = '';
+			let street = '';
+			let route = '';
 
-    setTimeout(() => {
-      const targetUrl = `/store-setup/step-4?email=${encodeURIComponent(email)}&userType=${encodeURIComponent(userType)}`;
-      router.push(targetUrl);
-    }, 300);
-  };
+			for (const c of components) {
+				const types = c.types || [];
 
-  return (
-    <div className="min-h-screen flex flex-col bg-white">
-      <main className="flex-1 flex justify-center items-center py-12 px-4 shadow-sm">
-        <div className="bg-white rounded-2xl w-full max-w-[449px] p-8 shadow-lg relative">
-          <button
-            onClick={() => router.back()}
-            className="absolute top-8 left-8 p-2 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
-          >
-            <ArrowBackIcon className="h-5 w-5 text-black" />
-          </button>
+				if (types.includes('street_number')) street = c.long_name;
+				if (types.includes('route')) route = c.long_name;
 
-          <div className="text-center mb-8">
-            <h1 className="text-[#FF6B35] text-2xl font-bold">MultiKonnect</h1>
-          </div>
+				if (types.includes('locality')) {
+					foundCity = c.long_name;
+				} else if (!foundCity && types.includes('postal_town')) {
+					foundCity = c.long_name;
+				} else if (!foundCity && types.includes('sublocality_level_1')) {
+					foundCity = c.long_name;
+				}
 
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              1
-            </div>
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              2
-            </div>
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            <div className="h-8 w-8 rounded-full bg-[#FF6B35] text-white flex items-center justify-center text-sm font-medium">
-              3
-            </div>
-            <div className="h-1 w-6 border-t-2 border-dashed border-gray-300"></div>
-            <div className="h-8 w-8 rounded-full border-2 border-[#FF6B35] bg-white flex items-center justify-center relative">
-              <div className="h-2 w-2 rounded-full bg-gray-400"></div>
-            </div>
-          </div>
+				if (types.includes('postal_code')) {
+					foundZip = c.long_name;
+				}
+			}
 
-          <h2 className="text-[#2A2A2A] text-2xl font-bold mb-6 text-left">
-            Setup Your Contact Details
-          </h2>
+			// Fallback: Places API sometimes omits postal_code (e.g. for Indian addresses).
+			// Use Geocoding API to reverse-geocode lat/lng for postal code.
+			if (!foundZip && place?.geometry?.location) {
+				const geocoder = new window.google.maps.Geocoder();
+				const latlng = {
+					lat: place.geometry.location.lat(),
+					lng: place.geometry.location.lng()
+				};
+				geocoder.geocode({ location: latlng }, (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+					if (status === window.google.maps.GeocoderStatus.OK && results?.[0]) {
+						const comp = results[0].address_components?.find((ac) => ac.types?.includes('postal_code'));
+						if (comp?.long_name) {
+							setZipCode(comp.long_name);
+							return;
+						}
+					}
+				});
+			}
 
-          <div className="space-y-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 ml-1 text-left">
-                Phone Number
-              </label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Your phone number"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-              />
-            </div>
+			const addressLine = street || route ? `${street} ${route}`.trim() : formattedAddress.split(',')[0] || '';
+			console.log('📍 Place Selected:', { addressLine, foundCity, foundZip, components });
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 ml-1 text-left">
-                City
-              </label>
-              <input
-                type="text"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Your city"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-              />
-            </div>
+			setAddress(addressLine);
+			setCity(foundCity);
+			setZipCode(foundZip);
+		});
+	}, [mapsLoaded]);
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 ml-1 text-left">
-                Zip Code
-              </label>
-              <input
-                type="text"
-                value={zipCode}
-                onChange={(e) => setZipCode(e.target.value)}
-                placeholder="Your zip code"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-              />
-            </div>
+	const handleContinue = () => {
+		if (!phone.trim() || !city.trim() || !address.trim()) return;
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 ml-1 text-left">
-                Address
-              </label>
-              <input
-                type="text"
-                ref={addressInputRef}
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Your address"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-lg focus:ring-0 focus:border-gray-200 outline-none transition-colors text-gray-800 placeholder-gray-400"
-              />
-            </div>
-          </div>
+		setIsSubmitting(true);
 
-          <button
-            onClick={handleContinue}
-            disabled={
-              !phone.trim() || !city.trim() || !address.trim() || isSubmitting
-            }
-            className={`w-full py-3 font-semibold rounded-lg text-white transition-colors ${
-              phone.trim() && city.trim() && address.trim() && !isSubmitting
-                ? "bg-[#FF6B35] hover:bg-[#FF5722]"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
-          >
-            Continue
-          </button>
-          <div className="text-center text-sm text-gray-600 mt-6">
-            Already have an account?{" "}
-            <Link href="/sign-in" className="text-[#FF6B35] underline">
-              Log in
-            </Link>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-}
-("use client");
+		localStorage.setItem('phone', phone.trim());
+		localStorage.setItem('city', city.trim());
+		localStorage.setItem('zipCode', zipCode.trim());
+		localStorage.setItem('address', address.trim());
 
-import React, { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import Link from "next/link";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { AuthButton, AuthInput, AuthTitle } from "@/components/auth";
-import StepBar from "@/components/StepBar";
+		setTimeout(() => {
+			const targetUrl = `/store-setup/step-4?email=${encodeURIComponent(email)}&userType=${encodeURIComponent(userType)}`;
+			router.push(targetUrl);
+			setIsSubmitting(false);
+		}, 300);
+	};
 
-export default function StoreSetupStep3() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [zipCode, setZipCode] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
+	return (
+		<div className="min-h-screen flex flex-col bg-white">
+			<Header />
+			<main className="flex-1 flex justify-center items-center py-12 px-4 shadow-sm bg-white">
+				<div className="bg-white rounded-2xl w-full max-w-[512px] p-8 !rounded-lg border border-[#D8DADC] relative">
+					<button
+						onClick={() => router.back()}
+						className="absolute top-8 left-8 p-2 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
+					>
+						<ArrowBackIcon className="h-5 w-5 text-black" />
+					</button>
 
-  const email =
-    searchParams.get("email") || localStorage.getItem("signupEmail") || "";
-  const userType =
-    searchParams.get("userType") ||
-    localStorage.getItem("signupUserType") ||
-    "seller";
+					<div className="text-center mb-8 flex justify-center items-center">
+						<img
+							src={'/assets/images/MultiKonnect.svg'}
+							alt="MultiKonnect"
+							className="h-8 w-36 object-contain cursor-pointer"
+						/>
+					</div>
 
-  const handleContinue = () => {
-    if (!phone.trim()) return;
+					<StepBar
+						currentStep={3}
+						totalSteps={4}
+					/>
 
-    setIsSubmitting(true);
+					<AuthTitle
+						heading="Add Your Contact & Address"
+						align="center"
+					/>
 
-    localStorage.setItem("phone", phone.trim());
-    localStorage.setItem("address", address.trim());
-    localStorage.setItem("city", city.trim());
-    localStorage.setItem("zipCode", zipCode.trim());
+					<div className="space-y-4 mb-6">
+						<div>
+							<AuthInput
+								label="Phone Number"
+								type="tel"
+								value={phone}
+								onChange={(e) => setPhone(e.target.value)}
+								placeholder="Your phone number"
+							/>
+						</div>
 
-    setTimeout(() => {
-      const cleanEmail = email.trim();
-      const cleanUserType = userType.trim();
-      router.push(
-        `/store-setup/step-4?email=${encodeURIComponent(cleanEmail)}&userType=${encodeURIComponent(cleanUserType)}`,
-      );
-      setIsSubmitting(false);
-    }, 300);
-  };
+						<div>
+							<AuthInput
+								label="Address"
+								type="text"
+								ref={addressInputRef}
+								value={address}
+								onChange={(e) => setAddress(e.target.value)}
+								placeholder="Your address"
+							/>
+						</div>
 
-  return (
-    <div className="min-h-screen flex flex-col ">
-      <main className="flex-1 flex justify-center items-center py-12 px-4 bg-white">
-        <div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white !rounded-lg border border-[#D8DADC] relative">
-          <button
-            onClick={() => router.back()}
-            className="absolute top-8 left-8 p-2 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
-          >
-            <ArrowBackIcon className="h-5 w-5 text-black" />
-          </button>
+						<div className="flex gap-4">
+							<div className="flex-1">
+								<AuthInput
+									label="City"
+									type="text"
+									value={city}
+									onChange={(e) => setCity(e.target.value)}
+									placeholder="Your city"
+								/>
+							</div>
+							<div className="flex-1">
+								<AuthInput
+									label="Zip Code"
+									type="text"
+									value={zipCode}
+									onChange={(e) => setZipCode(e.target.value)}
+									placeholder="Your zip code"
+								/>
+							</div>
+						</div>
+					</div>
 
-          <div className="text-center mb-8 flex justify-center items-center">
-            <img
-              src={"/assets/images/MultiKonnect.svg"}
-              alt="MultiKonnect"
-              className="h-8 w-36 object-contain cursor-pointer"
-            />
-          </div>
+					<AuthButton
+						onClick={handleContinue}
+						disabled={!phone.trim() || !city.trim() || !address.trim() || isSubmitting}
+						variant="primary"
+						fullWidth={true}
+						loading={isSubmitting}
+					>
+						Continue
+					</AuthButton>
 
-          <StepBar currentStep={3} totalSteps={4} />
-
-          <AuthTitle heading="Add Your Contact & Address" align="center" />
-
-          <div className="space-y-4 mb-6">
-            <div>
-              <AuthInput
-                label="Phone"
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Your phone number"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 ml-1 text-left">
-                Address
-              </label>
-              <AuthInput
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Street address"
-              />
-            </div>
-
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <AuthInput
-                  label="City"
-                  type="text"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                  placeholder="City"
-                />
-              </div>
-              <div className="flex-1">
-                <AuthInput
-                  label="Zip Code"
-                  type="text"
-                  value={zipCode}
-                  onChange={(e) => setZipCode(e.target.value)}
-                  placeholder="Zip code"
-                />
-              </div>
-            </div>
-          </div>
-
-          <AuthButton
-            variant="primary"
-            fullWidth={true}
-            onClick={handleContinue}
-            loading={isSubmitting}
-            disabled={!phone.trim() || isSubmitting}
-          >
-            Continue
-          </AuthButton>
-
-          <div className="text-center text-sm text-gray-600 mt-6">
-            Don&apos;t have an account?{" "}
-            <Link href="/sign-up" className="text-[#FF6B35] underline">
-              Sign Up
-            </Link>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
+					<div className="text-center text-sm text-gray-600 mt-6">
+						Already have an account?{' '}
+						<Link
+							href="/sign-in"
+							className="text-[#FF6B35] underline"
+						>
+							Log in
+						</Link>
+					</div>
+				</div>
+			</main>
+			<Footer />
+		</div>
+	);
 }

@@ -20,14 +20,36 @@ function FeaturesWidget() {
 		return (
 			<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
 				<div className="flex items-center justify-between px-2 pt-2">
-					<Skeleton variant="text" width={180} height={28} sx={{ ml: 1 }} />
-					<Skeleton variant="circular" width={32} height={32} />
+					<Skeleton
+						variant="text"
+						width={180}
+						height={28}
+						sx={{ ml: 1 }}
+					/>
+					<Skeleton
+						variant="circular"
+						width={32}
+						height={32}
+					/>
 				</div>
 				<div className="text-center mt-4">
-					<Skeleton variant="text" sx={{ mx: 'auto' }} width={160} height={72} />
-					<Skeleton variant="text" sx={{ mx: 'auto' }} width={120} />
+					<Skeleton
+						variant="text"
+						sx={{ mx: 'auto' }}
+						width={160}
+						height={72}
+					/>
+					<Skeleton
+						variant="text"
+						sx={{ mx: 'auto' }}
+						width={120}
+					/>
 				</div>
-				<Skeleton variant="text" sx={{ mx: 'auto' }} width={180} />
+				<Skeleton
+					variant="text"
+					sx={{ mx: 'auto' }}
+					width={180}
+				/>
 			</Paper>
 		);
 	}
@@ -47,7 +69,11 @@ function FeaturesWidget() {
 			</div>
 			<div className="text-center mt-4">
 				<Typography className="text-5xl sm:text-6xl font-bold tracking-tight leading-none text-green-500">
-					£{parseFloat(String(data.count)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+					£
+					{parseFloat(String(data.count)).toLocaleString('en-GB', {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2
+					})}
 				</Typography>
 				<Typography className="text-lg font-medium text-green-600">{data.name}</Typography>
 			</div>
@@ -56,7 +82,13 @@ function FeaturesWidget() {
 				color="text.secondary"
 			>
 				<span className="truncate">{data.extra.name}:</span>
-				<b>£{parseFloat(String(data.extra.count)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>
+				<b>
+					£
+					{parseFloat(String(data.extra.count)).toLocaleString('en-GB', {
+						minimumFractionDigits: 2,
+						maximumFractionDigits: 2
+					})}
+				</b>
 			</Typography>
 		</Paper>
 	);

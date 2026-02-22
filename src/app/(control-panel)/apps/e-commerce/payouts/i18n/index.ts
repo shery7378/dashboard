@@ -20,4 +20,3 @@ i18n.addResourceBundle('pt', 'payouts', pt);
 i18n.addResourceBundle('zh', 'payouts', zh);
 
 export default { en, tr, ar, es, fr, de, it, pt, zh };
-

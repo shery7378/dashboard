@@ -1,7 +1,5 @@
 import { orange } from '@mui/material/colors';
 import { lighten, styled } from '@mui/material/styles';
-import clsx from 'clsx';
-import FuseUtils from '@fuse/utils';
 import { Controller, useFormContext } from 'react-hook-form';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Box from '@mui/material/Box';
@@ -76,6 +74,7 @@ function ProfileImagesTab() {
 									type="file"
 									onChange={async (e) => {
 										const file = e?.target?.files?.[0];
+
 										if (!file) return;
 
 										const reader = new FileReader();
@@ -86,7 +85,10 @@ function ProfileImagesTab() {
 										reader.readAsBinaryString(file);
 									}}
 								/>
-								<FuseSvgIcon size={32} color="action">
+								<FuseSvgIcon
+									size={32}
+									color="action"
+								>
 									heroicons-outline:arrow-up-on-square
 								</FuseSvgIcon>
 							</Box>
@@ -101,13 +103,16 @@ function ProfileImagesTab() {
 									})}
 									className="productImageItem flex items-center justify-center relative w-32 h-32 rounded-lg mx-3 mb-6 overflow-hidden shadow-sm"
 								>
-									<img className="max-w-none w-auto h-full" src={value} alt="category" />
+									<img
+										className="max-w-none w-auto h-full"
+										src={value}
+										alt="category"
+									/>
 								</Box>
 							)}
 						</>
 					)}
 				/>
-
 			</div>
 		</Root>
 	);

@@ -15,7 +15,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import FuseTabs from 'src/components/tabs/FuseTabs';
 import FuseTab from 'src/components/tabs/FuseTab';
-import ProductHeader from './ProductHeader';
 import BasicInfoTab from './tabs/BasicInfoTab';
 import VariantsTab from './tabs/VariantsTab';
 import InventoryTab from './tabs/InventoryTab';
@@ -40,13 +39,17 @@ const schema = z.object({
 	store_id: z
 		.number({
 			required_error: 'Store is required',
-			invalid_type_error: 'Store must be a number',
+			invalid_type_error: 'Store must be a number'
 		})
 		.int()
 		.positive('Invalid store selected')
 		.nullable()
 		.refine((val) => val !== null, { message: 'You must select a store' }),
-	name: z.string().min(5, 'The product name must be at least 5 characters').max(200, 'The product name must not exceed 200 characters').nonempty('You must enter a product name'),
+	name: z
+		.string()
+		.min(5, 'The product name must be at least 5 characters')
+		.max(200, 'The product name must not exceed 200 characters')
+		.nonempty('You must enter a product name'),
 	description: z
 		.string()
 		.min(10, 'The description must be at least 10 characters')
@@ -56,9 +59,9 @@ const schema = z.object({
 	main_category: z
 		.object({
 			id: z.union([z.string(), z.number()]).refine((val) => val !== '' && val !== null && val !== undefined, {
-				message: 'Main category ID is required',
+				message: 'Main category ID is required'
 			}),
-			name: z.string().optional(),
+			name: z.string().optional()
 		})
 		.nullable()
 		.refine((val) => val !== null, { message: 'You must select a main category' }),
@@ -66,9 +69,9 @@ const schema = z.object({
 		.array(
 			z.object({
 				id: z.union([z.string(), z.number()]).refine((val) => val !== '' && val !== null && val !== undefined, {
-					message: 'Subcategory ID is required',
+					message: 'Subcategory ID is required'
 				}),
-				name: z.string().optional(),
+				name: z.string().optional()
 			})
 		)
 		.nonempty('You must select at least one subcategory'),
@@ -76,7 +79,7 @@ const schema = z.object({
 		.array(
 			z.object({
 				url: z.string().min(1, 'Image URL is required'),
-				is_featured: z.boolean().optional(),
+				is_featured: z.boolean().optional()
 			})
 		)
 		.min(1, 'At least one image is required'),
@@ -91,7 +94,7 @@ const schema = z.object({
 	slug: z.string().max(100, 'Slug must not exceed 100 characters').optional(),
 	// Delivery and store fields
 	store_postcode: z.string().max(20, 'Store postcode must not exceed 20 characters').optional(),
-	delivery_slots: z.string().max(50, 'Delivery slots must not exceed 50 characters').optional(),
+	delivery_slots: z.string().max(50, 'Delivery slots must not exceed 50 characters').optional()
 	// price_tax_excl: z
 	// 	.number({
 	// 		required_error: 'Price is required',
@@ -112,7 +115,7 @@ function Product() {
 	// Extract productId from route params - handle might be an array if slug is present
 	// In Next.js, with route [productId]/[[...handle]], productId should be the first segment
 	let productId = routeParams.productId;
-	
+
 	// If handle exists and productId looks like it might be part of handle, extract correctly
 	// This handles edge cases where the route might be malformed
 	if (routeParams.handle && Array.isArray(routeParams.handle) && routeParams.handle.length > 0) {
@@ -127,7 +130,6 @@ function Product() {
 	const numericId = productId ? String(productId).split('/')[0] : '';
 	productId = numericId || productId;
 
-
 	const {
 		data: product,
 		isLoading,
@@ -137,9 +139,8 @@ function Product() {
 	} = useGetECommerceProductQuery(productId, {
 		skip: !productId || productId === 'new' || productId === '',
 		// Refetch when component mounts or productId changes to ensure fresh data
-		refetchOnMountOrArgChange: true,
+		refetchOnMountOrArgChange: true
 	});
-
 
 	const [tabValue, setTabValue] = useState('basic-info');
 
@@ -147,7 +148,7 @@ function Product() {
 		mode: 'onBlur', // Changed from 'onChange' to 'onBlur' - validates on blur instead of on every change
 		defaultValues: ProductModel({}),
 		resolver: zodResolver(schema),
-		criteriaMode: 'all', // Show all validation errors
+		criteriaMode: 'all' // Show all validation errors
 	});
 
 	const { reset, watch, setValue } = methods;
@@ -157,7 +158,7 @@ function Product() {
 	// Get session to set store_id for new products
 	const { data: session } = useSession();
 	const sessionStoreId = session?.db?.store_id;
-	
+
 	// Check if user is vendor, supplier, or admin
 	const user = session?.user || session?.db;
 	const userRoles = user?.role || session?.db?.role || [];
@@ -171,10 +172,12 @@ function Product() {
 	useEffect(() => {
 		if (productId === 'new') {
 			const defaultValues = ProductModel({});
+
 			// Set store_id from session if available
 			if (sessionStoreId) {
 				defaultValues.store_id = Number(sessionStoreId);
 			}
+
 			reset(defaultValues);
 		} else if (product) {
 			// Reset form with fresh product data, including updated images
@@ -189,6 +192,7 @@ function Product() {
 	useEffect(() => {
 		if (productId === 'new' && sessionStoreId && !watch('store_id')) {
 			const numericStoreId = Number(sessionStoreId);
+
 			if (!isNaN(numericStoreId) && numericStoreId > 0) {
 				setValue('store_id', numericStoreId, { shouldValidate: true });
 			}
@@ -215,17 +219,18 @@ function Product() {
 
 	/**
 	 * Show Message if the requested products is not exists
-	*/
+	 */
 	if (isError && productId !== 'new') {
 		const errorStatus = (error as any)?.status || (error as any)?.originalStatus;
 		const errorData = (error as any)?.data;
 		const errorMessage = errorData?.message || (error as any)?.message || (error as any)?.error || 'Unknown error';
-		const isConnectionError = errorMessage.includes('Failed to fetch') || 
-		                          errorMessage.includes('ERR_CONNECTION_RESET') ||
-		                          errorMessage.includes('NetworkError') ||
-		                          errorMessage.includes('Network request failed');
+		const isConnectionError =
+			errorMessage.includes('Failed to fetch') ||
+			errorMessage.includes('ERR_CONNECTION_RESET') ||
+			errorMessage.includes('NetworkError') ||
+			errorMessage.includes('Network request failed');
 		const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'Not configured';
-		
+
 		return (
 			<motion.div
 				initial={{ opacity: 0 }}
@@ -245,36 +250,57 @@ function Product() {
 				>
 					{isConnectionError ? (
 						<>
-							<strong>Unable to connect to API server</strong><br />
-							Product ID: {productId}<br />
-							API Base URL: {apiBaseUrl}<br />
-							Full URL: {apiBaseUrl}/api/products/{productId}<br />
+							<strong>Unable to connect to API server</strong>
 							<br />
-							<strong>Possible reasons:</strong><br />
-							• API server is down or unreachable<br />
-							• Incorrect API URL configuration<br />
-							• Network connectivity issue<br />
-							• CORS configuration problem<br />
-							• Firewall blocking the connection<br />
+							Product ID: {productId}
 							<br />
-							<strong>To fix:</strong><br />
-							1. Check if NEXT_PUBLIC_API_URL is set correctly<br />
-							2. Verify the API server is running<br />
-							3. Check browser console for CORS errors<br />
+							API Base URL: {apiBaseUrl}
+							<br />
+							Full URL: {apiBaseUrl}/api/products/{productId}
+							<br />
+							<br />
+							<strong>Possible reasons:</strong>
+							<br />
+							• API server is down or unreachable
+							<br />
+							• Incorrect API URL configuration
+							<br />
+							• Network connectivity issue
+							<br />
+							• CORS configuration problem
+							<br />
+							• Firewall blocking the connection
+							<br />
+							<br />
+							<strong>To fix:</strong>
+							<br />
+							1. Check if NEXT_PUBLIC_API_URL is set correctly
+							<br />
+							2. Verify the API server is running
+							<br />
+							3. Check browser console for CORS errors
+							<br />
 							4. Verify network connectivity
 						</>
 					) : (
 						<>
-							Product ID: {productId}<br />
-							API URL: /api/products/{productId}<br />
-							{errorStatus && `HTTP Status: ${errorStatus}`}<br />
+							Product ID: {productId}
+							<br />
+							API URL: /api/products/{productId}
+							<br />
+							{errorStatus && `HTTP Status: ${errorStatus}`}
+							<br />
 							{errorMessage && `Error: ${errorMessage}`}
-							<br /><br />
-							<strong>Possible reasons:</strong><br />
-							• Product doesn't exist in database<br />
-							• Product is inactive (check active status)<br />
-							• Authentication/authorization issue<br />
-							• Product belongs to different store
+							<br />
+							<br />
+							<strong>Possible reasons:</strong>
+							<br />
+							• Product doesn't exist in database
+							<br />
+							• Product is inactive (check active status)
+							<br />
+							• Authentication/authorization issue
+							<br />• Product belongs to different store
 						</>
 					)}
 				</Typography>
@@ -301,7 +327,7 @@ function Product() {
 
 	/**
 	 * Wait while product data is loading and form is setted
-	*/
+	 */
 	// console.log('before second loading');
 	if (_.isEmpty(form) || (product && routeParams.productId !== product.data.id && routeParams.productId !== 'new')) {
 		// console.log('second loading');
@@ -347,10 +373,19 @@ function Product() {
 								value="shipping"
 								label={t('shipping')}
 							/>
-							<FuseTab value="seo-settings" label={t('seo_settings')} />
+							<FuseTab
+								value="seo-settings"
+								label={t('seo_settings')}
+							/>
 
-							<FuseTab value="variants" label={t('variants')} />
-							<FuseTab value="inventory-sync" label="Inventory Sync" />
+							<FuseTab
+								value="variants"
+								label={t('variants')}
+							/>
+							<FuseTab
+								value="inventory-sync"
+								label="Inventory Sync"
+							/>
 						</FuseTabs>
 						<div className="">
 							<div className={tabValue !== 'basic-info' ? 'hidden' : ''}>

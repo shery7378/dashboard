@@ -1,8 +1,8 @@
 export const API_BASE_URL =
 	process.env.NODE_ENV === 'development'
-		// ? `${process.env.NEXT_PUBLIC_API_URL}`
-		// ? `http://localhost:${process.env.NEXT_PUBLIC_PORT || 3000}`
-		? process.env.NEXTAUTH_URL
+		? // ? `${process.env.NEXT_PUBLIC_API_URL}`
+			// ? `http://localhost:${process.env.NEXT_PUBLIC_PORT || 3000}`
+			process.env.NEXTAUTH_URL
 		: process.env.NEXT_PUBLIC_BASE_URL || '/';
 
 // Define the types for options and configuration

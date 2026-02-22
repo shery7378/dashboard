@@ -1,7 +1,19 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Avatar, Typography, FormControl, InputLabel, Select, MenuItem, } from '@mui/material';
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableRow,
+	Avatar,
+	Typography,
+	FormControl,
+	InputLabel,
+	Select,
+	MenuItem
+} from '@mui/material';
 import { useFormContext, Controller } from 'react-hook-form';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import type { EcommerceOrder } from '../../../../apis/ECommerceOrdersApi';
@@ -33,10 +45,16 @@ export default function DetailsTab({ order }: Props) {
 			{/* Customer Info */}
 			<section className="space-y-4">
 				<header className="flex items-center border-b-1 space-x-2 pb-2">
-					<FuseSvgIcon color="action" size={24}>
+					<FuseSvgIcon
+						color="action"
+						size={24}
+					>
 						heroicons-outline:user-circle
 					</FuseSvgIcon>
-					<Typography className="text-2xl" color="text.secondary">
+					<Typography
+						className="text-2xl"
+						color="text.secondary"
+					>
 						Customer
 					</Typography>
 				</header>
@@ -54,9 +72,7 @@ export default function DetailsTab({ order }: Props) {
 								<td>
 									<div className="flex items-center">
 										<Avatar>{customer?.name?.charAt(0) || '?'}</Avatar>
-										<Typography className="truncate mx-2">
-											{customer?.name || '—'}
-										</Typography>
+										<Typography className="truncate mx-2">{customer?.name || '—'}</Typography>
 									</div>
 								</td>
 								<td>
@@ -71,10 +87,16 @@ export default function DetailsTab({ order }: Props) {
 			{/* Order Status */}
 			<section className="space-y-4">
 				<header className="flex items-center border-b-1 space-x-2 pb-2">
-					<FuseSvgIcon color="action" size={24}>
+					<FuseSvgIcon
+						color="action"
+						size={24}
+					>
 						heroicons-outline:clock
 					</FuseSvgIcon>
-					<Typography className="text-2xl" color="text.secondary">
+					<Typography
+						className="text-2xl"
+						color="text.secondary"
+					>
 						Order Status
 					</Typography>
 				</header>
@@ -91,7 +113,10 @@ export default function DetailsTab({ order }: Props) {
 						<TableBody>
 							<TableRow>
 								<TableCell>
-									<FormControl fullWidth size="small">
+									<FormControl
+										fullWidth
+										size="small"
+									>
 										<InputLabel>Shipping Status</InputLabel>
 										<Controller
 											name="shipping_status"
@@ -111,9 +136,7 @@ export default function DetailsTab({ order }: Props) {
 								</TableCell>
 								<TableCell>{order.payment_status || '—'}</TableCell>
 								<TableCell>
-									{order.created_at
-										? new Date(order.created_at).toLocaleString()
-										: '—'}
+									{order.created_at ? new Date(order.created_at).toLocaleString() : '—'}
 								</TableCell>
 							</TableRow>
 						</TableBody>
@@ -124,10 +147,16 @@ export default function DetailsTab({ order }: Props) {
 			{/* Payment */}
 			<section className="space-y-4">
 				<header className="flex items-center border-b-1 space-x-2 pb-2">
-					<FuseSvgIcon color="action" size={24}>
+					<FuseSvgIcon
+						color="action"
+						size={24}
+					>
 						heroicons-outline:currency-pound
 					</FuseSvgIcon>
-					<Typography className="text-2xl" color="text.secondary">
+					<Typography
+						className="text-2xl"
+						color="text.secondary"
+					>
 						Payment
 					</Typography>
 				</header>
@@ -155,10 +184,16 @@ export default function DetailsTab({ order }: Props) {
 			{/* Shipping */}
 			<section className="space-y-4">
 				<header className="flex items-center border-b-1 space-x-2 pb-2">
-					<FuseSvgIcon color="action" size={24}>
+					<FuseSvgIcon
+						color="action"
+						size={24}
+					>
 						heroicons-outline:truck
 					</FuseSvgIcon>
-					<Typography className="text-2xl" color="text.secondary">
+					<Typography
+						className="text-2xl"
+						color="text.secondary"
+					>
 						Shipping
 					</Typography>
 				</header>
@@ -186,10 +221,16 @@ export default function DetailsTab({ order }: Props) {
 			{/* Products */}
 			<section className="space-y-4">
 				<header className="flex items-center border-b-1 space-x-2 pb-2">
-					<FuseSvgIcon color="action" size={24}>
+					<FuseSvgIcon
+						color="action"
+						size={24}
+					>
 						heroicons-outline:shopping-cart
 					</FuseSvgIcon>
-					<Typography className="text-2xl" color="text.secondary">
+					<Typography
+						className="text-2xl"
+						color="text.secondary"
+					>
 						Products
 					</Typography>
 				</header>

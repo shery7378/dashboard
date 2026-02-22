@@ -3,59 +3,62 @@
 import { useEffect } from 'react';
 
 export default function ServiceWorkerRegistration() {
-  useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      console.log('[Service Worker] Browser supports service workers');
-      
-      // Register service worker
-      navigator.serviceWorker
-        .register('/service-worker.js', {
-          scope: '/',
-        })
-        .then((registration) => {
-          console.log('[Service Worker] Registration successful:', registration.scope);
-          console.log('[Service Worker] Registration object:', registration);
+	useEffect(() => {
+		if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+			console.log('[Service Worker] Browser supports service workers');
 
-          // Check for updates every hour
-          setInterval(() => {
-            registration.update();
-          }, 60 * 60 * 1000);
+			// Register service worker
+			navigator.serviceWorker
+				.register('/service-worker.js', {
+					scope: '/'
+				})
+				.then((registration) => {
+					console.log('[Service Worker] Registration successful:', registration.scope);
+					console.log('[Service Worker] Registration object:', registration);
 
-          // Handle updates
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  // New service worker available
-                  console.log('[Service Worker] New version available');
-                  
-                  // Optional: Show update notification to user
-                  if (window.confirm('A new version is available. Reload to update?')) {
-                    window.location.reload();
-                  }
-                }
-              });
-            }
-          });
-        })
-        .catch((error) => {
-          console.error('[Service Worker] Registration failed:', error);
-        });
+					// Check for updates every hour
+					setInterval(
+						() => {
+							registration.update();
+						},
+						60 * 60 * 1000
+					);
 
-      // Handle service worker controller change (page refresh after update)
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      });
-    } else {
-      console.log('[Service Worker] Service workers not supported');
-    }
-  }, []);
+					// Handle updates
+					registration.addEventListener('updatefound', () => {
+						const newWorker = registration.installing;
 
-  return null;
+						if (newWorker) {
+							newWorker.addEventListener('statechange', () => {
+								if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+									// New service worker available
+									console.log('[Service Worker] New version available');
+
+									// Optional: Show update notification to user
+									if (window.confirm('A new version is available. Reload to update?')) {
+										window.location.reload();
+									}
+								}
+							});
+						}
+					});
+				})
+				.catch((error) => {
+					console.error('[Service Worker] Registration failed:', error);
+				});
+
+			// Handle service worker controller change (page refresh after update)
+			let refreshing = false;
+			navigator.serviceWorker.addEventListener('controllerchange', () => {
+				if (!refreshing) {
+					refreshing = true;
+					window.location.reload();
+				}
+			});
+		} else {
+			console.log('[Service Worker] Service workers not supported');
+		}
+	}, []);
+
+	return null;
 }
-

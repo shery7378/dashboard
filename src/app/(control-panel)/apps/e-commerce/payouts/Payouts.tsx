@@ -25,7 +25,7 @@ function Payouts() {
 	useEffect(() => {
 		const success = searchParams.get('success');
 		const stripeRefresh = searchParams.get('stripe_refresh');
-		
+
 		if (success === 'true') {
 			setShowSuccessMessage(true);
 			// Refresh wallet data to get updated Stripe account status
@@ -36,7 +36,7 @@ function Payouts() {
 				setShowSuccessMessage(false);
 			}, 5000);
 		}
-		
+
 		if (stripeRefresh === 'true') {
 			// Refresh wallet data when user returns from Stripe onboarding
 			refetch();
@@ -65,15 +65,18 @@ function Payouts() {
 				}}
 				anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
 			>
-				<Alert 
+				<Alert
 					onClose={() => {
 						setShowSuccessMessage(false);
 						router.replace('/apps/e-commerce/payouts');
-					}} 
-					severity="success" 
+					}}
+					severity="success"
 					sx={{ width: '100%' }}
 				>
-					{t('stripe_account_connected', 'Stripe Account Connected! Your Stripe Connect account has been successfully set up. You can now request payouts.')}
+					{t(
+						'stripe_account_connected',
+						'Stripe Account Connected! Your Stripe Connect account has been successfully set up. You can now request payouts.'
+					)}
 				</Alert>
 			</Snackbar>
 			<div className="w-full h-full flex flex-col px-4">
@@ -91,7 +94,10 @@ function Payouts() {
 						</Alert>
 					</div>
 				) : (
-					<PayoutsContent walletData={walletData} onRefresh={refetch} />
+					<PayoutsContent
+						walletData={walletData}
+						onRefresh={refetch}
+					/>
 				)}
 			</div>
 		</>
@@ -99,4 +105,3 @@ function Payouts() {
 }
 
 export default Payouts;
-

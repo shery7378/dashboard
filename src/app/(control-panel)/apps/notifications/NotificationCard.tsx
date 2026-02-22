@@ -97,7 +97,7 @@ function NotificationCard(props: NotificationCardProps) {
 
 				<div className="flex flex-auto flex-col">
 					{item.title && (
-						<Typography 
+						<Typography
 							className="line-clamp-1 font-semibold"
 							sx={{ color: '#000000' }}
 						>
@@ -114,7 +114,7 @@ function NotificationCard(props: NotificationCardProps) {
 					)}
 
 					{item.time && (
-						<Typography 
+						<Typography
 							className="mt-2 text-sm leading-none"
 							sx={{ color: '#666666' }}
 						>

@@ -1,6 +1,5 @@
 import { Alert } from '@mui/material';
 import { useSearchParams } from 'next/navigation';
-import AuthJsProviderSelect from './AuthJsProviderSelect';
 import AuthJsCredentialsSignInForm from './AuthJsCredentialsSignInForm';
 import AuthJsCredentialsSignUpForm from './AuthJsCredentialsSignUpForm';
 import signinErrors from './signinErrors';

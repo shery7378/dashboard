@@ -3,18 +3,18 @@
 import { useMemo, useState, useEffect } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import { 
-	ListItemIcon, 
-	MenuItem, 
-	Paper, 
-	Typography, 
-	Chip, 
-	Button, 
-	Dialog, 
-	DialogTitle, 
-	DialogContent, 
-	DialogActions, 
-	TextField, 
+import {
+	ListItemIcon,
+	MenuItem,
+	Paper,
+	Typography,
+	Chip,
+	Button,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	TextField,
 	Alert,
 	Card,
 	CardContent,
@@ -38,10 +38,19 @@ interface LoyaltyPointsTableProps {
 	onSettingsDialogOpen?: () => void;
 }
 
-function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose, onSettingsDialogOpen }: LoyaltyPointsTableProps) {
+function LoyaltyPointsTable({
+	settingsDialogOpen = false,
+	onSettingsDialogClose,
+	onSettingsDialogOpen
+}: LoyaltyPointsTableProps) {
 	const { enqueueSnackbar } = useSnackbar();
 	const [adjustDialogOpen, setAdjustDialogOpen] = useState(false);
-	const [selectedUser, setSelectedUser] = useState<{ id: number; name: string; email: string; balance: number } | null>(null);
+	const [selectedUser, setSelectedUser] = useState<{
+		id: number;
+		name: string;
+		email: string;
+		balance: number;
+	} | null>(null);
 	const [adjustPoints, setAdjustPoints] = useState('');
 	const [adjustDescription, setAdjustDescription] = useState('');
 	const [filters, setFilters] = useState({
@@ -56,15 +65,19 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 		user_id: filters.user_id,
 		type: filters.type || undefined,
 		date_from: filters.date_from || undefined,
-		date_to: filters.date_to || undefined,
+		date_to: filters.date_to || undefined
 	});
 
 	// Get current settings to display - always fetch, don't skip
-	const { data: settingsData, refetch: refetchSettings, isLoading: isLoadingSettingsQuery } = useGetLoyaltyPointsSettingsQuery(undefined, {
+	const {
+		data: settingsData,
+		refetch: refetchSettings,
+		isLoading: isLoadingSettingsQuery
+	} = useGetLoyaltyPointsSettingsQuery(undefined, {
 		refetchOnMountOrArgChange: true,
-		refetchOnFocus: true,
+		refetchOnFocus: true
 	});
-	
+
 	// Log when query state changes
 	useEffect(() => {
 		console.log('📡 Settings query state changed:', {
@@ -140,16 +153,19 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 	const currencySymbol = currentSettings?.currency_symbol || '$';
 	const defaultCurrency = currentSettings?.default_currency || 'USD';
 	const isLoadingSettings = isLoadingSettingsQuery || (!settingsData && !error);
-	
+
 	// Ensure loyalty_points_enabled is a proper boolean
-	const normalizedSettings = currentSettings ? {
-		...currentSettings,
-		loyalty_points_enabled: currentSettings.loyalty_points_enabled === true || 
-		                        currentSettings.loyalty_points_enabled === 'true' || 
-		                        currentSettings.loyalty_points_enabled === 1 || 
-		                        currentSettings.loyalty_points_enabled === '1'
-	} : null;
-	
+	const normalizedSettings = currentSettings
+		? {
+				...currentSettings,
+				loyalty_points_enabled:
+					currentSettings.loyalty_points_enabled === true ||
+					currentSettings.loyalty_points_enabled === 'true' ||
+					currentSettings.loyalty_points_enabled === 1 ||
+					currentSettings.loyalty_points_enabled === '1'
+			}
+		: null;
+
 	// Default settings if not loaded yet
 	const displaySettings = normalizedSettings || {
 		loyalty_points_enabled: false,
@@ -160,15 +176,20 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 		currency_symbol: '$',
 		default_currency: 'USD'
 	};
-	
+
 	// Critical debug: Log every render to see if displaySettings is updating
 	useEffect(() => {
-		console.log('🎨 RENDER: displaySettings.loyalty_points_enabled =', displaySettings.loyalty_points_enabled, 'type:', typeof displaySettings.loyalty_points_enabled);
+		console.log(
+			'🎨 RENDER: displaySettings.loyalty_points_enabled =',
+			displaySettings.loyalty_points_enabled,
+			'type:',
+			typeof displaySettings.loyalty_points_enabled
+		);
 		console.log('🎨 RENDER: currentSettings =', currentSettings);
 		console.log('🎨 RENDER: normalizedSettings =', normalizedSettings);
 		console.log('🎨 RENDER: settingsData =', settingsData);
 	}, [displaySettings, currentSettings, normalizedSettings, settingsData]);
-	
+
 	// Debug logging - log every time settingsData changes
 	useEffect(() => {
 		console.log('📊 Table: Settings data updated!', {
@@ -187,7 +208,7 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 			{
 				accessorKey: 'id',
 				header: 'ID',
-				size: 80,
+				size: 80
 			},
 			{
 				accessorKey: 'user',
@@ -195,14 +216,18 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 				size: 200,
 				Cell: ({ row }) => {
 					const user = row.original.user;
+
 					if (!user) return 'N/A';
+
 					return (
 						<div>
-							<div>{user.first_name} {user.last_name}</div>
+							<div>
+								{user.first_name} {user.last_name}
+							</div>
 							<div style={{ fontSize: '0.75rem', color: '#666' }}>{user.email}</div>
 						</div>
 					);
-				},
+				}
 			},
 			{
 				accessorKey: 'type',
@@ -214,7 +239,7 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 						color={getTypeColor(row.original.type) as any}
 						size="small"
 					/>
-				),
+				)
 			},
 			{
 				accessorKey: 'points',
@@ -225,20 +250,21 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 						color={row.original.points > 0 ? 'success.main' : 'error.main'}
 						fontWeight="bold"
 					>
-						{row.original.points > 0 ? '+' : ''}{row.original.points.toLocaleString()}
+						{row.original.points > 0 ? '+' : ''}
+						{row.original.points.toLocaleString()}
 					</Typography>
-				),
+				)
 			},
 			{
 				accessorKey: 'balance_after',
 				header: 'Balance After',
 				size: 120,
-				Cell: ({ row }) => row.original.balance_after.toLocaleString(),
+				Cell: ({ row }) => row.original.balance_after.toLocaleString()
 			},
 			{
 				accessorKey: 'description',
 				header: 'Description',
-				size: 250,
+				size: 250
 			},
 			{
 				accessorKey: 'order',
@@ -246,9 +272,11 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 				size: 120,
 				Cell: ({ row }) => {
 					const order = row.original.order;
+
 					if (!order) return '-';
+
 					return `#${order.order_number || order.id}`;
-				},
+				}
 			},
 			{
 				accessorKey: 'expires_at',
@@ -256,15 +284,16 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 				size: 120,
 				Cell: ({ row }) => {
 					if (!row.original.expires_at) return 'Never';
+
 					return new Date(row.original.expires_at).toLocaleDateString();
-				},
+				}
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Date',
 				size: 150,
-				Cell: ({ row }) => new Date(row.original.created_at).toLocaleString(),
-			},
+				Cell: ({ row }) => new Date(row.original.created_at).toLocaleString()
+			}
 		],
 		[]
 	);
@@ -286,10 +315,10 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 	return (
 		<div className="flex flex-col space-y-4">
 			{/* Current Settings Display - Always Visible */}
-			<Card 
-				elevation={0} 
-				sx={{ 
-					mb: 3, 
+			<Card
+				elevation={0}
+				sx={{
+					mb: 3,
 					background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
 					border: '1px solid',
 					borderColor: 'divider',
@@ -308,9 +337,20 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 				}}
 			>
 				<CardContent sx={{ p: 3, '&:last-child': { pb: '296px' } }}>
-					<Box display="flex" justifyContent="space-between" alignItems="flex-start" flexWrap="wrap" gap={2}>
+					<Box
+						display="flex"
+						justifyContent="space-between"
+						alignItems="flex-start"
+						flexWrap="wrap"
+						gap={2}
+					>
 						<Box flex={1}>
-							<Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
+							<Box
+								display="flex"
+								alignItems="center"
+								gap={1.5}
+								mb={2.5}
+							>
 								<Box
 									sx={{
 										width: 40,
@@ -322,44 +362,103 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 										justifyContent: 'center'
 									}}
 								>
-									<FuseSvgIcon className="text-white" size={20}>heroicons-outline:cog-6-tooth</FuseSvgIcon>
+									<FuseSvgIcon
+										className="text-white"
+										size={20}
+									>
+										heroicons-outline:cog-6-tooth
+									</FuseSvgIcon>
 								</Box>
-								<Typography variant="h6" fontWeight="bold" sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+								<Typography
+									variant="h6"
+									fontWeight="bold"
+									sx={{
+										background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+										WebkitBackgroundClip: 'text',
+										WebkitTextFillColor: 'transparent'
+									}}
+								>
 									Current Loyalty Points Configuration
 								</Typography>
 							</Box>
 							{isLoadingSettings ? (
-								<Grid container spacing={3}>
+								<Grid
+									container
+									spacing={3}
+								>
 									{[...Array(5)].map((_, index) => (
-										<Grid item xs={12} sm={6} md={2.4} key={index}>
-											<Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-												<Typography variant="caption" color="text.secondary" gutterBottom display="block">
+										<Grid
+											item
+											xs={12}
+											sm={6}
+											md={2.4}
+											key={index}
+										>
+											<Box
+												sx={{
+													p: 2,
+													bgcolor: 'background.paper',
+													borderRadius: 2,
+													border: '1px solid',
+													borderColor: 'divider'
+												}}
+											>
+												<Typography
+													variant="caption"
+													color="text.secondary"
+													gutterBottom
+													display="block"
+												>
 													Loading...
 												</Typography>
-												<Box mt={1} sx={{ height: 24, bgcolor: 'grey.200', borderRadius: 1 }} />
+												<Box
+													mt={1}
+													sx={{ height: 24, bgcolor: 'grey.200', borderRadius: 1 }}
+												/>
 											</Box>
 										</Grid>
 									))}
 								</Grid>
 							) : (
-								<Grid container spacing={3}>
-									<Grid item xs={12} sm={6} md={2.4}>
-										<Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-											<Typography variant="caption" color="text.secondary" gutterBottom display="block">
+								<Grid
+									container
+									spacing={3}
+								>
+									<Grid
+										item
+										xs={12}
+										sm={6}
+										md={2.4}
+									>
+										<Box
+											sx={{
+												p: 2,
+												bgcolor: 'background.paper',
+												borderRadius: 2,
+												border: '1px solid',
+												borderColor: 'divider'
+											}}
+										>
+											<Typography
+												variant="caption"
+												color="text.secondary"
+												gutterBottom
+												display="block"
+											>
 												Status
 											</Typography>
 											<Box mt={1}>
 												{displaySettings.loyalty_points_enabled ? (
-													<Chip 
-														label="Enabled" 
-														color="success" 
-														size="small" 
+													<Chip
+														label="Enabled"
+														color="success"
+														size="small"
 														sx={{ fontWeight: 600 }}
 													/>
 												) : (
-													<Chip 
-														label="Disabled" 
-														color="default" 
+													<Chip
+														label="Disabled"
+														color="default"
 														size="small"
 														sx={{ fontWeight: 600 }}
 													/>
@@ -369,43 +468,137 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 									</Grid>
 									{displaySettings.loyalty_points_enabled ? (
 										<>
-											<Grid item xs={12} sm={6} md={2.4}>
-												<Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-													<Typography variant="caption" color="text.secondary" gutterBottom display="block">
+											<Grid
+												item
+												xs={12}
+												sm={6}
+												md={2.4}
+											>
+												<Box
+													sx={{
+														p: 2,
+														bgcolor: 'background.paper',
+														borderRadius: 2,
+														border: '1px solid',
+														borderColor: 'divider'
+													}}
+												>
+													<Typography
+														variant="caption"
+														color="text.secondary"
+														gutterBottom
+														display="block"
+													>
 														Points Per {displaySettings.default_currency || defaultCurrency}
 													</Typography>
-													<Typography variant="h6" fontWeight="700" color="primary.main" mt={0.5}>
-														{displaySettings.loyalty_points_per_dollar} point{displaySettings.loyalty_points_per_dollar !== 1 ? 's' : ''}
+													<Typography
+														variant="h6"
+														fontWeight="700"
+														color="primary.main"
+														mt={0.5}
+													>
+														{displaySettings.loyalty_points_per_dollar} point
+														{displaySettings.loyalty_points_per_dollar !== 1 ? 's' : ''}
 													</Typography>
 												</Box>
 											</Grid>
-											<Grid item xs={12} sm={6} md={2.4}>
-												<Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-													<Typography variant="caption" color="text.secondary" gutterBottom display="block">
+											<Grid
+												item
+												xs={12}
+												sm={6}
+												md={2.4}
+											>
+												<Box
+													sx={{
+														p: 2,
+														bgcolor: 'background.paper',
+														borderRadius: 2,
+														border: '1px solid',
+														borderColor: 'divider'
+													}}
+												>
+													<Typography
+														variant="caption"
+														color="text.secondary"
+														gutterBottom
+														display="block"
+													>
 														Redemption Rate
 													</Typography>
-													<Typography variant="h6" fontWeight="700" color="primary.main" mt={0.5}>
-														{displaySettings.currency_symbol || currencySymbol}{displaySettings.loyalty_points_dollar_per_point.toFixed(3)}
+													<Typography
+														variant="h6"
+														fontWeight="700"
+														color="primary.main"
+														mt={0.5}
+													>
+														{displaySettings.currency_symbol || currencySymbol}
+														{displaySettings.loyalty_points_dollar_per_point.toFixed(3)}
 													</Typography>
 												</Box>
 											</Grid>
-											<Grid item xs={12} sm={6} md={2.4}>
-												<Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-													<Typography variant="caption" color="text.secondary" gutterBottom display="block">
+											<Grid
+												item
+												xs={12}
+												sm={6}
+												md={2.4}
+											>
+												<Box
+													sx={{
+														p: 2,
+														bgcolor: 'background.paper',
+														borderRadius: 2,
+														border: '1px solid',
+														borderColor: 'divider'
+													}}
+												>
+													<Typography
+														variant="caption"
+														color="text.secondary"
+														gutterBottom
+														display="block"
+													>
 														Min Redemption
 													</Typography>
-													<Typography variant="h6" fontWeight="700" color="primary.main" mt={0.5}>
+													<Typography
+														variant="h6"
+														fontWeight="700"
+														color="primary.main"
+														mt={0.5}
+													>
 														{displaySettings.loyalty_points_min_redemption} pts
 													</Typography>
 												</Box>
 											</Grid>
-											<Grid item xs={12} sm={6} md={2.4}>
-												<Box sx={{ p: 2, bgcolor: 'background.paper', borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-													<Typography variant="caption" color="text.secondary" gutterBottom display="block">
+											<Grid
+												item
+												xs={12}
+												sm={6}
+												md={2.4}
+											>
+												<Box
+													sx={{
+														p: 2,
+														bgcolor: 'background.paper',
+														borderRadius: 2,
+														border: '1px solid',
+														borderColor: 'divider'
+													}}
+												>
+													<Typography
+														variant="caption"
+														color="text.secondary"
+														gutterBottom
+														display="block"
+													>
 														Expiration
 													</Typography>
-													<Typography variant="h6" fontWeight="700" color="primary.main" mt={0.5}>
-														{displaySettings.loyalty_points_expiration_days 
+													<Typography
+														variant="h6"
+														fontWeight="700"
+														color="primary.main"
+														mt={0.5}
+													>
+														{displaySettings.loyalty_points_expiration_days
 															? `${displaySettings.loyalty_points_expiration_days} days`
 															: 'Never'}
 													</Typography>
@@ -413,9 +606,16 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 											</Grid>
 										</>
 									) : (
-										<Grid item xs={12}>
-											<Alert severity="info" sx={{ mt: 1 }}>
-												Loyalty points system is currently disabled. Enable it in settings to configure earning and redemption rates.
+										<Grid
+											item
+											xs={12}
+										>
+											<Alert
+												severity="info"
+												sx={{ mt: 1 }}
+											>
+												Loyalty points system is currently disabled. Enable it in settings to
+												configure earning and redemption rates.
 											</Alert>
 										</Grid>
 									)}
@@ -447,12 +647,22 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 			</Card>
 
 			{/* Statistics Cards */}
-			<Grid container spacing={3} sx={{ mb: 3 }}>
-				<Grid item xs={12} sm={6} md={3}>
-					<Card 
+			<Grid
+				container
+				spacing={3}
+				sx={{ mb: 3 }}
+			>
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
+					<Card
 						elevation={0}
 						sx={{
-							background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%)',
+							background:
+								'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%)',
 							border: '1px solid',
 							borderColor: 'success.light',
 							borderRadius: 3,
@@ -473,13 +683,25 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 								width: 100,
 								height: 100,
 								borderRadius: '50%',
-								background: 'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%)',
+								background:
+									'linear-gradient(135deg, rgba(76, 175, 80, 0.1) 0%, rgba(56, 142, 60, 0.1) 100%)',
 								opacity: 0.5
 							}}
 						/>
 						<CardContent sx={{ position: 'relative', p: 3 }}>
-							<Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-								<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={1}>
+							<Box
+								display="flex"
+								alignItems="center"
+								justifyContent="space-between"
+								mb={1}
+							>
+								<Typography
+									variant="caption"
+									color="text.secondary"
+									fontWeight={600}
+									textTransform="uppercase"
+									letterSpacing={1}
+								>
 									Total Earned
 								</Typography>
 								<Box
@@ -493,23 +715,42 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 										justifyContent: 'center'
 									}}
 								>
-									<FuseSvgIcon className="text-white" size={20}>heroicons-outline:arrow-trending-up</FuseSvgIcon>
+									<FuseSvgIcon
+										className="text-white"
+										size={20}
+									>
+										heroicons-outline:arrow-trending-up
+									</FuseSvgIcon>
 								</Box>
 							</Box>
-							<Typography variant="h3" fontWeight="bold" color="success.main">
+							<Typography
+								variant="h3"
+								fontWeight="bold"
+								color="success.main"
+							>
 								{stats.total_earned.toLocaleString()}
 							</Typography>
-							<Typography variant="caption" color="text.secondary" mt={0.5}>
+							<Typography
+								variant="caption"
+								color="text.secondary"
+								mt={0.5}
+							>
 								Points earned by users
 							</Typography>
 						</CardContent>
 					</Card>
 				</Grid>
-				<Grid item xs={12} sm={6} md={3}>
-					<Card 
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
+					<Card
 						elevation={0}
 						sx={{
-							background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(245, 124, 0, 0.1) 100%)',
+							background:
+								'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(245, 124, 0, 0.1) 100%)',
 							border: '1px solid',
 							borderColor: 'warning.light',
 							borderRadius: 3,
@@ -530,13 +771,25 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 								width: 100,
 								height: 100,
 								borderRadius: '50%',
-								background: 'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(245, 124, 0, 0.1) 100%)',
+								background:
+									'linear-gradient(135deg, rgba(255, 152, 0, 0.1) 0%, rgba(245, 124, 0, 0.1) 100%)',
 								opacity: 0.5
 							}}
 						/>
 						<CardContent sx={{ position: 'relative', p: 3 }}>
-							<Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-								<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={1}>
+							<Box
+								display="flex"
+								alignItems="center"
+								justifyContent="space-between"
+								mb={1}
+							>
+								<Typography
+									variant="caption"
+									color="text.secondary"
+									fontWeight={600}
+									textTransform="uppercase"
+									letterSpacing={1}
+								>
 									Total Redeemed
 								</Typography>
 								<Box
@@ -550,23 +803,42 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 										justifyContent: 'center'
 									}}
 								>
-									<FuseSvgIcon className="text-white" size={20}>heroicons-outline:shopping-cart</FuseSvgIcon>
+									<FuseSvgIcon
+										className="text-white"
+										size={20}
+									>
+										heroicons-outline:shopping-cart
+									</FuseSvgIcon>
 								</Box>
 							</Box>
-							<Typography variant="h3" fontWeight="bold" color="warning.main">
+							<Typography
+								variant="h3"
+								fontWeight="bold"
+								color="warning.main"
+							>
 								{stats.total_redeemed.toLocaleString()}
 							</Typography>
-							<Typography variant="caption" color="text.secondary" mt={0.5}>
+							<Typography
+								variant="caption"
+								color="text.secondary"
+								mt={0.5}
+							>
 								Points redeemed by users
 							</Typography>
 						</CardContent>
 					</Card>
 				</Grid>
-				<Grid item xs={12} sm={6} md={3}>
-					<Card 
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
+					<Card
 						elevation={0}
 						sx={{
-							background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%)',
+							background:
+								'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%)',
 							border: '1px solid',
 							borderColor: 'error.light',
 							borderRadius: 3,
@@ -587,13 +859,25 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 								width: 100,
 								height: 100,
 								borderRadius: '50%',
-								background: 'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%)',
+								background:
+									'linear-gradient(135deg, rgba(244, 67, 54, 0.1) 0%, rgba(211, 47, 47, 0.1) 100%)',
 								opacity: 0.5
 							}}
 						/>
 						<CardContent sx={{ position: 'relative', p: 3 }}>
-							<Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-								<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={1}>
+							<Box
+								display="flex"
+								alignItems="center"
+								justifyContent="space-between"
+								mb={1}
+							>
+								<Typography
+									variant="caption"
+									color="text.secondary"
+									fontWeight={600}
+									textTransform="uppercase"
+									letterSpacing={1}
+								>
 									Total Expired
 								</Typography>
 								<Box
@@ -607,23 +891,42 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 										justifyContent: 'center'
 									}}
 								>
-									<FuseSvgIcon className="text-white" size={20}>heroicons-outline:clock</FuseSvgIcon>
+									<FuseSvgIcon
+										className="text-white"
+										size={20}
+									>
+										heroicons-outline:clock
+									</FuseSvgIcon>
 								</Box>
 							</Box>
-							<Typography variant="h3" fontWeight="bold" color="error.main">
+							<Typography
+								variant="h3"
+								fontWeight="bold"
+								color="error.main"
+							>
 								{stats.total_expired.toLocaleString()}
 							</Typography>
-							<Typography variant="caption" color="text.secondary" mt={0.5}>
+							<Typography
+								variant="caption"
+								color="text.secondary"
+								mt={0.5}
+							>
 								Points expired
 							</Typography>
 						</CardContent>
 					</Card>
 				</Grid>
-				<Grid item xs={12} sm={6} md={3}>
-					<Card 
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
+					<Card
 						elevation={0}
 						sx={{
-							background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+							background:
+								'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
 							border: '1px solid',
 							borderColor: 'primary.light',
 							borderRadius: 3,
@@ -644,13 +947,25 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 								width: 100,
 								height: 100,
 								borderRadius: '50%',
-								background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
+								background:
+									'linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%)',
 								opacity: 0.5
 							}}
 						/>
 						<CardContent sx={{ position: 'relative', p: 3 }}>
-							<Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
-								<Typography variant="caption" color="text.secondary" fontWeight={600} textTransform="uppercase" letterSpacing={1}>
+							<Box
+								display="flex"
+								alignItems="center"
+								justifyContent="space-between"
+								mb={1}
+							>
+								<Typography
+									variant="caption"
+									color="text.secondary"
+									fontWeight={600}
+									textTransform="uppercase"
+									letterSpacing={1}
+								>
 									Current Balance
 								</Typography>
 								<Box
@@ -664,13 +979,26 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 										justifyContent: 'center'
 									}}
 								>
-									<FuseSvgIcon className="text-white" size={20}>heroicons-outline:wallet</FuseSvgIcon>
+									<FuseSvgIcon
+										className="text-white"
+										size={20}
+									>
+										heroicons-outline:wallet
+									</FuseSvgIcon>
 								</Box>
 							</Box>
-							<Typography variant="h3" fontWeight="bold" color="primary.main">
+							<Typography
+								variant="h3"
+								fontWeight="bold"
+								color="primary.main"
+							>
 								{stats.current_balance.toLocaleString()}
 							</Typography>
-							<Typography variant="caption" color="text.secondary" mt={0.5}>
+							<Typography
+								variant="caption"
+								color="text.secondary"
+								mt={0.5}
+							>
 								Active points balance
 							</Typography>
 						</CardContent>
@@ -679,10 +1007,10 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 			</Grid>
 
 			{/* Filters */}
-			<Paper 
+			<Paper
 				elevation={0}
-				sx={{ 
-					p: 3, 
+				sx={{
+					p: 3,
 					mb: 3,
 					borderRadius: 3,
 					border: '1px solid',
@@ -690,12 +1018,35 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 					background: 'linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%)'
 				}}
 			>
-				<Box display="flex" alignItems="center" gap={1.5} mb={2.5}>
-					<FuseSvgIcon className="text-primary" size={24}>heroicons-outline:funnel</FuseSvgIcon>
-					<Typography variant="h6" fontWeight="bold">Filters</Typography>
+				<Box
+					display="flex"
+					alignItems="center"
+					gap={1.5}
+					mb={2.5}
+				>
+					<FuseSvgIcon
+						className="text-primary"
+						size={24}
+					>
+						heroicons-outline:funnel
+					</FuseSvgIcon>
+					<Typography
+						variant="h6"
+						fontWeight="bold"
+					>
+						Filters
+					</Typography>
 				</Box>
-				<Grid container spacing={2}>
-					<Grid item xs={12} sm={6} md={3}>
+				<Grid
+					container
+					spacing={2}
+				>
+					<Grid
+						item
+						xs={12}
+						sm={6}
+						md={3}
+					>
 						<TextField
 							fullWidth
 							label="Type"
@@ -711,7 +1062,12 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 							<MenuItem value="adjusted">Adjusted</MenuItem>
 						</TextField>
 					</Grid>
-					<Grid item xs={12} sm={6} md={3}>
+					<Grid
+						item
+						xs={12}
+						sm={6}
+						md={3}
+					>
 						<TextField
 							fullWidth
 							label="Date From"
@@ -722,7 +1078,12 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 							InputLabelProps={{ shrink: true }}
 						/>
 					</Grid>
-					<Grid item xs={12} sm={6} md={3}>
+					<Grid
+						item
+						xs={12}
+						sm={6}
+						md={3}
+					>
 						<TextField
 							fullWidth
 							label="Date To"
@@ -733,7 +1094,12 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 							InputLabelProps={{ shrink: true }}
 						/>
 					</Grid>
-					<Grid item xs={12} sm={6} md={3}>
+					<Grid
+						item
+						xs={12}
+						sm={6}
+						md={3}
+					>
 						<Button
 							variant="outlined"
 							onClick={() => setFilters({ user_id: '', type: '', date_from: '', date_to: '' })}
@@ -761,7 +1127,7 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 							<FuseSvgIcon>heroicons-outline:eye</FuseSvgIcon>
 						</ListItemIcon>
 						View User History
-					</MenuItem>,
+					</MenuItem>
 				]}
 			/>
 
@@ -771,23 +1137,23 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 				onClose={async () => {
 					console.log('🔵 Dialog closing, refetching settings...');
 					onSettingsDialogClose?.();
-					
+
 					// Force a hard refetch by invalidating cache and refetching
 					console.log('🟠 Starting aggressive refetch...');
-					
+
 					// First refetch immediately
 					const result1 = await refetchSettings();
 					console.log('🟢 First refetch result:', result1);
 					console.log('🟢 First refetch data:', result1?.data);
 					console.log('🟢 First refetch enabled:', result1?.data?.data?.loyalty_points_enabled);
-					
+
 					// Second refetch after short delay
 					setTimeout(async () => {
 						const result2 = await refetchSettings();
 						console.log('🟡 Second refetch result:', result2);
 						console.log('🟡 Second refetch data:', result2?.data);
 						console.log('🟡 Second refetch enabled:', result2?.data?.data?.loyalty_points_enabled);
-						
+
 						// Third refetch to be absolutely sure
 						setTimeout(async () => {
 							const result3 = await refetchSettings();
@@ -800,10 +1166,10 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 			/>
 
 			{/* Adjust Points Dialog */}
-			<Dialog 
-				open={adjustDialogOpen} 
-				onClose={() => setAdjustDialogOpen(false)} 
-				maxWidth="sm" 
+			<Dialog
+				open={adjustDialogOpen}
+				onClose={() => setAdjustDialogOpen(false)}
+				maxWidth="sm"
 				fullWidth
 				aria-labelledby="adjust-points-dialog-title"
 				disableAutoFocus={false}
@@ -812,7 +1178,10 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 				<DialogTitle id="adjust-points-dialog-title">Adjust Points</DialogTitle>
 				<DialogContent>
 					{selectedUser && (
-						<Alert severity="info" sx={{ mb: 2 }}>
+						<Alert
+							severity="info"
+							sx={{ mb: 2 }}
+						>
 							Current Balance: <strong>{selectedUser.balance.toLocaleString()} points</strong>
 						</Alert>
 					)}
@@ -837,7 +1206,11 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setAdjustDialogOpen(false)}>Cancel</Button>
-					<Button onClick={handleAdjustPoints} variant="contained" color="primary">
+					<Button
+						onClick={handleAdjustPoints}
+						variant="contained"
+						color="primary"
+					>
 						Adjust Points
 					</Button>
 				</DialogActions>
@@ -847,4 +1220,3 @@ function LoyaltyPointsTable({ settingsDialogOpen = false, onSettingsDialogClose,
 }
 
 export default LoyaltyPointsTable;
-

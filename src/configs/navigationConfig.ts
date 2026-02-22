@@ -25,7 +25,7 @@ i18n.addResourceBundle('zh', 'navigation', zh);
 let dividerCount = 0;
 const divider = (): FuseNavItemType => ({
 	id: `divider-${++dividerCount}`,
-	type: 'divider',
+	type: 'divider'
 });
 
 const navigationConfig: FuseNavItemType[] = [
@@ -43,7 +43,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-document-check',
 				url: '/dashboards/project',
-				auth: authRoles.admin,
+				auth: authRoles.admin
 			},
 			{
 				id: 'admin.analytics',
@@ -51,7 +51,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:chart-pie',
 				url: '/dashboards/analytics',
-				auth: authRoles.admin,
+				auth: authRoles.admin
 			},
 			divider(),
 			{
@@ -60,7 +60,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'feather:user-check',
 				url: '/sellers',
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -73,9 +73,9 @@ const navigationConfig: FuseNavItemType[] = [
 						id: 'admin.stores.all',
 						title: 'Stores',
 						type: 'item',
-						url: '/apps/e-commerce/stores',
-					},
-				],
+						url: '/apps/e-commerce/stores'
+					}
+				]
 			},
 			divider(),
 			{
@@ -89,9 +89,9 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Products',
 						type: 'item',
 						url: '/apps/e-commerce/products',
-						end: true,
-					},
-				],
+						end: true
+					}
+				]
 			},
 			divider(),
 			{
@@ -100,7 +100,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'feather:package',
 				url: '/apps/e-commerce/orders',
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -110,7 +110,7 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:banknotes',
 				url: '/apps/e-commerce/withdrawals',
 				end: true,
-				auth: authRoles.admin,
+				auth: authRoles.admin
 			},
 			divider(),
 			{
@@ -120,7 +120,7 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:arrow-uturn-left',
 				url: '/apps/e-commerce/refund-requests',
 				end: true,
-				auth: authRoles.admin,
+				auth: authRoles.admin
 			},
 			divider(),
 			{
@@ -130,7 +130,7 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:check-badge',
 				url: '/pages/kyc-approvals',
 				auth: authRoles.admin,
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -140,7 +140,7 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:star',
 				url: '/apps/e-commerce/loyalty-points',
 				end: true,
-				auth: authRoles.admin,
+				auth: authRoles.admin
 			},
 			divider(),
 			{
@@ -155,7 +155,7 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:ticket',
 						url: '/pages/marketing/coupons',
-						end: true,
+						end: true
 					},
 					{
 						id: 'admin.marketing.flashsales',
@@ -163,7 +163,7 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:bolt',
 						url: '/pages/marketing/flash-sales',
-						end: true,
+						end: true
 					},
 					{
 						id: 'admin.marketing.campaigns',
@@ -171,9 +171,9 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						icon: 'heroicons-outline:megaphone',
 						url: '/pages/marketing/campaigns',
-						end: true,
-					},
-				],
+						end: true
+					}
+				]
 			},
 			divider(),
 			{
@@ -186,15 +186,15 @@ const navigationConfig: FuseNavItemType[] = [
 						id: 'admin.categories.all',
 						title: 'Categories',
 						type: 'item',
-						url: '/apps/e-commerce/categories',
+						url: '/apps/e-commerce/categories'
 					},
 					{
 						id: 'admin.categories.new',
 						title: 'New category',
 						type: 'item',
-						url: '/apps/e-commerce/categories/new',
-					},
-				],
+						url: '/apps/e-commerce/categories/new'
+					}
+				]
 			},
 			divider(),
 			{
@@ -203,7 +203,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:arrow-trending-up',
 				url: '/reports',
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -212,7 +212,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'material-outline:supervised_user_circle',
 				url: '/accounts',
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -229,7 +229,7 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:currency-dollar',
 						url: '/pages/settings/currency',
 						auth: authRoles.admin,
-						end: true,
+						end: true
 					},
 					{
 						id: 'admin.notification-settings',
@@ -238,7 +238,7 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:bell-alert',
 						url: '/pages/settings/notifications',
 						auth: authRoles.admin,
-						end: true,
+						end: true
 					},
 					{
 						id: 'admin.maps-radius-settings',
@@ -247,7 +247,7 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:map',
 						url: '/pages/settings/radius',
 						auth: authRoles.admin,
-						end: true,
+						end: true
 					},
 					{
 						id: 'admin.currency-rates-settings',
@@ -256,7 +256,7 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:currency-dollar',
 						url: '/pages/settings/currency-rates',
 						auth: authRoles.admin,
-						end: true,
+						end: true
 					},
 					{
 						id: 'admin.product-fees-settings',
@@ -265,7 +265,7 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:currency-dollar',
 						url: '/pages/settings/product-fees',
 						auth: authRoles.admin,
-						end: true,
+						end: true
 					},
 					divider(),
 					{
@@ -275,11 +275,11 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:credit-card',
 						url: '/apps/settings/payment-methods',
 						auth: authRoles.admin,
-						end: true,
-					},
-				],
-			},
-		],
+						end: true
+					}
+				]
+			}
+		]
 	},
 
 	// Seller menu (sellers can buy from suppliers - wholesale catalog access)
@@ -295,7 +295,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-document-check',
 				url: '/dashboards/seller',
-				auth: authRoles.vendor,
+				auth: authRoles.vendor
 			},
 			{
 				id: 'supplier.dashboards',
@@ -303,7 +303,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-document-check',
 				url: '/dashboards/supplier',
-				auth: authRoles.supplier,
+				auth: authRoles.supplier
 			},
 			{
 				id: 'seller.analytics',
@@ -311,7 +311,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:chart-bar',
 				url: '/dashboards/seller-analytics',
-				auth: authRoles.vendor,
+				auth: authRoles.vendor
 			},
 			{
 				id: 'supplier.analytics',
@@ -319,7 +319,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:chart-bar',
 				url: '/dashboards/supplier-analytics',
-				auth: authRoles.supplier,
+				auth: authRoles.supplier
 			},
 			divider(),
 			{
@@ -328,7 +328,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'feather:package',
 				url: '/apps/e-commerce/orders',
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -342,7 +342,7 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Products',
 						type: 'item',
 						url: '/apps/e-commerce/products',
-						end: true,
+						end: true
 					},
 					{
 						id: 'seller.products.wholesale',
@@ -350,9 +350,9 @@ const navigationConfig: FuseNavItemType[] = [
 						type: 'item',
 						url: '/apps/e-commerce/wholesale-catalog',
 						auth: authRoles.vendor,
-						end: true,
-					},
-				],
+						end: true
+					}
+				]
 			},
 			divider(),
 			{
@@ -362,7 +362,7 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/apps/e-commerce/live-selling',
 				icon: 'heroicons-outline:video-camera',
 				auth: [...authRoles.vendor], // Seller only
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -372,7 +372,7 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/apps/e-commerce/payouts',
 				icon: 'heroicons-outline:currency-dollar',
 				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
-				end: true,
+				end: true
 			},
 			// {
 			// 	id: 'seller.order-settings',
@@ -391,7 +391,7 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/apps/e-commerce/credit-terms',
 				icon: 'heroicons-outline:credit-card',
 				auth: authRoles.supplier, // Only suppliers can manage credit terms
-				end: true,
+				end: true
 			},
 			{
 				id: 'supplier.wholesale-orders',
@@ -400,7 +400,7 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/apps/e-commerce/wholesale-orders',
 				icon: 'heroicons-outline:shopping-cart',
 				auth: authRoles.supplier, // Only suppliers can view wholesale orders
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -410,7 +410,7 @@ const navigationConfig: FuseNavItemType[] = [
 				icon: 'heroicons-outline:chat-bubble-left-right',
 				url: '/apps/messages',
 				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
-				end: true,
+				end: true
 			},
 			divider(),
 			{
@@ -419,7 +419,7 @@ const navigationConfig: FuseNavItemType[] = [
 				type: 'item',
 				icon: 'heroicons-outline:identification',
 				url: '/pages/kyc',
-				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
+				auth: [...authRoles.vendor, ...authRoles.supplier] // Allow both seller and supplier roles
 			},
 			divider(),
 
@@ -435,14 +435,13 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Change Password',
 						translate: 'USER_PASSWORD',
 						type: 'item',
-						url: '/accounts/profile#change-password',
-					},
-				],
+						url: '/accounts/profile#change-password'
+					}
+				]
 			},
-			divider(), // 👈 divider added here too
-		],
-	},
-
+			divider() // 👈 divider added here too
+		]
+	}
 ];
 
 export default navigationConfig;

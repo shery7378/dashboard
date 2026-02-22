@@ -1,9 +1,6 @@
 import Avatar from '@mui/material/Avatar';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import { useState, useEffect } from 'react';
-import _ from 'lodash';
 import Button from '@mui/material/Button';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { darken } from '@mui/material/styles';
@@ -75,7 +72,8 @@ function ProjectDashboardAppHeader() {
 							user?.profile?.image
 								? `${process.env.NEXT_PUBLIC_API_URL}/${user.profile.image}`
 								: '/assets/images/avatars/default-avatar.png'
-						}					>
+						}
+					>
 						{!user?.profile?.image && user?.displayName?.[0]}
 					</Avatar>
 					<div className="flex flex-col min-w-0 mx-4">
@@ -111,16 +109,14 @@ function ProjectDashboardAppHeader() {
 							position: 'absolute',
 							right: 8,
 							top: 8,
-							color: (theme) => theme.palette.grey[500],
+							color: (theme) => theme.palette.grey[500]
 						}}
 					>
 						<CloseIcon />
 					</IconButton>
 				</DialogTitle>
 				<DialogContent>
-					<Typography>
-						Please add a store before proceeding.
-					</Typography>
+					<Typography>Please add a store before proceeding.</Typography>
 				</DialogContent>
 				<DialogActions>
 					<Button

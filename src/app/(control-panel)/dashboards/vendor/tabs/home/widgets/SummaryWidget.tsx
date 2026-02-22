@@ -19,7 +19,9 @@ function SummaryWidget() {
 	const ranges = widget?.ranges;
 	const currentRangeDefault = widget?.currentRange;
 
-	const [currentRange, setCurrentRange] = useState<RangeType>((currentRangeDefault as RangeType) || ('this-week' as RangeType));
+	const [currentRange, setCurrentRange] = useState<RangeType>(
+		(currentRangeDefault as RangeType) || ('this-week' as RangeType)
+	);
 
 	useEffect(() => {
 		if (currentRangeDefault) {
@@ -35,14 +37,35 @@ function SummaryWidget() {
 		return (
 			<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
 				<div className="flex items-center justify-between px-2 pt-2">
-					<Skeleton variant="rounded" width={160} height={36} />
-					<Skeleton variant="circular" width={32} height={32} />
+					<Skeleton
+						variant="rounded"
+						width={160}
+						height={36}
+					/>
+					<Skeleton
+						variant="circular"
+						width={32}
+						height={32}
+					/>
 				</div>
 				<div className="text-center mt-4">
-					<Skeleton variant="text" sx={{ mx: 'auto' }} width={160} height={72} />
-					<Skeleton variant="text" sx={{ mx: 'auto' }} width={120} />
+					<Skeleton
+						variant="text"
+						sx={{ mx: 'auto' }}
+						width={160}
+						height={72}
+					/>
+					<Skeleton
+						variant="text"
+						sx={{ mx: 'auto' }}
+						width={120}
+					/>
 				</div>
-				<Skeleton variant="text" sx={{ mx: 'auto' }} width={200} />
+				<Skeleton
+					variant="text"
+					sx={{ mx: 'auto' }}
+					width={200}
+				/>
 			</Paper>
 		);
 	}

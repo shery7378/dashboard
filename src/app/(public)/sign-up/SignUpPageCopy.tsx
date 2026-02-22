@@ -112,8 +112,8 @@ function SignUpPage() {
 						<div>our community</div>
 					</div>
 					<div className="mt-6 text-lg leading-6 tracking-tight text-gray-100">
-						MultiKonnect helps developers to build organized and well coded dashboards full of beautiful and rich
-						modules. Join us and start building your application today.
+						MultiKonnect helps developers to build organized and well coded dashboards full of beautiful and
+						rich modules. Join us and start building your application today.
 					</div>
 					<div className="mt-8 flex items-center">
 						<AvatarGroup

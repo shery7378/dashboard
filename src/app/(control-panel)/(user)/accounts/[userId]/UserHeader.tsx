@@ -35,7 +35,10 @@ function UserHeader({ onSubmit, loading, handleRemoveUser, isDeleting, profileId
 					<Typography className="text-lg sm:text-2xl truncate font-semibold">
 						{name || first_name || user?.name || 'User Profile'}
 					</Typography>
-					<Typography variant="caption" className="font-medium text-gray-500">
+					<Typography
+						variant="caption"
+						className="font-medium text-gray-500"
+					>
 						Account Settings
 					</Typography>
 				</div>
@@ -50,9 +53,7 @@ function UserHeader({ onSubmit, loading, handleRemoveUser, isDeleting, profileId
 						color="secondary"
 						onClick={handleRemoveUser}
 						disabled={isDeleting}
-						startIcon={
-							<FuseSvgIcon className="hidden sm:flex">heroicons-outline:trash</FuseSvgIcon>
-						}
+						startIcon={<FuseSvgIcon className="hidden sm:flex">heroicons-outline:trash</FuseSvgIcon>}
 					>
 						{isDeleting ? 'Removing...' : 'Remove'}
 					</Button>

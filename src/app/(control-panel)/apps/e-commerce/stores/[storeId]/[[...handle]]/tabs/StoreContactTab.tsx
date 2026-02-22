@@ -25,15 +25,21 @@ function StoreContactTab() {
 
 	return (
 		<Box sx={{ display: 'grid', gap: 2 }}>
-			<Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
-				<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+			<Paper
+				variant="outlined"
+				sx={{ borderRadius: 2, p: 2 }}
+			>
+				<Typography
+					variant="subtitle1"
+					sx={{ fontWeight: 700, mb: 1 }}
+				>
 					Contact
 				</Typography>
 				<Box
 					sx={{
 						display: 'grid',
 						gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-						gap: 2,
+						gap: 2
 					}}
 				>
 					<Controller
@@ -67,8 +73,14 @@ function StoreContactTab() {
 				</Box>
 			</Paper>
 
-			<Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
-				<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+			<Paper
+				variant="outlined"
+				sx={{ borderRadius: 2, p: 2 }}
+			>
+				<Typography
+					variant="subtitle1"
+					sx={{ fontWeight: 700, mb: 1 }}
+				>
 					Availability
 				</Typography>
 				<Stack spacing={1}>
@@ -76,35 +88,65 @@ function StoreContactTab() {
 						name="active"
 						control={control}
 						render={({ field }) => (
-							<FormControlLabel control={<Switch {...field} checked={field.value} />} label="Store Active" />
+							<FormControlLabel
+								control={
+									<Switch
+										{...field}
+										checked={field.value}
+									/>
+								}
+								label="Store Active"
+							/>
 						)}
 					/>
 					<Controller
 						name="offers_pickup"
 						control={control}
 						render={({ field }) => (
-							<FormControlLabel control={<Switch {...field} checked={field.value} />} label="Offers Pickup" />
+							<FormControlLabel
+								control={
+									<Switch
+										{...field}
+										checked={field.value}
+									/>
+								}
+								label="Offers Pickup"
+							/>
 						)}
 					/>
 					<Controller
 						name="offers_delivery"
 						control={control}
 						render={({ field }) => (
-							<FormControlLabel control={<Switch {...field} checked={field.value} />} label="Offers Delivery" />
+							<FormControlLabel
+								control={
+									<Switch
+										{...field}
+										checked={field.value}
+									/>
+								}
+								label="Offers Delivery"
+							/>
 						)}
 					/>
 				</Stack>
 			</Paper>
 
-			<Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
-				<Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
+			<Paper
+				variant="outlined"
+				sx={{ borderRadius: 2, p: 2 }}
+			>
+				<Typography
+					variant="subtitle1"
+					sx={{ fontWeight: 700, mb: 1 }}
+				>
 					Delivery
 				</Typography>
 				<Box
 					sx={{
 						display: 'grid',
 						gridTemplateColumns: { xs: '1fr', md: '1.5fr 1fr' },
-						gap: 2,
+						gap: 2
 					}}
 				>
 					<Controller
@@ -117,14 +159,17 @@ function StoreContactTab() {
 								options={deliverySlotPresets}
 								value={Array.isArray(field.value) ? field.value : []}
 								onChange={(_, value) => {
-									const next = (value || [])
-										.map((v) => String(v).trim())
-										.filter(Boolean);
+									const next = (value || []).map((v) => String(v).trim()).filter(Boolean);
 									field.onChange(next);
 								}}
 								renderTags={(value, getTagProps) =>
 									value.map((option, index) => (
-										<Chip variant="outlined" label={option} {...getTagProps({ index })} key={`${option}-${index}`} />
+										<Chip
+											variant="outlined"
+											label={option}
+											{...getTagProps({ index })}
+											key={`${option}-${index}`}
+										/>
 									))
 								}
 								renderInput={(params) => (

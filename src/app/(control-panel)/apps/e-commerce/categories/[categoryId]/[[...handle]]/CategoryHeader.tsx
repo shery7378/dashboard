@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -13,7 +13,7 @@ import {
 	EcommerceCategory,
 	useCreateECommerceCategoryMutation,
 	useDeleteECommerceCategoryMutation,
-	useUpdateECommerceCategoryMutation,
+	useUpdateECommerceCategoryMutation
 } from '../../../apis/CategoriesLaravelApi';
 import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
 import { enqueueSnackbar } from 'notistack';
@@ -49,15 +49,14 @@ function CategoryHeader() {
 				setSuccessMessage('Your category has been updated successfully.');
 				setSuccessDialogOpen(true);
 				enqueueSnackbar('Category updated successfully', {
-					variant: 'success',
+					variant: 'success'
 				});
 			})
 			.catch((error) => {
 				console.error('Error saving category:', error);
-				enqueueSnackbar(
-					`Failed to update category ${error.data?.error ?? 'An error occurred'}`,
-					{ variant: 'error' }
-				);
+				enqueueSnackbar(`Failed to update category ${error.data?.error ?? 'An error occurred'}`, {
+					variant: 'error'
+				});
 			});
 	}
 
@@ -70,15 +69,14 @@ function CategoryHeader() {
 				setSuccessDialogOpen(true);
 				setCreatedCategoryId(data.data.id);
 				enqueueSnackbar('Category created successfully', {
-					variant: 'success',
+					variant: 'success'
 				});
 			})
 			.catch((error) => {
 				console.error('Error creating category:', error);
-				enqueueSnackbar(
-					`Failed to create category ${error.data?.error ?? 'An error occurred'}`,
-					{ variant: 'error' }
-				);
+				enqueueSnackbar(`Failed to create category ${error.data?.error ?? 'An error occurred'}`, {
+					variant: 'error'
+				});
 			});
 	}
 
@@ -93,16 +91,15 @@ function CategoryHeader() {
 			.unwrap()
 			.then(() => {
 				enqueueSnackbar('Category deleted successfully', {
-					variant: 'success',
+					variant: 'success'
 				});
 				navigate('/apps/e-commerce/categories');
 			})
 			.catch((error) => {
 				console.error('Error deleting category:', error.data?.error);
-				enqueueSnackbar(
-					`Failed to delete category ${error.data?.error ?? 'An error occurred'}`,
-					{ variant: 'error' }
-				);
+				enqueueSnackbar(`Failed to delete category ${error.data?.error ?? 'An error occurred'}`, {
+					variant: 'error'
+				});
 			})
 			.finally(() => setConfirmDialogOpen(false));
 	}
@@ -110,6 +107,7 @@ function CategoryHeader() {
 	/** ✅ Success dialog close (redirect after action) */
 	function handleCloseDialog() {
 		setSuccessDialogOpen(false);
+
 		if (createdCategoryId) {
 			navigate(`/apps/e-commerce/categories/${createdCategoryId}`);
 		}

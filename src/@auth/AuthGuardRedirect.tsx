@@ -54,7 +54,7 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 			userRole,
 			isGuest,
 			pathname,
-			status,
+			status
 		});
 
 		const isOnlyGuestAllowed = Array.isArray(auth) && auth.length === 0;
@@ -67,7 +67,7 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 			ignoredPaths: ignoredPaths.includes(pathname),
 			pathname,
 			isGuest,
-			status,
+			status
 		});
 
 		// If pathname is in ignoredPaths, always grant access (public pages)
@@ -112,6 +112,7 @@ function AuthGuardRedirect({ auth, children, loginRedirectUrl = '/' }: AuthGuard
 				setSessionRedirectUrl(pathname);
 			} else if (!isGuest && !ignoredPaths.includes(pathname)) {
 				console.log('AuthGuardRedirect - User without permission, redirecting to 401');
+
 				/**
 				 * If user is member but don't have permission to view the route
 				 * redirected to main route '/'

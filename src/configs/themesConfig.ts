@@ -6,18 +6,18 @@ import { FuseThemesType } from '@fuse/core/FuseSettings/FuseSettings';
  * The lightPaletteText object defines the text color palette for the light theme.
  */
 export const lightPaletteText = {
-	primary: '#FF5A2A',     // rgb(17, 24, 39)
-	secondary: '#6B7280',   // rgb(107, 114, 128)
-	disabled: '#959CA9'     // rgb(149, 156, 169)
+	primary: '#FF5A2A', // rgb(17, 24, 39)
+	secondary: '#6B7280', // rgb(107, 114, 128)
+	disabled: '#959CA9' // rgb(149, 156, 169)
 };
 
 /**
  * The darkPaletteText object defines the text color palette for the dark theme.
  */
 export const darkPaletteText = {
-	primary: '#FFFFFF',     // rgb(255, 255, 255)
-	secondary: '#94A3B8',   // rgb(148, 163, 184)
-	disabled: '#9CA3AF'     // rgb(156, 163, 175)
+	primary: '#FFFFFF', // rgb(255, 255, 255)
+	secondary: '#94A3B8', // rgb(148, 163, 184)
+	disabled: '#9CA3AF' // rgb(156, 163, 175)
 };
 
 /**

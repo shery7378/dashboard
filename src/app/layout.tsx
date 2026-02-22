@@ -41,13 +41,34 @@ export default async function RootLayout({
 					name="theme-color"
 					content="#000000"
 				/>
-				<meta name="application-name" content="MultiKonnect Admin" />
-				<meta name="apple-mobile-web-app-capable" content="yes" />
-				<meta name="apple-mobile-web-app-status-bar-style" content="default" />
-				<meta name="apple-mobile-web-app-title" content="MultiKonnect Admin" />
-				<meta name="mobile-web-app-capable" content="yes" />
-				<meta name="msapplication-TileColor" content="#000000" />
-				<meta name="msapplication-tap-highlight" content="no" />
+				<meta
+					name="application-name"
+					content="MultiKonnect Admin"
+				/>
+				<meta
+					name="apple-mobile-web-app-capable"
+					content="yes"
+				/>
+				<meta
+					name="apple-mobile-web-app-status-bar-style"
+					content="default"
+				/>
+				<meta
+					name="apple-mobile-web-app-title"
+					content="MultiKonnect Admin"
+				/>
+				<meta
+					name="mobile-web-app-capable"
+					content="yes"
+				/>
+				<meta
+					name="msapplication-TileColor"
+					content="#000000"
+				/>
+				<meta
+					name="msapplication-tap-highlight"
+					content="no"
+				/>
 				<base href="/" />
 				{/*
 					manifest.json provides metadata used when your web app is added to the
@@ -57,9 +78,22 @@ export default async function RootLayout({
 					rel="manifest"
 					href="/manifest.json"
 				/>
-				<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-				<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
-				<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png" />
+				<link
+					rel="apple-touch-icon"
+					href="/icons/apple-touch-icon.png"
+				/>
+				<link
+					rel="icon"
+					type="image/png"
+					sizes="192x192"
+					href="/icons/icon-192x192.png"
+				/>
+				<link
+					rel="icon"
+					type="image/png"
+					sizes="512x512"
+					href="/icons/icon-512x512.png"
+				/>
 				{/* Font preloads for faster first paint */}
 				<link
 					rel="preload"
@@ -73,11 +107,29 @@ export default async function RootLayout({
 					href="/favicon.ico"
 				/>
 				{/* GA preconnects to speed up DNS/TLS */}
-				<link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
-				<link rel="preconnect" href="https://www.google-analytics.com" crossOrigin="anonymous" />
-				<link rel="dns-prefetch" href="https://www.googletagmanager.com" />
-				<link rel="dns-prefetch" href="https://www.google-analytics.com" />
-				<link rel="prefetch" href="/dashboards/analytics" as="document" />
+				<link
+					rel="preconnect"
+					href="https://www.googletagmanager.com"
+					crossOrigin="anonymous"
+				/>
+				<link
+					rel="preconnect"
+					href="https://www.google-analytics.com"
+					crossOrigin="anonymous"
+				/>
+				<link
+					rel="dns-prefetch"
+					href="https://www.googletagmanager.com"
+				/>
+				<link
+					rel="dns-prefetch"
+					href="https://www.google-analytics.com"
+				/>
+				<link
+					rel="prefetch"
+					href="/dashboards/analytics"
+					as="document"
+				/>
 				<noscript id="emotion-insertion-point" />
 			</head>
 			<body
@@ -89,7 +141,10 @@ export default async function RootLayout({
 					src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID}`}
 					strategy="afterInteractive"
 				/>
-				<Script id="ga4-init" strategy="afterInteractive">
+				<Script
+					id="ga4-init"
+					strategy="afterInteractive"
+				>
 					{`
 					  window.dataLayer = window.dataLayer || [];
 					  function gtag(){dataLayer.push(arguments);} 
@@ -100,7 +155,10 @@ export default async function RootLayout({
 					`}
 				</Script>
 				{/* Chunk loading error handler */}
-				<Script id="chunk-error-handler" strategy="beforeInteractive">
+				<Script
+					id="chunk-error-handler"
+					strategy="beforeInteractive"
+				>
 					{`
 					  window.addEventListener('error', function(e) {
 					    if (e.target && e.target.tagName === 'SCRIPT' && e.target.src.includes('/_next/static/chunks/')) {

@@ -2,24 +2,35 @@
 import { useMemo } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import { ListItemIcon, MenuItem, Paper, Typography } from '@mui/material';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import Button from '@mui/material/Button';
+import { Paper, Typography } from '@mui/material';
 import Link from '@fuse/core/Link';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { useSession } from 'next-auth/react';
-import { EcommerceOrder, useDeleteECommerceOrdersMutation, useGetECommerceOrdersQuery } from '../apis/ECommerceOrdersApi';
+import {
+	EcommerceOrder,
+	useDeleteECommerceOrdersMutation,
+	useGetECommerceOrdersQuery
+} from '../apis/ECommerceOrdersApi';
 import OrdersStatus from './OrdersStatus';
 
 function OrdersTableForHome() {
 	const { data: session, status: sessionStatus } = useSession();
 
 	// Skip query if session is loading or token is not available
-	const hasToken = session?.accessAuthToken ||
+	const hasToken =
+		session?.accessAuthToken ||
 		session?.accessToken ||
-		(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token') : null);
+		(typeof window !== 'undefined'
+			? localStorage.getItem('token') ||
+				localStorage.getItem('auth_token') ||
+				localStorage.getItem('access_token')
+			: null);
 
-	const { data: orders, isLoading, error } = useGetECommerceOrdersQuery(undefined, {
+	const {
+		data: orders,
+		isLoading,
+		error
+	} = useGetECommerceOrdersQuery(undefined, {
 		skip: sessionStatus === 'loading' || !hasToken
 	});
 	const [removeOrders] = useDeleteECommerceOrdersMutation();
@@ -86,24 +97,32 @@ function OrdersTableForHome() {
 							row.original.product_detail.map((item, index) => {
 								if (item.product_detail && typeof item.product_detail === 'object') {
 									return (
-										<Typography key={index} variant="body2" className="border-b-1 mb-1">
+										<Typography
+											key={index}
+											variant="body2"
+											className="border-b-1 mb-1"
+										>
 											{Object.entries(item.product_detail).map(([key, value]) =>
-												["name", "quantity"].includes(key) ? (
-													<span key={key} style={{ marginRight: "8px" }}>
-														{(key == "quantity") ? "(Qty:" + String(value) + ")" : String(value)}
+												['name', 'quantity'].includes(key) ? (
+													<span
+														key={key}
+														style={{ marginRight: '8px' }}
+													>
+														{key == 'quantity'
+															? '(Qty:' + String(value) + ')'
+															: String(value)}
 													</span>
 												) : null
 											)}
-
 										</Typography>
 									);
 								}
+
 								return null;
 							})
 						) : (
 							<Typography variant="body2">—</Typography>
 						)}
-
 					</div>
 				)
 			}
@@ -117,7 +136,10 @@ function OrdersTableForHome() {
 
 	if (!hasToken) {
 		return (
-			<Paper className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full p-4" elevation={0}>
+			<Paper
+				className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full p-4"
+				elevation={0}
+			>
 				<Typography color="error">Authentication required. Please log in again.</Typography>
 			</Paper>
 		);
@@ -129,7 +151,10 @@ function OrdersTableForHome() {
 
 	if (error) {
 		return (
-			<Paper className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full p-4" elevation={0}>
+			<Paper
+				className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full p-4"
+				elevation={0}
+			>
 				<Typography color="error">Failed to load orders. Please refresh the page or log in again.</Typography>
 			</Paper>
 		);
@@ -144,28 +169,28 @@ function OrdersTableForHome() {
 				initialState={{
 					density: 'spacious',
 					showColumnFilters: false,
-					showGlobalFilter: false,
+					showGlobalFilter: false
 				}}
 				enableRowSelection={false}
 				enableRowActions={false}
 				enableColumnFilters={false}
 				enableGlobalFilter={false}
 				enableBottomToolbar={false}
-				enablePagination={false}   // ❌ pagination disable
+				enablePagination={false} // ❌ pagination disable
 				data={(orders?.data ?? []).slice(0, 10)} // ✅ only 10 rows
 				columns={columns}
 				muiTableHeadCellProps={{
 					sx: {
 						fontSize: '14px',
 						fontWeight: 600,
-						color: (theme) => theme.palette.text.secondary, // muted gray
-					},
+						color: (theme) => theme.palette.text.secondary // muted gray
+					}
 				}}
 				muiTableBodyCellProps={{
 					sx: {
 						fontSize: '14px',
-						fontWeight: 400,
-					},
+						fontWeight: 400
+					}
 				}}
 				renderTopToolbarCustomActions={() => (
 					<Typography className="text-2xl font-semibold tracking-tight leading-6 truncate">
@@ -173,7 +198,6 @@ function OrdersTableForHome() {
 					</Typography>
 				)}
 			/>
-
 		</Paper>
 	);
 }

@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
 	Box,
-	Card,
-	CardContent,
 	Typography,
 	Button,
 	TextField,
@@ -24,7 +22,7 @@ import {
 	TableHead,
 	TableRow,
 	Paper,
-	Chip,
+	Chip
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useSnackbar } from 'notistack';
@@ -68,7 +66,7 @@ function PaymentMethodsTab() {
 		is_active: true,
 		is_test_mode: false,
 		credentials: {},
-		description: '',
+		description: ''
 	});
 	const [errors, setErrors] = useState<Record<string, string>>({});
 	const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -89,17 +87,20 @@ function PaymentMethodsTab() {
 		try {
 			// Fetch CSRF cookie first
 			await axios.get(`${apiUrl}/sanctum/csrf-cookie`, {
-				withCredentials: true,
+				withCredentials: true
 			});
-			
+
 			// Get token from session or localStorage
 			const session = await getSession();
-			const token = session?.accessAuthToken || 
-				session?.accessToken || 
-				(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') : null);
-			
+			const token =
+				session?.accessAuthToken ||
+				session?.accessToken ||
+				(typeof window !== 'undefined'
+					? localStorage.getItem('token') || localStorage.getItem('auth_token')
+					: null);
+
 			console.log('Token found:', token ? 'YES' : 'NO');
-			
+
 			if (!token) {
 				console.error('No authentication token found');
 				enqueueSnackbar('Authentication required. Please log in again.', { variant: 'error' });
@@ -113,9 +114,9 @@ function PaymentMethodsTab() {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					Accept: 'application/json',
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
-				withCredentials: true,
+				withCredentials: true
 			});
 
 			console.log('API Response Status:', response.status);
@@ -124,7 +125,7 @@ function PaymentMethodsTab() {
 			if (response.data.success) {
 				const methods = response.data.data || [];
 				console.log('Successfully loaded payment methods from database:', methods.length, 'methods');
-				console.log('Methods:', methods.map(m => m.name).join(', '));
+				console.log('Methods:', methods.map((m) => m.name).join(', '));
 				setAvailablePaymentMethods(methods);
 			} else {
 				console.error('API returned unsuccessful response:', response.data);
@@ -137,12 +138,15 @@ function PaymentMethodsTab() {
 			console.error('Error status:', error.response?.status);
 			console.error('Error message:', error.message);
 			console.error('Error config:', error.config);
-			
+
 			// Show error but don't set empty array - let user know there's an issue
 			if (error.response?.status === 401 || error.response?.status === 403) {
 				enqueueSnackbar('Authentication failed. Please log in again.', { variant: 'error' });
 			} else {
-				enqueueSnackbar(`Failed to load available payment methods: ${error.message || 'Unknown error'}. Please refresh the page.`, { variant: 'error' });
+				enqueueSnackbar(
+					`Failed to load available payment methods: ${error.message || 'Unknown error'}. Please refresh the page.`,
+					{ variant: 'error' }
+				);
 			}
 			// Keep empty array so user sees "Loading payment methods..." in dropdown
 		}
@@ -151,18 +155,21 @@ function PaymentMethodsTab() {
 	const fetchCredentials = async () => {
 		try {
 			setLoading(true);
-			
+
 			// Fetch CSRF cookie first (required for Sanctum)
 			await axios.get(`${apiUrl}/sanctum/csrf-cookie`, {
-				withCredentials: true,
+				withCredentials: true
 			});
-			
+
 			// Get token from session or localStorage (same pattern as apiServiceLaravel)
 			const session = await getSession();
-			const token = session?.accessAuthToken || 
-				session?.accessToken || 
-				(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') : null);
-			
+			const token =
+				session?.accessAuthToken ||
+				session?.accessToken ||
+				(typeof window !== 'undefined'
+					? localStorage.getItem('token') || localStorage.getItem('auth_token')
+					: null);
+
 			if (!token) {
 				enqueueSnackbar('Authentication required. Please log in again.', { variant: 'error' });
 				setLoading(false);
@@ -175,9 +182,9 @@ function PaymentMethodsTab() {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					Accept: 'application/json',
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
-				withCredentials: true,
+				withCredentials: true
 			});
 
 			if (response.data.success) {
@@ -194,7 +201,7 @@ function PaymentMethodsTab() {
 					credential_keys: item.credential_keys || [],
 					has_credentials: item.has_credentials || false,
 					logo_id: item.logo_id,
-					logo_url: item.logo_url,
+					logo_url: item.logo_url
 				}));
 				setCredentials(formattedData);
 			}
@@ -202,7 +209,7 @@ function PaymentMethodsTab() {
 			console.error('Error fetching credentials:', error);
 			console.error('Error response:', error.response?.data);
 			console.error('Error status:', error.response?.status);
-			
+
 			if (error.response?.status === 401) {
 				enqueueSnackbar('Authentication failed. Please log in again.', { variant: 'error' });
 			} else if (error.response?.status === 403) {
@@ -228,6 +235,7 @@ function PaymentMethodsTab() {
 				enqueueSnackbar('Loading payment methods...', { variant: 'info' });
 				fetchAvailablePaymentMethods();
 			}
+
 			setEditingCredential(null);
 			setFormData({
 				payment_method: '',
@@ -235,12 +243,13 @@ function PaymentMethodsTab() {
 				is_active: true,
 				is_test_mode: false,
 				credentials: {},
-				description: '',
+				description: ''
 			});
 			setLogoFile(null);
 			setLogoPreview(null);
 			setRemoveLogo(false);
 		}
+
 		setDialogOpen(true);
 		setErrors({});
 	};
@@ -249,10 +258,13 @@ function PaymentMethodsTab() {
 		try {
 			// Get token from session or localStorage
 			const session = await getSession();
-			const token = session?.accessAuthToken || 
-				session?.accessToken || 
-				(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') : null);
-			
+			const token =
+				session?.accessAuthToken ||
+				session?.accessToken ||
+				(typeof window !== 'undefined'
+					? localStorage.getItem('token') || localStorage.getItem('auth_token')
+					: null);
+
 			if (!token) {
 				enqueueSnackbar('Authentication required. Please log in again.', { variant: 'error' });
 				return;
@@ -262,9 +274,9 @@ function PaymentMethodsTab() {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					Accept: 'application/json',
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
-				withCredentials: true,
+				withCredentials: true
 			});
 
 			if (response.data.success) {
@@ -278,14 +290,16 @@ function PaymentMethodsTab() {
 					credentials: data.credentials || {},
 					description: data.description || '',
 					logo_id: data.logo_id,
-					logo_url: data.logo_url,
+					logo_url: data.logo_url
 				});
+
 				// Set logo preview if logo exists
 				if (data.logo_url) {
 					setLogoPreview(data.logo_url);
 				} else {
 					setLogoPreview(null);
 				}
+
 				setRemoveLogo(false);
 			}
 		} catch (error: any) {
@@ -303,7 +317,7 @@ function PaymentMethodsTab() {
 			is_active: true,
 			is_test_mode: false,
 			credentials: {},
-			description: '',
+			description: ''
 		});
 		setErrors({});
 		setLogoFile(null);
@@ -314,8 +328,9 @@ function PaymentMethodsTab() {
 	const handleInputChange = (field: string, value: any) => {
 		setFormData((prev) => ({
 			...prev,
-			[field]: value,
+			[field]: value
 		}));
+
 		if (errors[field]) {
 			setErrors((prev) => {
 				const newErrors = { ...prev };
@@ -330,8 +345,8 @@ function PaymentMethodsTab() {
 			...prev,
 			credentials: {
 				...prev.credentials,
-				[key]: value,
-			},
+				[key]: value
+			}
 		}));
 	};
 
@@ -343,20 +358,27 @@ function PaymentMethodsTab() {
 	const handlePaymentMethodChange = (paymentMethod: string) => {
 		console.log('Payment method changed to:', paymentMethod);
 		const method = availablePaymentMethods.find((m) => m.payment_method === paymentMethod);
+
 		if (method) {
 			const defaultCreds = getDefaultCredentials(paymentMethod);
-			console.log('Setting form data with payment method:', paymentMethod, 'and default credentials:', defaultCreds);
+			console.log(
+				'Setting form data with payment method:',
+				paymentMethod,
+				'and default credentials:',
+				defaultCreds
+			);
 			setFormData((prev) => {
 				const newData = {
 					...prev,
 					payment_method: paymentMethod, // Ensure payment_method is explicitly set
 					name: method.name,
 					description: method.description,
-					credentials: { ...defaultCreds, ...prev.credentials },
+					credentials: { ...defaultCreds, ...prev.credentials }
 				};
 				console.log('New form data:', newData);
 				return newData;
 			});
+
 			// Clear any payment_method errors
 			if (errors.payment_method) {
 				setErrors((prev) => {
@@ -376,9 +398,11 @@ function PaymentMethodsTab() {
 		if (!formData.payment_method) {
 			newErrors.payment_method = 'Payment method is required';
 		}
+
 		if (!formData.name) {
 			newErrors.name = 'Name is required';
 		}
+
 		if (Object.keys(formData.credentials).length === 0) {
 			newErrors.credentials = 'At least one credential is required';
 		}
@@ -390,17 +414,20 @@ function PaymentMethodsTab() {
 	const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const file = event.target.files?.[0];
 		console.log('File selected:', file ? { name: file.name, size: file.size, type: file.type } : 'none');
+
 		if (file) {
 			// Validate file type
 			if (!file.type.startsWith('image/')) {
 				enqueueSnackbar('Please select an image file', { variant: 'error' });
 				return;
 			}
+
 			// Validate file size (2MB)
 			if (file.size > 2 * 1024 * 1024) {
 				enqueueSnackbar('Image size must be less than 2MB', { variant: 'error' });
 				return;
 			}
+
 			console.log('Setting logo file state');
 			setLogoFile(file);
 			setRemoveLogo(false);
@@ -430,10 +457,13 @@ function PaymentMethodsTab() {
 		try {
 			// Get token from session or localStorage
 			const session = await getSession();
-			const token = session?.accessAuthToken || 
-				session?.accessToken || 
-				(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') : null);
-			
+			const token =
+				session?.accessAuthToken ||
+				session?.accessToken ||
+				(typeof window !== 'undefined'
+					? localStorage.getItem('token') || localStorage.getItem('auth_token')
+					: null);
+
 			if (!token) {
 				enqueueSnackbar('Authentication required. Please log in again.', { variant: 'error' });
 				return;
@@ -446,14 +476,14 @@ function PaymentMethodsTab() {
 			// Always use FormData when editing (to handle logo properly) or when creating with logo
 			// When creating without logo, use JSON for simplicity
 			const shouldUseFormData = editingCredential || logoFile || removeLogo;
-			
+
 			console.log('Submitting form:', {
 				shouldUseFormData,
 				logoFile: logoFile ? { name: logoFile.name, size: logoFile.size, type: logoFile.type } : null,
 				removeLogo,
-				editingCredential: !!editingCredential,
+				editingCredential: !!editingCredential
 			});
-			
+
 			if (shouldUseFormData) {
 				// Use FormData for file upload
 				const formDataToSend = new FormData();
@@ -461,15 +491,15 @@ function PaymentMethodsTab() {
 				formDataToSend.append('is_active', formData.is_active ? '1' : '0');
 				formDataToSend.append('is_test_mode', formData.is_test_mode ? '1' : '0');
 				formDataToSend.append('description', formData.description || '');
-				
+
 				// Add credentials as JSON string
 				formDataToSend.append('credentials', JSON.stringify(formData.credentials || {}));
-				
+
 				// Only include payment_method for new records
 				if (!editingCredential) {
 					formDataToSend.append('payment_method', formData.payment_method || '');
 				}
-				
+
 				// Add logo file or remove flag
 				// Only append logo if it's a new file (logoFile exists)
 				// Only append remove_logo if explicitly set
@@ -482,7 +512,7 @@ function PaymentMethodsTab() {
 						lastModified: logoFile.lastModified
 					});
 					formDataToSend.append('logo', logoFile);
-					
+
 					// Verify it was added - log all FormData entries
 					const entries: string[] = [];
 					for (const [key, value] of formDataToSend.entries()) {
@@ -504,15 +534,16 @@ function PaymentMethodsTab() {
 				const config = {
 					headers: {
 						Authorization: `Bearer ${token}`,
-						Accept: 'application/json',
+						Accept: 'application/json'
 						// Remove Content-Type - axios will set it with boundary for FormData
 					},
-					withCredentials: true,
+					withCredentials: true
 				};
 
 				console.log('Sending FormData request');
 				// Use POST with _method=PUT for file uploads (PUT doesn't work well with multipart/form-data)
 				let response;
+
 				if (editingCredential) {
 					formDataToSend.append('_method', 'PUT');
 					response = await axios.post(url, formDataToSend, config);
@@ -548,7 +579,7 @@ function PaymentMethodsTab() {
 					is_active: formData.is_active ?? true,
 					is_test_mode: formData.is_test_mode ?? false,
 					credentials: formData.credentials || {},
-					description: formData.description || '',
+					description: formData.description || ''
 				};
 
 				// Only include payment_method for new records (not when editing)
@@ -560,9 +591,9 @@ function PaymentMethodsTab() {
 					headers: {
 						Authorization: `Bearer ${token}`,
 						Accept: 'application/json',
-						'Content-Type': 'application/json',
+						'Content-Type': 'application/json'
 					},
-					withCredentials: true,
+					withCredentials: true
 				};
 
 				const response = editingCredential
@@ -589,8 +620,8 @@ function PaymentMethodsTab() {
 			const errorMessage =
 				error.response?.data?.error ||
 				error.response?.data?.message ||
-				(error.response?.data?.errors && typeof error.response.data.errors === 'object' 
-					? JSON.stringify(error.response.data.errors) 
+				(error.response?.data?.errors && typeof error.response.data.errors === 'object'
+					? JSON.stringify(error.response.data.errors)
 					: error.response?.data?.errors) ||
 				error.message ||
 				'Failed to save payment credentials';
@@ -606,10 +637,13 @@ function PaymentMethodsTab() {
 		try {
 			// Get token from session or localStorage
 			const session = await getSession();
-			const token = session?.accessAuthToken || 
-				session?.accessToken || 
-				(typeof window !== 'undefined' ? localStorage.getItem('token') || localStorage.getItem('auth_token') : null);
-			
+			const token =
+				session?.accessAuthToken ||
+				session?.accessToken ||
+				(typeof window !== 'undefined'
+					? localStorage.getItem('token') || localStorage.getItem('auth_token')
+					: null);
+
 			if (!token) {
 				enqueueSnackbar('Authentication required. Please log in again.', { variant: 'error' });
 				return;
@@ -619,9 +653,9 @@ function PaymentMethodsTab() {
 				headers: {
 					Authorization: `Bearer ${token}`,
 					Accept: 'application/json',
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
-				withCredentials: true,
+				withCredentials: true
 			});
 
 			if (response.data.success) {
@@ -640,7 +674,12 @@ function PaymentMethodsTab() {
 
 	if (loading) {
 		return (
-			<Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+			<Box
+				display="flex"
+				justifyContent="center"
+				alignItems="center"
+				minHeight="400px"
+			>
 				<CircularProgress />
 			</Box>
 		);
@@ -648,8 +687,16 @@ function PaymentMethodsTab() {
 
 	return (
 		<Box>
-			<Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-				<Typography variant="h5" fontWeight="bold">
+			<Box
+				display="flex"
+				justifyContent="space-between"
+				alignItems="center"
+				mb={3}
+			>
+				<Typography
+					variant="h5"
+					fontWeight="bold"
+				>
 					Payment Method Credentials
 				</Typography>
 				<Button
@@ -662,9 +709,11 @@ function PaymentMethodsTab() {
 				</Button>
 			</Box>
 
-			<Alert severity="info" sx={{ mb: 3 }}>
-				Manage payment gateway credentials here. Credentials are encrypted and stored securely in the
-				database.
+			<Alert
+				severity="info"
+				sx={{ mb: 3 }}
+			>
+				Manage payment gateway credentials here. Credentials are encrypted and stored securely in the database.
 			</Alert>
 
 			<TableContainer component={Paper}>
@@ -683,8 +732,14 @@ function PaymentMethodsTab() {
 					<TableBody>
 						{credentials.length === 0 ? (
 							<TableRow>
-								<TableCell colSpan={7} align="center">
-									<Typography variant="body2" color="text.secondary">
+								<TableCell
+									colSpan={7}
+									align="center"
+								>
+									<Typography
+										variant="body2"
+										color="text.secondary"
+									>
 										No payment credentials found. Click "Add Payment Method" to create one.
 									</Typography>
 								</TableCell>
@@ -694,24 +749,37 @@ function PaymentMethodsTab() {
 								<TableRow key={credential.id || Math.random()}>
 									<TableCell>
 										{credential.logo_url ? (
-											<img 
-												src={credential.logo_url} 
-												alt={credential.name} 
-												style={{ 
-													width: '40px', 
-													height: '40px', 
+											<img
+												src={credential.logo_url}
+												alt={credential.name}
+												style={{
+													width: '40px',
+													height: '40px',
 													objectFit: 'contain',
 													borderRadius: '4px'
-												}} 
+												}}
 											/>
 										) : (
-											<Box sx={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.100', borderRadius: 1 }}>
+											<Box
+												sx={{
+													width: 40,
+													height: 40,
+													display: 'flex',
+													alignItems: 'center',
+													justifyContent: 'center',
+													bgcolor: 'grey.100',
+													borderRadius: 1
+												}}
+											>
 												<FuseSvgIcon>heroicons-outline:photograph</FuseSvgIcon>
 											</Box>
 										)}
 									</TableCell>
 									<TableCell>
-										<Typography variant="body2" fontWeight="medium">
+										<Typography
+											variant="body2"
+											fontWeight="medium"
+										>
 											{credential.payment_method || 'N/A'}
 										</Typography>
 									</TableCell>
@@ -731,7 +799,10 @@ function PaymentMethodsTab() {
 										/>
 									</TableCell>
 									<TableCell>
-										<Typography variant="body2" color="text.secondary">
+										<Typography
+											variant="body2"
+											color="text.secondary"
+										>
 											{credential.credential_keys?.length || 0} credential(s) configured
 										</Typography>
 									</TableCell>
@@ -758,40 +829,40 @@ function PaymentMethodsTab() {
 				</Table>
 			</TableContainer>
 
-			<Dialog 
-				open={dialogOpen} 
-				onClose={handleCloseDialog} 
-				maxWidth="md" 
+			<Dialog
+				open={dialogOpen}
+				onClose={handleCloseDialog}
+				maxWidth="md"
 				fullWidth
 				PaperProps={{
 					sx: {
 						maxHeight: '90vh',
 						display: 'flex',
-						flexDirection: 'column',
+						flexDirection: 'column'
 					}
 				}}
 			>
 				<DialogTitle sx={{ pb: 1 }}>
 					{editingCredential ? 'Edit Payment Credentials' : 'Add Payment Credentials'}
 				</DialogTitle>
-				<DialogContent 
-					sx={{ 
+				<DialogContent
+					sx={{
 						overflowY: 'auto',
 						flex: '1 1 auto',
 						px: 3,
 						'&::-webkit-scrollbar': {
-							width: '8px',
+							width: '8px'
 						},
 						'&::-webkit-scrollbar-track': {
-							background: '#f1f1f1',
+							background: '#f1f1f1'
 						},
 						'&::-webkit-scrollbar-thumb': {
 							background: '#888',
-							borderRadius: '4px',
+							borderRadius: '4px'
 						},
 						'&::-webkit-scrollbar-thumb:hover': {
-							background: '#555',
-						},
+							background: '#555'
+						}
 					}}
 				>
 					<Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -810,23 +881,29 @@ function PaymentMethodsTab() {
 							disabled={!!editingCredential}
 							required
 							SelectProps={{
-								native: true,
+								native: true
 							}}
 						>
 							<option value="">Select Payment Method</option>
 							{availablePaymentMethods.length > 0 ? (
 								availablePaymentMethods.map((method) => (
-									<option 
-										key={method.payment_method} 
+									<option
+										key={method.payment_method}
 										value={method.payment_method}
 										disabled={method.is_configured && !editingCredential}
 									>
-										{method.name} {method.is_configured && !editingCredential ? '(Already Configured)' : ''}
+										{method.name}{' '}
+										{method.is_configured && !editingCredential ? '(Already Configured)' : ''}
 									</option>
 								))
 							) : (
-								<option value="" disabled>
-									{loading ? 'Loading payment methods from database...' : 'No payment methods available. Please refresh the page.'}
+								<option
+									value=""
+									disabled
+								>
+									{loading
+										? 'Loading payment methods from database...'
+										: 'No payment methods available. Please refresh the page.'}
 								</option>
 							)}
 						</TextField>
@@ -852,23 +929,28 @@ function PaymentMethodsTab() {
 						/>
 
 						<Box>
-							<Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+							<Typography
+								variant="subtitle2"
+								sx={{ mb: 1.5, fontWeight: 600 }}
+							>
 								Logo
 							</Typography>
 							{logoPreview && (
-								<Box sx={{ mb: 2, display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}>
-									<img 
-										src={logoPreview} 
-										alt="Logo preview" 
-										style={{ 
-											maxWidth: '150px', 
-											maxHeight: '150px', 
+								<Box
+									sx={{ mb: 2, display: 'flex', alignItems: 'flex-start', gap: 2, flexWrap: 'wrap' }}
+								>
+									<img
+										src={logoPreview}
+										alt="Logo preview"
+										style={{
+											maxWidth: '150px',
+											maxHeight: '150px',
 											objectFit: 'contain',
 											border: '1px solid #ddd',
 											borderRadius: '4px',
 											padding: '8px',
 											backgroundColor: '#f9f9f9'
-										}} 
+										}}
 									/>
 									<Button
 										size="small"
@@ -899,7 +981,11 @@ function PaymentMethodsTab() {
 									{logoPreview ? 'Change Logo' : 'Upload Logo'}
 								</Button>
 							</label>
-							<Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.5 }}>
+							<Typography
+								variant="caption"
+								color="text.secondary"
+								sx={{ display: 'block', lineHeight: 1.5 }}
+							>
 								Upload a logo image (JPG, PNG, GIF, SVG, WEBP - Max 2MB)
 							</Typography>
 						</Box>
@@ -930,7 +1016,10 @@ function PaymentMethodsTab() {
 
 						{formData.payment_method && (
 							<Box sx={{ mt: 1 }}>
-								<Typography variant="subtitle2" sx={{ mb: 2, mt: 1, fontWeight: 600 }}>
+								<Typography
+									variant="subtitle2"
+									sx={{ mb: 2, mt: 1, fontWeight: 600 }}
+								>
 									Credentials
 								</Typography>
 								<Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -951,10 +1040,17 @@ function PaymentMethodsTab() {
 					</Box>
 				</DialogContent>
 				<DialogActions sx={{ px: 3, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
-					<Button onClick={handleCloseDialog} variant="outlined">
+					<Button
+						onClick={handleCloseDialog}
+						variant="outlined"
+					>
 						Cancel
 					</Button>
-					<Button onClick={handleSubmit} variant="contained" color="primary">
+					<Button
+						onClick={handleSubmit}
+						variant="contained"
+						color="primary"
+					>
 						{editingCredential ? 'Update' : 'Create'}
 					</Button>
 				</DialogActions>
@@ -964,4 +1060,3 @@ function PaymentMethodsTab() {
 }
 
 export default PaymentMethodsTab;
-

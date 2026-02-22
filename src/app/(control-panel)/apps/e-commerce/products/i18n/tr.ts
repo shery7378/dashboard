@@ -46,9 +46,9 @@ const translations = {
 	importing: 'İçe aktarılıyor...',
 	import: 'İçe Aktar',
 	close: 'Kapat',
-	product_imported_successfully: 'Ürün başarıyla içe aktarıldı. Lütfen etkinleştirmeden önce fiyat ve miktarınızı ayarlayın.',
+	product_imported_successfully:
+		'Ürün başarıyla içe aktarıldı. Lütfen etkinleştirmeden önce fiyat ve miktarınızı ayarlayın.',
 	failed_to_import_product: 'Ürün içe aktarılamadı'
 };
 
 export default translations;
-

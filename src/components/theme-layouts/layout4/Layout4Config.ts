@@ -126,7 +126,7 @@ const Layout4Config = {
 					]
 				}
 			}
-		},
+		}
 		// footer: {
 		// 	type: 'group',
 		// 	title: 'Footer',

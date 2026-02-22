@@ -40,14 +40,18 @@ const schema = z.object({
 	latitude: z.number().optional(),
 	longitude: z.number().optional(),
 	delivery_radius: z.number().optional(),
-	delivery_slots: z.array(z.string()).optional(),
+	delivery_slots: z.array(z.string()).optional()
 });
 
 function Store() {
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
 	const { storeId } = useParams<{ storeId: string }>();
 
-	const { data: store, isLoading, isError } = useGetECommerceStoreQuery(storeId!, {
+	const {
+		data: store,
+		isLoading,
+		isError
+	} = useGetECommerceStoreQuery(storeId!, {
 		skip: !storeId || storeId === 'new'
 	});
 
@@ -57,7 +61,7 @@ function Store() {
 	const methods = useForm({
 		mode: 'onChange',
 		defaultValues: createDefaultStore(),
-		resolver: zodResolver(schema),
+		resolver: zodResolver(schema)
 	});
 
 	const { reset, watch, setValue } = methods;
@@ -96,27 +100,55 @@ function Store() {
 						activeTab={tabValue}
 						getValues={() => ({
 							...createDefaultStore(),
-							...methods.getValues(),
+							...methods.getValues()
 						})}
 						originalValues={originalValues}
 					/>
 				}
 				content={
 					<div className="p-4 sm:p-6 max-w-5xl space-y-6">
-						<FuseTabs value={tabValue} onChange={(e: SyntheticEvent, val: string) => setTabValue(val)}>
-							<FuseTab value="basic-info" label="Basic Info" />
-							<FuseTab value="store-images" label="Images" />
-							<FuseTab value="store-address" label="Address" />
-							<FuseTab value="store-settings" label="Store Settings" />
-							<FuseTab value="seo-settings" label="SEO Settings" />
+						<FuseTabs
+							value={tabValue}
+							onChange={(e: SyntheticEvent, val: string) => setTabValue(val)}
+						>
+							<FuseTab
+								value="basic-info"
+								label="Basic Info"
+							/>
+							<FuseTab
+								value="store-images"
+								label="Images"
+							/>
+							<FuseTab
+								value="store-address"
+								label="Address"
+							/>
+							<FuseTab
+								value="store-settings"
+								label="Store Settings"
+							/>
+							<FuseTab
+								value="seo-settings"
+								label="SEO Settings"
+							/>
 						</FuseTabs>
 
 						<div>
-							<div className={tabValue !== 'basic-info' ? 'hidden' : ''}><BasicInfoTab /></div>
-							<div className={tabValue !== 'store-images' ? 'hidden' : ''}><StoreImagesTab /></div>
-							<div className={tabValue !== 'store-address' ? 'hidden' : ''}><StoreAddressTab /></div>
-							<div className={tabValue !== 'store-settings' ? 'hidden' : ''}><StoreContactTab /></div>
-							<div className={tabValue !== 'seo-settings' ? 'hidden' : ''}><StoreSeoTab /></div>
+							<div className={tabValue !== 'basic-info' ? 'hidden' : ''}>
+								<BasicInfoTab />
+							</div>
+							<div className={tabValue !== 'store-images' ? 'hidden' : ''}>
+								<StoreImagesTab />
+							</div>
+							<div className={tabValue !== 'store-address' ? 'hidden' : ''}>
+								<StoreAddressTab />
+							</div>
+							<div className={tabValue !== 'store-settings' ? 'hidden' : ''}>
+								<StoreContactTab />
+							</div>
+							<div className={tabValue !== 'seo-settings' ? 'hidden' : ''}>
+								<StoreSeoTab />
+							</div>
 						</div>
 					</div>
 				}

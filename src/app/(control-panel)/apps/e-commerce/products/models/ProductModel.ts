@@ -25,7 +25,7 @@ const ProductModel = (data: PartialDeep<EcommerceProduct>) => {
 	const gallery_images = (data?.images ?? []).map((img) => ({
 		...img,
 		url: `/${img.url}`, // adjust if needed
-		is_featured: img.id === data?.featured_image_id,
+		is_featured: img.id === data?.featured_image_id
 	}));
 
 	// Handle null/undefined values - convert null to appropriate defaults
@@ -38,18 +38,20 @@ const ProductModel = (data: PartialDeep<EcommerceProduct>) => {
 		price_tax_incl: data?.price_tax_incl ?? (data?.price_tax_incl === null ? 0 : 0),
 		price: data?.price ?? (data?.price === null ? 0 : 0),
 		quantity: data?.quantity ?? (data?.quantity === null ? 0 : 0),
-		product_variants: (data?.product_variants ?? (data?.product_variants === null ? [] : [])).map((variant: any) => ({
-			...variant,
-			compared_price: variant?.compared_price ?? 0,
-			price_tax_excl: variant?.price_tax_excl ?? variant?.price ?? 0,
-			quantity: variant?.quantity ?? variant?.qty ?? 0,
-		})),
+		product_variants: (data?.product_variants ?? (data?.product_variants === null ? [] : [])).map(
+			(variant: any) => ({
+				...variant,
+				compared_price: variant?.compared_price ?? 0,
+				price_tax_excl: variant?.price_tax_excl ?? variant?.price ?? 0,
+				quantity: variant?.quantity ?? variant?.qty ?? 0
+			})
+		),
 		variants: (data?.variants ?? (data?.variants === null ? [] : [])).map((variant: any) => ({
 			...variant,
 			compared_price: variant?.compared_price ?? 0,
 			price_tax_excl: variant?.price_tax_excl ?? variant?.price ?? 0,
-			quantity: variant?.quantity ?? variant?.qty ?? 0,
-		})),
+			quantity: variant?.quantity ?? variant?.qty ?? 0
+		}))
 	};
 
 	return _.defaults(normalizedData || {}, {
@@ -88,7 +90,7 @@ const ProductModel = (data: PartialDeep<EcommerceProduct>) => {
 		total: null,
 		meta_title: '',
 		meta_keywords: '',
-		meta_description: '',
+		meta_description: ''
 	});
 };
 

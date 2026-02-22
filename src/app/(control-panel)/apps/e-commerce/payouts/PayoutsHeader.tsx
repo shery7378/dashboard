@@ -33,4 +33,3 @@ function PayoutsHeader() {
 }
 
 export default PayoutsHeader;
-

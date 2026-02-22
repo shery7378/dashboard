@@ -11,7 +11,7 @@ function UserModel(data?: PartialDeep<User>): User {
 	return _.defaults(data, {
 		id: null,
 		role: null, // guest
-		name:null,
+		name: null,
 		displayName: null,
 		photoURL: '',
 		email: '',

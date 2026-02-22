@@ -1,7 +1,6 @@
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import { memo, useEffect, useState } from 'react';
-import Box from '@mui/material/Box';
 import { ApexOptions } from 'apexcharts';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { useGetSalesQuery } from '@/app/(control-panel)/reports/apis/AnalyticsApi';
@@ -12,35 +11,35 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 // Currency symbols mapping
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  USD: '$',
-  GBP: '£',
-  EUR: '€',
-  JPY: '¥',
-  CNY: '¥',
-  INR: '₹',
-  AUD: 'A$',
-  CAD: 'C$',
-  CHF: 'CHF',
-  SEK: 'kr',
-  NZD: 'NZ$',
-  MXN: '$',
-  SGD: 'S$',
-  HKD: 'HK$',
-  NOK: 'kr',
-  TRY: '₺',
-  RUB: '₽',
-  ZAR: 'R',
-  BRL: 'R$',
-  AED: 'د.إ',
-  SAR: '﷼',
-  PKR: '₨',
-  BDT: '৳',
-  THB: '฿',
-  MYR: 'RM',
-  IDR: 'Rp',
-  PHP: '₱',
-  VND: '₫',
-  KRW: '₩',
+	USD: '$',
+	GBP: '£',
+	EUR: '€',
+	JPY: '¥',
+	CNY: '¥',
+	INR: '₹',
+	AUD: 'A$',
+	CAD: 'C$',
+	CHF: 'CHF',
+	SEK: 'kr',
+	NZD: 'NZ$',
+	MXN: '$',
+	SGD: 'S$',
+	HKD: 'HK$',
+	NOK: 'kr',
+	TRY: '₺',
+	RUB: '₽',
+	ZAR: 'R',
+	BRL: 'R$',
+	AED: 'د.إ',
+	SAR: '﷼',
+	PKR: '₨',
+	BDT: '৳',
+	THB: '฿',
+	MYR: 'RM',
+	IDR: 'Rp',
+	PHP: '₱',
+	VND: '₫',
+	KRW: '₩'
 };
 
 /**
@@ -49,26 +48,28 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
  */
 function extractCurrencyCode(value: any): string {
 	if (!value) return 'GBP';
-	
+
 	const str = String(value).trim();
-	
+
 	// If it's already a clean 3-letter currency code, return it
 	if (/^[A-Z]{3}$/.test(str)) {
 		return str;
 	}
-	
+
 	// Try to extract from PHP serialized format: s:3:"GBP"; or : s:3:"GBP";
 	const serializedMatch = str.match(/s:\d+:"([A-Z]{3})"/i);
+
 	if (serializedMatch && serializedMatch[1]) {
 		return serializedMatch[1].toUpperCase();
 	}
-	
+
 	// Try to extract any 3-letter uppercase code from the string
 	const codeMatch = str.match(/\b([A-Z]{3})\b/);
+
 	if (codeMatch && codeMatch[1]) {
 		return codeMatch[1];
 	}
-	
+
 	// Fallback to GBP if we can't extract a valid code
 	return 'GBP';
 }
@@ -91,9 +92,9 @@ function StoreSalesWidget() {
 				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 				const response = await axios.get(`${apiUrl}/api/currencies/rates`, {
 					withCredentials: true,
-					headers: { 'Accept': 'application/json' }
+					headers: { Accept: 'application/json' }
 				});
-				
+
 				if (response.data?.default_currency) {
 					const rawCurrency = response.data.default_currency;
 					const currency = extractCurrencyCode(rawCurrency);
@@ -118,10 +119,15 @@ function StoreSalesWidget() {
 		return <FuseLoading />;
 	}
 
-	const currency = new Intl.NumberFormat(undefined, { style: 'currency', currency: defaultCurrency, maximumFractionDigits: 0 });
+	const currency = new Intl.NumberFormat(undefined, {
+		style: 'currency',
+		currency: defaultCurrency,
+		maximumFractionDigits: 0
+	});
 	const compactCurrency = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 });
 	const formatCompactCurrency = (v: number) => {
 		if (!isFinite(v)) return `${currencySymbol}0`;
+
 		const compact = compactCurrency.format(v).replace(/\s/g, '');
 		return v >= 1000 ? `${currencySymbol}${compact}` : currency.format(v);
 	};
@@ -133,13 +139,13 @@ function StoreSalesWidget() {
 		{
 			name: 'Total Sales',
 			type: 'area',
-			data: sales.map((d) => ({ x: d.bucket, y: Number(d.total_sales) || 0 })),
+			data: sales.map((d) => ({ x: d.bucket, y: Number(d.total_sales) || 0 }))
 		},
 		{
 			name: 'Orders',
 			type: 'column',
-			data: sales.map((d) => ({ x: d.bucket, y: Number(d.orders) || 0 })),
-		},
+			data: sales.map((d) => ({ x: d.bucket, y: Number(d.orders) || 0 }))
+		}
 	];
 
 	const chartOptions: ApexOptions = {
@@ -205,10 +211,7 @@ function StoreSalesWidget() {
 			intersect: false,
 			theme: 'light',
 			fillSeriesColor: false,
-			y: [
-				{ formatter: (val: number) => currency.format(val) },
-				{ formatter: (val: number) => `${val} orders` }
-			]
+			y: [{ formatter: (val: number) => currency.format(val) }, { formatter: (val: number) => `${val} orders` }]
 		},
 		yaxis: [
 			{
@@ -241,6 +244,7 @@ function StoreSalesWidget() {
 			enabledOnSeries: [1],
 			formatter: (val: number) => {
 				if (!val) return '';
+
 				return `${val}`;
 			},
 			style: {
@@ -279,4 +283,3 @@ function StoreSalesWidget() {
 }
 
 export default memo(StoreSalesWidget);
-

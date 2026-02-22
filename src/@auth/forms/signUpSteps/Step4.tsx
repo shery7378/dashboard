@@ -11,20 +11,14 @@ declare global {
 }
 
 interface Step4Props {
-    control: Control<FormType>;
-    errors: FieldErrors<FormType>;
+	control: Control<FormType>;
+	errors: FieldErrors<FormType>;
 	setValue: UseFormSetValue<FormType>;
-    handleNextStep: () => void;
-    handleBackStep: () => void;
+	handleNextStep: () => void;
+	handleBackStep: () => void;
 }
 
-export default function Step4({
-    control,
-    errors,
-	setValue,
-    handleNextStep,
-    handleBackStep,
-}: Step4Props) {
+export default function Step4({ control, errors, setValue, handleNextStep, handleBackStep }: Step4Props) {
 	const addressInputRef = useRef<HTMLInputElement | null>(null);
 	const [mapsLoaded, setMapsLoaded] = useState(false);
 	const [apiKey, setApiKey] = useState<string>('');
@@ -37,15 +31,18 @@ export default function Step4({
 				const response = await fetch(`${apiUrl}/api/google-maps-api-key`, {
 					headers: { Accept: 'application/json' }
 				});
+
 				if (response.ok) {
 					const data = await response.json();
 					const fetchedKey = data?.data?.google_maps_api_key || '';
+
 					if (fetchedKey) {
 						console.log('[Step4] Using API key from backend');
 						setApiKey(fetchedKey);
 						return;
 					}
 				}
+
 				console.log('[Step4] Backend key not found, using env fallback');
 				setApiKey(envKey);
 			} catch (err) {
@@ -58,10 +55,12 @@ export default function Step4({
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
+
 		if (window.google?.maps?.places) {
 			setMapsLoaded(true);
 			return;
 		}
+
 		if (!apiKey || mapsLoaded) return;
 
 		const script = document.createElement('script');
@@ -89,10 +88,12 @@ export default function Step4({
 			console.log('[Step4] Maps not loaded yet');
 			return;
 		}
+
 		if (!addressInputRef.current) {
 			console.log('[Step4] addressInputRef not ready');
 			return;
 		}
+
 		if (!window.google?.maps?.places) {
 			console.error('[Step4] window.google.maps.places not available');
 			return;
@@ -119,12 +120,17 @@ export default function Step4({
 			// Extract address components
 			for (const c of components) {
 				const types: string[] = c.types || [];
+
 				if (types.includes('street_number')) street = c.long_name;
+
 				if (types.includes('route')) route = c.long_name;
+
 				if (types.includes('locality')) city = c.long_name;
+
 				if (types.includes('postal_town') && !city) city = c.long_name;
+
 				if (types.includes('administrative_area_level_2') && !city) city = c.long_name;
-				
+
 				// Try multiple ways to get postal code
 				if (!postalCode) {
 					if (types.includes('postal_code')) {
@@ -143,11 +149,12 @@ export default function Step4({
 					/\b(\d{5}(?:-\d{4})?)\b/, // US format
 					/\b([A-Z]\d[A-Z]\s?\d[A-Z]\d)\b/i, // Canadian format
 					/\b(\d{4,6})\b/, // Generic numeric (4-6 digits)
-					/\b([A-Z]{1,2}\d{1,4})\b/i, // Generic alphanumeric
+					/\b([A-Z]{1,2}\d{1,4})\b/i // Generic alphanumeric
 				];
 
 				for (const pattern of postalCodePatterns) {
 					const match = formattedAddress.match(pattern);
+
 					if (match && match[1]) {
 						postalCode = match[1].trim();
 						console.log('[Step4] Extracted postal code from formatted address:', postalCode);
@@ -156,11 +163,15 @@ export default function Step4({
 				}
 			}
 
-			const addressLine = street || route ? `${street}${street && route ? ' ' : ''}${route}`.trim() : (formattedAddress.split(',')[0]?.trim() || '');
-			
+			const addressLine =
+				street || route
+					? `${street}${street && route ? ' ' : ''}${route}`.trim()
+					: formattedAddress.split(',')[0]?.trim() || '';
+
 			// Extract latitude and longitude from geometry
 			let latitude = null;
 			let longitude = null;
+
 			if (geometry && geometry.location) {
 				latitude = geometry.location.lat();
 				longitude = geometry.location.lng();
@@ -168,7 +179,13 @@ export default function Step4({
 			}
 
 			// If postal code is still missing but we have coordinates, try reverse geocoding
-			if (!postalCode && latitude !== null && longitude !== null && window.google?.maps && typeof window.google.maps.Geocoder === 'function') {
+			if (
+				!postalCode &&
+				latitude !== null &&
+				longitude !== null &&
+				window.google?.maps &&
+				typeof window.google.maps.Geocoder === 'function'
+			) {
 				const geocoder = new window.google.maps.Geocoder();
 				geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results: any[], status: string) => {
 					if (status === 'OK' && results && results.length > 0) {
@@ -177,14 +194,17 @@ export default function Step4({
 							const resultComponents = result.address_components || [];
 							for (const c of resultComponents) {
 								const types: string[] = c.types || [];
+
 								if (types.includes('postal_code')) {
 									const pc = c.long_name || c.short_name || '';
+
 									if (pc) {
 										foundPostalCode = pc;
 										break;
 									}
 								}
 							}
+
 							if (foundPostalCode) break;
 						}
 
@@ -198,12 +218,15 @@ export default function Step4({
 
 			console.log('[Step4] Setting form fields:', { addressLine, city, postalCode, latitude, longitude });
 			setValue('address', addressLine, { shouldValidate: true, shouldDirty: true });
+
 			if (city) setValue('city', city, { shouldValidate: true, shouldDirty: true });
+
 			if (postalCode) {
 				setValue('zipCode', postalCode, { shouldValidate: true, shouldDirty: true });
 			} else {
 				console.warn('[Step4] Postal code not found in address components or formatted address');
 			}
+
 			if (latitude !== null && longitude !== null) {
 				setValue('latitude', latitude, { shouldValidate: false, shouldDirty: true });
 				setValue('longitude', longitude, { shouldValidate: false, shouldDirty: true });
@@ -214,7 +237,9 @@ export default function Step4({
 	// Retry mechanism: if input appears after mapsLoaded, reinitialize
 	useEffect(() => {
 		if (!mapsLoaded) return;
+
 		if (!window.google?.maps?.places) return;
+
 		if (!addressInputRef.current) return;
 
 		const interval = setInterval(() => {
@@ -239,12 +264,17 @@ export default function Step4({
 					// Extract address components
 					for (const c of components) {
 						const types: string[] = c.types || [];
+
 						if (types.includes('street_number')) street = c.long_name;
+
 						if (types.includes('route')) route = c.long_name;
+
 						if (types.includes('locality')) city = c.long_name;
+
 						if (types.includes('postal_town') && !city) city = c.long_name;
+
 						if (types.includes('administrative_area_level_2') && !city) city = c.long_name;
-						
+
 						// Try multiple ways to get postal code
 						if (!postalCode) {
 							if (types.includes('postal_code')) {
@@ -263,24 +293,32 @@ export default function Step4({
 							/\b(\d{5}(?:-\d{4})?)\b/, // US format
 							/\b([A-Z]\d[A-Z]\s?\d[A-Z]\d)\b/i, // Canadian format
 							/\b(\d{4,6})\b/, // Generic numeric (4-6 digits)
-							/\b([A-Z]{1,2}\d{1,4})\b/i, // Generic alphanumeric
+							/\b([A-Z]{1,2}\d{1,4})\b/i // Generic alphanumeric
 						];
 
 						for (const pattern of postalCodePatterns) {
 							const match = formattedAddress.match(pattern);
+
 							if (match && match[1]) {
 								postalCode = match[1].trim();
-								console.log('[Step4] Extracted postal code from formatted address (retry):', postalCode);
+								console.log(
+									'[Step4] Extracted postal code from formatted address (retry):',
+									postalCode
+								);
 								break;
 							}
 						}
 					}
 
-					const addressLine = street || route ? `${street}${street && route ? ' ' : ''}${route}`.trim() : (formattedAddress.split(',')[0]?.trim() || '');
-					
+					const addressLine =
+						street || route
+							? `${street}${street && route ? ' ' : ''}${route}`.trim()
+							: formattedAddress.split(',')[0]?.trim() || '';
+
 					// Extract latitude and longitude from geometry
 					let latitude = null;
 					let longitude = null;
+
 					if (geometry && geometry.location) {
 						latitude = geometry.location.lat();
 						longitude = geometry.location.lng();
@@ -288,42 +326,71 @@ export default function Step4({
 					}
 
 					// If postal code is still missing but we have coordinates, try reverse geocoding
-					if (!postalCode && latitude !== null && longitude !== null && window.google?.maps && typeof window.google.maps.Geocoder === 'function') {
+					if (
+						!postalCode &&
+						latitude !== null &&
+						longitude !== null &&
+						window.google?.maps &&
+						typeof window.google.maps.Geocoder === 'function'
+					) {
 						const geocoder = new window.google.maps.Geocoder();
-						geocoder.geocode({ location: { lat: latitude, lng: longitude } }, (results: any[], status: string) => {
-							if (status === 'OK' && results && results.length > 0) {
-								let foundPostalCode = '';
-								for (const result of results) {
-									const resultComponents = result.address_components || [];
-									for (const c of resultComponents) {
-										const types: string[] = c.types || [];
-										if (types.includes('postal_code')) {
-											const pc = c.long_name || c.short_name || '';
-											if (pc) {
-												foundPostalCode = pc;
-												break;
+						geocoder.geocode(
+							{ location: { lat: latitude, lng: longitude } },
+							(results: any[], status: string) => {
+								if (status === 'OK' && results && results.length > 0) {
+									let foundPostalCode = '';
+									for (const result of results) {
+										const resultComponents = result.address_components || [];
+										for (const c of resultComponents) {
+											const types: string[] = c.types || [];
+
+											if (types.includes('postal_code')) {
+												const pc = c.long_name || c.short_name || '';
+
+												if (pc) {
+													foundPostalCode = pc;
+													break;
+												}
 											}
 										}
-									}
-									if (foundPostalCode) break;
-								}
 
-								if (foundPostalCode) {
-									console.log('[Step4] Found postal code via reverse geocoding (retry):', foundPostalCode);
-									setValue('zipCode', foundPostalCode, { shouldValidate: true, shouldDirty: true });
+										if (foundPostalCode) break;
+									}
+
+									if (foundPostalCode) {
+										console.log(
+											'[Step4] Found postal code via reverse geocoding (retry):',
+											foundPostalCode
+										);
+										setValue('zipCode', foundPostalCode, {
+											shouldValidate: true,
+											shouldDirty: true
+										});
+									}
 								}
 							}
-						});
+						);
 					}
 
-					console.log('[Step4] Setting form fields (retry):', { addressLine, city, postalCode, latitude, longitude });
+					console.log('[Step4] Setting form fields (retry):', {
+						addressLine,
+						city,
+						postalCode,
+						latitude,
+						longitude
+					});
 					setValue('address', addressLine, { shouldValidate: true, shouldDirty: true });
+
 					if (city) setValue('city', city, { shouldValidate: true, shouldDirty: true });
+
 					if (postalCode) {
 						setValue('zipCode', postalCode, { shouldValidate: true, shouldDirty: true });
 					} else {
-						console.warn('[Step4] Postal code not found in address components or formatted address (retry)');
+						console.warn(
+							'[Step4] Postal code not found in address components or formatted address (retry)'
+						);
 					}
+
 					if (latitude !== null && longitude !== null) {
 						setValue('latitude', latitude, { shouldValidate: false, shouldDirty: true });
 						setValue('longitude', longitude, { shouldValidate: false, shouldDirty: true });
@@ -337,123 +404,133 @@ export default function Step4({
 		return () => clearInterval(interval);
 	}, [mapsLoaded, setValue]);
 
-    const BRAND_COLOR = "text-red-600";
-    const BG_BRAND = "bg-red-600";
-    const BORDER_BRAND = "border-red-600";
+	const BRAND_COLOR = 'text-red-600';
+	const BG_BRAND = 'bg-red-600';
+	const BORDER_BRAND = 'border-red-600';
 
+	return (
+		<div className="w-full px-2 sm:px-4">
+			{/* Header: Back Button & Logo */}
+			<div className="relative flex items-center justify-center mb-8 mt-2">
+				<button
+					onClick={handleBackStep}
+					className="absolute left-0 p-2 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors group"
+					aria-label="Go back"
+					type="button"
+				>
+					<ArrowBackIcon className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
+				</button>
+				<h1 className={`text-2xl font-bold ${BRAND_COLOR}`}>MultiKonnect</h1>
+			</div>
 
+			{/* Stepper */}
+			<div className="flex items-center justify-center gap-2 mb-8">
+				{/* Step 1: Filled */}
+				<div
+					className={`h-8 w-8 rounded-full ${BG_BRAND} text-white flex items-center justify-center text-sm font-medium shadow-sm`}
+				>
+					1
+				</div>
+				<div className="h-0.5 w-8 border-t-2 border-dashed border-gray-300"></div>
 
-    return (
-        <div className="w-full px-2 sm:px-4">
-             {/* Header: Back Button & Logo */}
-             <div className="relative flex items-center justify-center mb-8 mt-2">
-                <button 
-                    onClick={handleBackStep}
-                    className="absolute left-0 p-2 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors group"
-                    aria-label="Go back"
-                    type="button"
-                >
-                    <ArrowBackIcon className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
-                </button>
-                <h1 className={`text-2xl font-bold ${BRAND_COLOR}`}>MultiKonnect</h1>
-            </div>
+				{/* Step 2: Filled */}
+				<div
+					className={`h-8 w-8 rounded-full ${BG_BRAND} text-white flex items-center justify-center text-sm font-medium shadow-sm`}
+				>
+					2
+				</div>
+				<div className="h-0.5 w-8 border-t-2 border-dashed border-gray-300"></div>
 
-            {/* Stepper */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-                 {/* Step 1: Filled */}
-                <div className={`h-8 w-8 rounded-full ${BG_BRAND} text-white flex items-center justify-center text-sm font-medium shadow-sm`}>1</div>
-                <div className="h-0.5 w-8 border-t-2 border-dashed border-gray-300"></div>
-                
-                 {/* Step 2: Filled */}
-                <div className={`h-8 w-8 rounded-full ${BG_BRAND} text-white flex items-center justify-center text-sm font-medium shadow-sm`}>2</div>
-                <div className="h-0.5 w-8 border-t-2 border-dashed border-gray-300"></div>
-                
-                 {/* Step 3: Filled */}
-                <div className={`h-8 w-8 rounded-full ${BG_BRAND} text-white flex items-center justify-center text-sm font-medium shadow-sm`}>3</div>
-                <div className="h-0.5 w-8 border-t-2 border-dashed border-gray-300"></div>
-                
-                 {/* Step 4: Outlined (Active) */}
-                <div className={`h-8 w-8 rounded-full border-2 ${BORDER_BRAND} flex items-center justify-center bg-white`}></div>
-            </div>
+				{/* Step 3: Filled */}
+				<div
+					className={`h-8 w-8 rounded-full ${BG_BRAND} text-white flex items-center justify-center text-sm font-medium shadow-sm`}
+				>
+					3
+				</div>
+				<div className="h-0.5 w-8 border-t-2 border-dashed border-gray-300"></div>
 
-            {/* Title */}
-            <AuthTitle
-                heading="Setup Your Store Location"
-                align="center"
-            />
+				{/* Step 4: Outlined (Active) */}
+				<div
+					className={`h-8 w-8 rounded-full border-2 ${BORDER_BRAND} flex items-center justify-center bg-white`}
+				></div>
+			</div>
 
-             {/* Form Fields */}
-             <div className="space-y-4 mb-6">
-                <Controller
-                    name="phone"
-                    control={control}
-                    render={({ field }) => (
-                        <AuthInput
-                            {...field}
-                            label="Phone Number"
-                            type="tel"
-                            placeholder="Your phone number"
-                            error={errors.phone?.message}
-                        />
-                    )}
-                />
-                <Controller
-                    name="city"
-                    control={control}
-                    render={({ field }) => (
-                        <AuthInput
-                            {...field}
-                            label="City"
-                            type="text"
-                            placeholder="Your city"
-                            error={errors.city?.message}
-                        />
-                    )}
-                />
-                <Controller
-                    name="zipCode"
-                    control={control}
-                    render={({ field }) => (
-                        <AuthInput
-                            {...field}
-                            label="Zip Code"
-                            type="text"
-                            placeholder="Your zip code"
-                            error={(errors as any).zipCode?.message}
-                        />
-                    )}
-                />
-                <Controller
-                    name="address"
-                    control={control}
-                    render={({ field }) => (
-                        <AuthInput
-                            {...field}
-                            ref={(el) => {
-                                addressInputRef.current = el;
-                                field.ref(el);
-                            }}
-                            label="Address"
-                            type="text"
-                            placeholder="Start typing your address"
-                            error={errors.address?.message}
-                        />
-                    )}
-                />
-            </div>
+			{/* Title */}
+			<AuthTitle
+				heading="Setup Your Store Location"
+				align="center"
+			/>
 
-             {/* Continue Button */}
-             <AuthButton
-                variant="primary"
-                fullWidth
-                onClick={handleNextStep}
-                disabled={!!errors.phone || !!errors.city || !!(errors as any).zipCode || !!errors.address}
-                className="h-12 py-3"
-            >
-                Continue
-            </AuthButton>
+			{/* Form Fields */}
+			<div className="space-y-4 mb-6">
+				<Controller
+					name="phone"
+					control={control}
+					render={({ field }) => (
+						<AuthInput
+							{...field}
+							label="Phone Number"
+							type="tel"
+							placeholder="Your phone number"
+							error={errors.phone?.message}
+						/>
+					)}
+				/>
+				<Controller
+					name="city"
+					control={control}
+					render={({ field }) => (
+						<AuthInput
+							{...field}
+							label="City"
+							type="text"
+							placeholder="Your city"
+							error={errors.city?.message}
+						/>
+					)}
+				/>
+				<Controller
+					name="zipCode"
+					control={control}
+					render={({ field }) => (
+						<AuthInput
+							{...field}
+							label="Zip Code"
+							type="text"
+							placeholder="Your zip code"
+							error={(errors as any).zipCode?.message}
+						/>
+					)}
+				/>
+				<Controller
+					name="address"
+					control={control}
+					render={({ field }) => (
+						<AuthInput
+							{...field}
+							ref={(el) => {
+								addressInputRef.current = el;
+								field.ref(el);
+							}}
+							label="Address"
+							type="text"
+							placeholder="Start typing your address"
+							error={errors.address?.message}
+						/>
+					)}
+				/>
+			</div>
 
-
-        </div>
-    );
+			{/* Continue Button */}
+			<AuthButton
+				variant="primary"
+				fullWidth
+				onClick={handleNextStep}
+				disabled={!!errors.phone || !!errors.city || !!(errors as any).zipCode || !!errors.address}
+				className="h-12 py-3"
+			>
+				Continue
+			</AuthButton>
+		</div>
+	);
 }

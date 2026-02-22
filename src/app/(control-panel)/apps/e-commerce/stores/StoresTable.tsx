@@ -38,7 +38,7 @@ function StoresTable() {
 	// 🔹 Pagination state
 	const [pagination, setPagination] = useState({
 		pageIndex: 0, // MRT uses 0-based indexing
-		pageSize: 10,
+		pageSize: 10
 	});
 
 	// Redirect non-admin users to their store page
@@ -54,92 +54,100 @@ function StoresTable() {
 	}
 
 	// Fetch stores with pagination
-	const { data: stores, isLoading, error } = useGetECommerceStoresQuery({
+	const {
+		data: stores,
+		isLoading,
+		error
+	} = useGetECommerceStoresQuery({
 		page: pagination.pageIndex + 1, // Convert to 1-based indexing for API
-		perPage: pagination.pageSize,
+		perPage: pagination.pageSize
 	});
 
 	const [removeStore] = useDeleteECommerceStoreMutation();
 
 	// Column definitions
-	const columns = useMemo<MRT_ColumnDef<EcommerceStore>[]>(() => [
-		{
-			accessorKey: 'logo',
-			header: 'Logo',
-			enableSorting: false,
-			size: 64,
-			Cell: ({ row }) =>
-				row.original.logo ? (
-					<Avatar
-						variant="rounded"
-						src={row.original.logo}
-						alt={row.original.name}
-						sx={{ width: 40, height: 40 }}
-					/>
-				) : (
-					<Avatar
-						variant="rounded"
-						src="/assets/images/apps/ecommerce/product-image-placeholder.png"
-						alt="No logo"
-						sx={{ width: 40, height: 40 }}
-					/>
-				),
-		},
-		{
-			accessorKey: 'name',
-			header: 'Name',
-			Cell: ({ row }) => (
-				<Typography
-					component={Link}
-					to={`/apps/e-commerce/stores/${row.original.id}/${row.original.slug}`}
-					role="button"
-				>
-					<u>{row.original.name}</u>
-				</Typography>
-			),
-		},
-		{
-			accessorKey: 'slug',
-			header: 'Slug',
-		},
-		{
-			accessorKey: 'products_count',
-			header: 'Total Products',
-		},
-		{
-			accessorKey: 'city',
-			header: 'City',
-		},
-		{
-			accessorKey: 'country',
-			header: 'Country',
-		},
-		{
-			accessorKey: 'contact_email',
-			header: 'Email',
-		},
-		{
-			accessorKey: 'active',
-			header: 'Status',
-			Cell: ({ row }) =>
-				row.original.active ? (
-					<Typography color="green">Active</Typography>
-				) : (
-					<Typography color="error">Inactive</Typography>
-				),
-		},
-		{
-			accessorKey: 'created_at',
-			header: 'Created At',
-			Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
-		},
-	], []);
+	const columns = useMemo<MRT_ColumnDef<EcommerceStore>[]>(
+		() => [
+			{
+				accessorKey: 'logo',
+				header: 'Logo',
+				enableSorting: false,
+				size: 64,
+				Cell: ({ row }) =>
+					row.original.logo ? (
+						<Avatar
+							variant="rounded"
+							src={row.original.logo}
+							alt={row.original.name}
+							sx={{ width: 40, height: 40 }}
+						/>
+					) : (
+						<Avatar
+							variant="rounded"
+							src="/assets/images/apps/ecommerce/product-image-placeholder.png"
+							alt="No logo"
+							sx={{ width: 40, height: 40 }}
+						/>
+					)
+			},
+			{
+				accessorKey: 'name',
+				header: 'Name',
+				Cell: ({ row }) => (
+					<Typography
+						component={Link}
+						to={`/apps/e-commerce/stores/${row.original.id}/${row.original.slug}`}
+						role="button"
+					>
+						<u>{row.original.name}</u>
+					</Typography>
+				)
+			},
+			{
+				accessorKey: 'slug',
+				header: 'Slug'
+			},
+			{
+				accessorKey: 'products_count',
+				header: 'Total Products'
+			},
+			{
+				accessorKey: 'city',
+				header: 'City'
+			},
+			{
+				accessorKey: 'country',
+				header: 'Country'
+			},
+			{
+				accessorKey: 'contact_email',
+				header: 'Email'
+			},
+			{
+				accessorKey: 'active',
+				header: 'Status',
+				Cell: ({ row }) =>
+					row.original.active ? (
+						<Typography color="green">Active</Typography>
+					) : (
+						<Typography color="error">Inactive</Typography>
+					)
+			},
+			{
+				accessorKey: 'created_at',
+				header: 'Created At',
+				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString()
+			}
+		],
+		[]
+	);
 
 	// Log fetch or error events
 	useEffect(() => {
 		if (!isMountedRef.current) return;
 
 		if (stores) console.log('Fetched stores:', stores);
+
 		if (error) console.error('Failed to load stores:', error);
 	}, [stores, error, isMountedRef]);
 
@@ -154,16 +162,16 @@ function StoresTable() {
 
 			if (succeeded > 0) {
 				const message =
-					succeeded === 1
-						? 'Store deleted successfully'
-						: `${succeeded} stores deleted successfully`;
+					succeeded === 1 ? 'Store deleted successfully' : `${succeeded} stores deleted successfully`;
 				enqueueSnackbar(message, { variant: 'success' });
 				setSuccessMessage(message);
 				setSuccessDialogOpen(true);
+
 				if (isMountedRef.current && tableInstance) {
 					tableInstance.resetRowSelection();
 				}
 			}
+
 			if (failed > 0) {
 				enqueueSnackbar(`${failed} deletion(s) failed`, { variant: 'error' });
 			}
@@ -184,6 +192,7 @@ function StoresTable() {
 	};
 
 	if (isLoading) return <FuseLoading />;
+
 	if (error) return <Typography color="error">Failed to load stores</Typography>;
 
 	/**
@@ -215,10 +224,11 @@ function StoresTable() {
 							<FuseSvgIcon>heroicons-outline:trash</FuseSvgIcon>
 						</ListItemIcon>
 						Delete
-					</MenuItem>,
+					</MenuItem>
 				]}
 				renderTopToolbarCustomActions={({ table }) => {
 					const { rowSelection } = table.getState();
+
 					if (Object.keys(rowSelection).length === 0) return null;
 
 					return (

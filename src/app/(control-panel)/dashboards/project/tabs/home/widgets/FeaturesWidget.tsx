@@ -67,7 +67,7 @@ function FeaturesWidget() {
 			</div>
 			<div className="text-center mt-4">
 				<Typography className="text-5xl sm:text-6xl font-bold tracking-tight leading-none text-green-500">
-					{typeof data?.count === 'number' && data.count > 0 
+					{typeof data?.count === 'number' && data.count > 0
 						? `£${Number(data.count).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 						: '£0.00'}
 				</Typography>
@@ -78,9 +78,11 @@ function FeaturesWidget() {
 				color="text.secondary"
 			>
 				<span className="truncate">{data?.extra?.name ?? ''}:</span>
-				<b>{typeof data?.extra?.count === 'number' && data.extra.count > 0
-					? `£${Number(data.extra.count).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-					: '£0.00'}</b>
+				<b>
+					{typeof data?.extra?.count === 'number' && data.extra.count > 0
+						? `£${Number(data.extra.count).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+						: '£0.00'}
+				</b>
 			</Typography>
 		</Paper>
 	);

@@ -24,7 +24,7 @@ function ProjectDashboardAppHeader() {
 	console.log(user, 'user from dashboard header');
 	// Check store on mount
 	useEffect(() => {
-		if (user && !user.store_id && !user?.role?.includes("admin")) {
+		if (user && !user.store_id && !user?.role?.includes('admin')) {
 			setOpenStoreDialog(true);
 		}
 	}, [user]);
@@ -95,16 +95,14 @@ function ProjectDashboardAppHeader() {
 							position: 'absolute',
 							right: 8,
 							top: 8,
-							color: (theme) => theme.palette.grey[500],
+							color: (theme) => theme.palette.grey[500]
 						}}
 					>
 						<CloseIcon />
 					</IconButton>
 				</DialogTitle>
 				<DialogContent>
-					<Typography>
-						Please add a store before proceeding.
-					</Typography>
+					<Typography>Please add a store before proceeding.</Typography>
 				</DialogContent>
 				<DialogActions>
 					<Button

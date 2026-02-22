@@ -7,11 +7,19 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Button from '@mui/material/Button';
 import Link from '@fuse/core/Link';
 import FuseLoading from '@fuse/core/FuseLoading';
-import { EcommerceOrder, useDeleteECommerceOrderMutation, useGetECommerceOrdersQuery } from '../apis/ECommerceOrdersApi';
+import {
+	EcommerceOrder,
+	useDeleteECommerceOrderMutation,
+	useGetECommerceOrdersQuery
+} from '../apis/ECommerceOrdersApi';
 import OrdersStatus from './OrdersStatus';
 
 function OrdersTable() {
-	const { data: orders, isLoading, error } = useGetECommerceOrdersQuery(undefined, {
+	const {
+		data: orders,
+		isLoading,
+		error
+	} = useGetECommerceOrdersQuery(undefined, {
 		refetchOnFocus: false,
 		refetchOnReconnect: false
 	});
@@ -80,24 +88,32 @@ function OrdersTable() {
 							row.original.product_detail.map((item, index) => {
 								if (item.product_detail && typeof item.product_detail === 'object') {
 									return (
-										<Typography key={index} variant="body2" className="border-b-1 mb-1">
+										<Typography
+											key={index}
+											variant="body2"
+											className="border-b-1 mb-1"
+										>
 											{Object.entries(item.product_detail).map(([key, value]) =>
-												["name", "quantity"].includes(key) ? (
-													<span key={key} style={{ marginRight: "8px" }}>
-														{(key == "quantity") ? "(Qty:" + String(value) + ")" : String(value)}
+												['name', 'quantity'].includes(key) ? (
+													<span
+														key={key}
+														style={{ marginRight: '8px' }}
+													>
+														{key == 'quantity'
+															? '(Qty:' + String(value) + ')'
+															: String(value)}
 													</span>
 												) : null
 											)}
-
 										</Typography>
 									);
 								}
+
 								return null;
 							})
 						) : (
 							<Typography variant="body2">—</Typography>
 						)}
-
 					</div>
 				)
 			}

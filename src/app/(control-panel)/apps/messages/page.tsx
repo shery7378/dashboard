@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
 import FusePageCarded from '@fuse/core/FusePageCarded';
 import { styled } from '@mui/material/styles';
 import MessagesAppHeader from './MessagesAppHeader';
@@ -12,9 +11,9 @@ const Root = styled(FusePageCarded)(({ theme }) => ({
 		height: 72,
 		[theme.breakpoints.down('lg')]: {
 			minHeight: 72,
-			height: 72,
-		},
-	},
+			height: 72
+		}
+	}
 }));
 
 function MessagesApp() {
@@ -28,4 +27,3 @@ function MessagesApp() {
 }
 
 export default MessagesApp;
-

@@ -1,6 +1,7 @@
 const translations = {
 	wallet_payouts: 'Wallet & Payouts',
-	connect_stripe_account: 'Connect your Stripe Connect account to receive payouts. Our platform handles all customer payments - you only need to connect for receiving your earnings.',
+	connect_stripe_account:
+		'Connect your Stripe Connect account to receive payouts. Our platform handles all customer payments - you only need to connect for receiving your earnings.',
 	connect_stripe: 'Connect Stripe Connect Account',
 	available_balance: 'Available Balance',
 	total_earned: 'Total Earned',
@@ -9,10 +10,10 @@ const translations = {
 	request_payout: 'Request Payout',
 	refresh: 'Refresh',
 	statistics: 'Statistics',
-	today_earnings: 'Today\'s Earnings',
-	this_month_earnings: 'This Month\'s Earnings',
-	last_month_earnings: 'Last Month\'s Earnings',
-	this_month_payouts: 'This Month\'s Payouts',
+	today_earnings: "Today's Earnings",
+	this_month_earnings: "This Month's Earnings",
+	last_month_earnings: "Last Month's Earnings",
+	this_month_payouts: "This Month's Payouts",
 	recent_transactions: 'Recent Transactions',
 	no_transactions_found: 'No transactions found',
 	date: 'Date',
@@ -38,4 +39,3 @@ const translations = {
 };
 
 export default translations;
-

@@ -25,7 +25,13 @@ function ProfileHeader({ onSubmit, tabValue }: ProfileHeaderProps) {
 		if (tabValue === 'change-password') {
 			const hasPasswordErrors = errors.current_password || errors.new_password || errors.confirm_password;
 			setIsSaveDisabled(
-				!(current_password && new_password && confirm_password && new_password === confirm_password && !hasPasswordErrors)
+				!(
+					current_password &&
+					new_password &&
+					confirm_password &&
+					new_password === confirm_password &&
+					!hasPasswordErrors
+				)
 			);
 		} else {
 			setIsSaveDisabled(_.isEmpty(dirtyFields) || !isValid);
@@ -47,7 +53,10 @@ function ProfileHeader({ onSubmit, tabValue }: ProfileHeaderProps) {
 						<Typography className="text-lg sm:text-2xl truncate font-semibold">
 							{name || user?.name || 'User Profile'}
 						</Typography>
-						<Typography variant="caption" className="font-medium">
+						<Typography
+							variant="caption"
+							className="font-medium"
+						>
 							Account Settings
 						</Typography>
 					</div>

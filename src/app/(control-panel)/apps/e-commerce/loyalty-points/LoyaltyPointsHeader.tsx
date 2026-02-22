@@ -25,7 +25,12 @@ function LoyaltyPointsHeader({ onSettingsClick }: LoyaltyPointsHeaderProps) {
 			>
 				<div>
 					<PageBreadcrumb className="mb-2" />
-					<Box display="flex" alignItems="center" gap={2} mb={1}>
+					<Box
+						display="flex"
+						alignItems="center"
+						gap={2}
+						mb={1}
+					>
 						<Box
 							sx={{
 								width: 56,
@@ -38,7 +43,12 @@ function LoyaltyPointsHeader({ onSettingsClick }: LoyaltyPointsHeaderProps) {
 								boxShadow: '0 4px 14px 0 rgba(102, 126, 234, 0.39)'
 							}}
 						>
-							<FuseSvgIcon className="text-white" size={32}>heroicons-outline:star</FuseSvgIcon>
+							<FuseSvgIcon
+								className="text-white"
+								size={32}
+							>
+								heroicons-outline:star
+							</FuseSvgIcon>
 						</Box>
 						<Box>
 							<Typography className="flex text-4xl font-extrabold leading-none tracking-tight bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">

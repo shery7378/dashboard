@@ -7,11 +7,11 @@ import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 
 function Page() {
-
 	const { data: session, status } = useSession();
 
 	useEffect(() => {
 		console.log('SESSION FULL:', JSON.stringify(session, null, 2));
+
 		if (session?.user) {
 			console.log('SESSION ROLE:', session.user.role);
 		}

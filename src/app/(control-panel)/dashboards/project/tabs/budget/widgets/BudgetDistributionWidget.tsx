@@ -86,7 +86,13 @@ function BudgetDistributionWidget() {
 		return <FuseLoading />;
 	}
 
-	if (!widget || !Array.isArray(series) || series.length === 0 || !Array.isArray(categories) || categories.length === 0) {
+	if (
+		!widget ||
+		!Array.isArray(series) ||
+		series.length === 0 ||
+		!Array.isArray(categories) ||
+		categories.length === 0
+	) {
 		return null;
 	}
 

@@ -12,7 +12,10 @@ function StoreCheck() {
 			animate={{ opacity: 1, transition: { delay: 0.1 } }}
 			className="flex flex-col flex-1 items-center justify-center h-full"
 		>
-			<Typography color="text.secondary" variant="h5">
+			<Typography
+				color="text.secondary"
+				variant="h5"
+			>
 				Please create a store first before adding products.
 			</Typography>
 			<Button

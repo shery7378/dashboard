@@ -7,9 +7,9 @@ export async function GET(req: Request) {
 		method: 'GET',
 		headers: {
 			...globalHeaders,
-			'Authorization': `Bearer ${await getAuthToken()}`,
+			Authorization: `Bearer ${await getAuthToken()}`
 		},
-		credentials: 'include',
+		credentials: 'include'
 	});
 
 	const data = await response.json();
@@ -22,10 +22,10 @@ export async function POST(req: Request) {
 		method: 'POST',
 		headers: {
 			...globalHeaders,
-			'Authorization': `Bearer ${await getAuthToken()}`,
+			Authorization: `Bearer ${await getAuthToken()}`
 		},
 		credentials: 'include',
-		body: JSON.stringify(requestData),
+		body: JSON.stringify(requestData)
 	});
 
 	const data = await response.json();

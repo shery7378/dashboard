@@ -40,16 +40,16 @@ function ClassicForgotPasswordPage() {
 		try {
 			// Fetch CSRF cookie
 			await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
-				credentials: 'include',
+				credentials: 'include'
 			});
 
 			const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/forgot-password`, {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				credentials: 'include',
-				body: JSON.stringify({ email }),
+				body: JSON.stringify({ email })
 			});
 
 			if (!res.ok) {
@@ -59,13 +59,13 @@ function ClassicForgotPasswordPage() {
 
 			setAlert({
 				type: 'success',
-				message: 'Password reset link sent to your email.',
+				message: 'Password reset link sent to your email.'
 			});
 			reset(defaultValues);
 		} catch (error) {
 			setAlert({
 				type: 'error',
-				message: error.message || 'An error occurred while sending the reset link.',
+				message: error.message || 'An error occurred while sending the reset link.'
 			});
 		}
 	}
@@ -74,15 +74,19 @@ function ClassicForgotPasswordPage() {
 		<div className="flex min-w-0 flex-auto flex-col items-center sm:justify-center bg-[#F7F7F8]">
 			<Paper className="min-h-full w-full rounded-none px-4 py-8 sm:min-h-auto sm:w-[420px] sm:rounded-xl sm:p-7.5 sm:shadow-sm border border-gray-200 bg-white">
 				<CardContent className="w-full flex flex-col items-center p-0">
-					<Typography color="primary" className="text-4xl font-extrabold leading-[1.25] tracking-tight text-center">
+					<Typography
+						color="primary"
+						className="text-4xl font-extrabold leading-[1.25] tracking-tight text-center"
+					>
 						MultiKonnect
 					</Typography>
 
-					<Typography className="text-3xl font-bold tracking-tight text-center">
-						Forgot password?
-					</Typography>
+					<Typography className="text-3xl font-bold tracking-tight text-center">Forgot password?</Typography>
 
-					<Typography color="textSecondary" className="mt-2 text-sm text-center">
+					<Typography
+						color="textSecondary"
+						className="mt-2 text-sm text-center"
+					>
 						Fill the email to reset your password
 					</Typography>
 
@@ -91,12 +95,9 @@ function ClassicForgotPasswordPage() {
 							className="mb-4 w-full"
 							severity={alert.type}
 							sx={(theme) => ({
-								backgroundColor: alert.type === 'success'
-									? theme.palette.success.light
-									: theme.palette.error.light,
-								color: alert.type === 'success'
-									? theme.palette.success.dark
-									: theme.palette.error.dark,
+								backgroundColor:
+									alert.type === 'success' ? theme.palette.success.light : theme.palette.error.light,
+								color: alert.type === 'success' ? theme.palette.success.dark : theme.palette.error.dark
 							})}
 						>
 							{alert.message}
@@ -140,10 +141,16 @@ function ClassicForgotPasswordPage() {
 						</Button>
 
 						<div className="mt-6 flex items-center justify-center gap-1 font-medium">
-							<Typography className="text-gray-600" variant="body2">
+							<Typography
+								className="text-gray-600"
+								variant="body2"
+							>
 								Return to
 							</Typography>
-							<Link className="font-semibold" to="/sign-in">
+							<Link
+								className="font-semibold"
+								to="/sign-in"
+							>
 								Sign in
 							</Link>
 						</div>

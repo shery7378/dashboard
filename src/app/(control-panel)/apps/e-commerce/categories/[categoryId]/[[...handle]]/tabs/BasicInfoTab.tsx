@@ -1,12 +1,28 @@
 import TextField from '@mui/material/TextField';
 import { Controller, useFormContext } from 'react-hook-form';
-import { Typography, CircularProgress, Radio, RadioGroup, FormControl, FormControlLabel, FormLabel, FormHelperText, Switch } from '@mui/material';
+import {
+	Typography,
+	CircularProgress,
+	Radio,
+	RadioGroup,
+	FormControl,
+	FormControlLabel,
+	FormLabel,
+	FormHelperText,
+	Switch
+} from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import { useGetECommerceParentCategoriesQuery } from '../../../../apis/CategoriesLaravelApi';
 import { useEffect } from 'react';
 import { slugify } from '../../../models/CategoryModel';
 
-function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCategoryType?: 'child' | 'parent'; category: any }) {
+function BasicInfoTab({
+	initialCategoryType = 'child',
+	category
+}: {
+	initialCategoryType?: 'child' | 'parent';
+	category: any;
+}) {
 	const { control, formState, watch, setValue, trigger } = useFormContext();
 	const { errors } = formState;
 
@@ -23,9 +39,11 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 	useEffect(() => {
 		setValue('category_type', initialCategoryType, { shouldValidate: true });
 		setValue('active', 1, { shouldValidate: true }); // Default to active (1)
+
 		if (initialCategoryType === 'parent') {
 			setValue('parent_id', null, { shouldDirty: true, shouldValidate: true });
 		}
+
 		trigger(); // Trigger full validation after initial set
 	}, [initialCategoryType, setValue, trigger]); // Only deps: runs on mount/edit load
 
@@ -39,6 +57,7 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 	// 🔁 Auto-update slug based on name (adapted from Product BasicInfoTab)
 	useEffect(() => {
 		const defaultSlug = formState.defaultValues?.slug;
+
 		if (categoryId && name === category?.name) {
 			// Edit mode: name unchanged → use DB slug
 			setValue('slug', category?.slug || defaultSlug);
@@ -59,8 +78,14 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 	return (
 		<div>
 			{/* Radio Toggle - Now fully form-controlled, no hidden Controller */}
-			<FormControl component="fieldset" className="mt-2 mb-4">
-				<FormLabel component="legend" className="mb-2 font-semibold">
+			<FormControl
+				component="fieldset"
+				className="mt-2 mb-4"
+			>
+				<FormLabel
+					component="legend"
+					className="mb-2 font-semibold"
+				>
 					Category Type
 				</FormLabel>
 				<RadioGroup
@@ -68,11 +93,19 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 					value={formCategoryType || initialCategoryType} // Use form watch (fallback to initial)
 					onChange={handleCategoryTypeChange}
 				>
-					<FormControlLabel value="child" control={<Radio />} label="Child Category" />
-					<FormControlLabel value="parent" control={<Radio />} label="Parent Category" />
+					<FormControlLabel
+						value="child"
+						control={<Radio />}
+						label="Child Category"
+					/>
+					<FormControlLabel
+						value="parent"
+						control={<Radio />}
+						label="Parent Category"
+					/>
 				</RadioGroup>
 
-				<FormHelperText className='ms-0'>
+				<FormHelperText className="ms-0">
 					{formCategoryType === 'child'
 						? 'This category will be a sub-category. Please select its parent.'
 						: 'This will be a top-level category without any parent.'}
@@ -89,9 +122,7 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 							options={parentCategories?.data || []}
 							loading={isLoading}
 							getOptionLabel={(option) => option?.name || ''}
-							value={
-								parentCategories?.data?.find((cat) => cat.id === field.value) || null
-							}
+							value={parentCategories?.data?.find((cat) => cat.id === field.value) || null}
 							onChange={(_, newValue) => {
 								field.onChange(newValue ? newValue.id : null); // ✅ null, not ''
 							}}
@@ -110,11 +141,14 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 										endAdornment: (
 											<>
 												{isLoading ? (
-													<CircularProgress color="inherit" size={20} />
+													<CircularProgress
+														color="inherit"
+														size={20}
+													/>
 												) : null}
 												{params.InputProps.endAdornment}
 											</>
-										),
+										)
 									}}
 								/>
 							)}
@@ -194,7 +228,7 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 				control={control}
 				// defaultValue={1}
 				render={({ field }) => {
-					console.log("Active field value:", field.value);
+					console.log('Active field value:', field.value);
 					return (
 						<div className="mt-6">
 							<FormControlLabel
@@ -212,10 +246,11 @@ function BasicInfoTab({ initialCategoryType = 'child', category }: { initialCate
 								color="textSecondary"
 								className="block mt-1"
 							>
-								⚠️ Before activating, make sure required fields (Name, Description, Image ,etc.) are filled.
+								⚠️ Before activating, make sure required fields (Name, Description, Image ,etc.) are
+								filled.
 							</Typography>
 						</div>
-					)
+					);
 				}}
 			/>
 		</div>

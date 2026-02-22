@@ -37,7 +37,7 @@ function useUser(): useUser {
 
 		const userId = _data.id || user?.id;
 		const accessToken = data?.accessAuthToken;
-		
+
 		const response = await authUpdateDbUser({ ..._data, id: userId }, accessToken);
 
 		if (!response.ok) {
@@ -80,8 +80,8 @@ function useUser(): useUser {
 	// }
 
 	/**
- * Sign out
- */
+	 * Sign out
+	 */
 	async function handleSignOut() {
 		try {
 			// Get the accessAuthToken from the session
@@ -91,6 +91,7 @@ function useUser(): useUser {
 			if (accessAuthToken) {
 				try {
 					const response = await authUserSignOut(accessAuthToken);
+
 					if (response.ok) {
 						console.log('Backend logout successful');
 					} else {

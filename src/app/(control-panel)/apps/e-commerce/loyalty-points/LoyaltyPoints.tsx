@@ -22,8 +22,8 @@ function LoyaltyPoints() {
 			/>
 			<div className="w-full h-full flex flex-col px-4">
 				<LoyaltyPointsHeader onSettingsClick={() => setSettingsDialogOpen(true)} />
-				<LoyaltyPointsTable 
-					settingsDialogOpen={settingsDialogOpen} 
+				<LoyaltyPointsTable
+					settingsDialogOpen={settingsDialogOpen}
 					onSettingsDialogClose={() => setSettingsDialogOpen(false)}
 					onSettingsDialogOpen={() => setSettingsDialogOpen(true)}
 				/>
@@ -33,4 +33,3 @@ function LoyaltyPoints() {
 }
 
 export default LoyaltyPoints;
-

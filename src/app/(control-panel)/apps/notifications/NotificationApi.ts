@@ -32,7 +32,10 @@ const NotificationApi = api
 					} catch (error) {
 						// Silently ignore errors for mock notifications
 						// Laravel notifications are handled separately
-						console.debug('Mock notification creation failed (expected if using Laravel notifications):', error);
+						console.debug(
+							'Mock notification creation failed (expected if using Laravel notifications):',
+							error
+						);
 					}
 				}
 			}),
@@ -49,7 +52,10 @@ const NotificationApi = api
 						await queryFulfilled;
 					} catch (error) {
 						// Silently ignore errors for mock notifications
-						console.debug('Mock notification deletion failed (expected if using Laravel notifications):', error);
+						console.debug(
+							'Mock notification deletion failed (expected if using Laravel notifications):',
+							error
+						);
 					}
 				}
 			}),

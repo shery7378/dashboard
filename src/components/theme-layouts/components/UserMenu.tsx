@@ -187,7 +187,9 @@ function UserMenu(props: UserMenuProps) {
 							}}
 						>
 							<ListItemIcon className="min-w-9">
-								<FuseSvgIcon className="!min-w-[16px] !w-[16px]">heroicons-outline:arrow-right-on-rectangle</FuseSvgIcon>
+								<FuseSvgIcon className="!min-w-[16px] !w-[16px]">
+									heroicons-outline:arrow-right-on-rectangle
+								</FuseSvgIcon>
 							</ListItemIcon>
 							<ListItemText primary="Sign out" />
 						</MenuItem>

@@ -26,13 +26,13 @@ export interface RefundRequest {
 	has_customer_response?: boolean;
 	has_attachments?: boolean;
 	attachment_file_ids?: number[];
-	attachment_files?: Array<{
+	attachment_files?: {
 		id: number;
 		filename: string;
 		path: string;
 		mime: string;
 		size: string;
-	}>;
+	}[];
 	user?: {
 		id: number;
 		name: string;
@@ -80,63 +80,61 @@ export type RejectRefundApiArg = {
 	admin_notes: string;
 };
 
-const RefundRequestsApi = api
-	.enhanceEndpoints({ addTagTypes })
-	.injectEndpoints({
-		endpoints: (build) => ({
-			getRefundRequests: build.query<GetRefundRequestsApiResponse, GetRefundRequestsApiArg>({
-				query: (params) => ({
-					url: `/api/admin/refunds`,
-					params
-				}),
-				providesTags: ['refundRequests']
+const RefundRequestsApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
+	endpoints: (build) => ({
+		getRefundRequests: build.query<GetRefundRequestsApiResponse, GetRefundRequestsApiArg>({
+			query: (params) => ({
+				url: `/api/admin/refunds`,
+				params
 			}),
-
-			getRefundRequest: build.query<{ status: number; data: RefundRequest }, number>({
-				query: (id) => ({
-					url: `/api/admin/refunds/${id}`,
-					method: 'GET'
-				}),
-				providesTags: (result, error, id) => [{ type: 'refundRequests', id }]
-			}),
-
-			requestMoreDetails: build.mutation<{ status: number; data: RefundRequest }, RequestMoreDetailsApiArg>({
-				query: (body) => ({
-					url: `/api/admin/refunds/${body.id}/request-more-details`,
-					method: 'POST',
-					body: {
-						admin_question: body.admin_question,
-						admin_notes: body.admin_notes
-					}
-				}),
-				invalidatesTags: ['refundRequests']
-			}),
-
-			approveRefund: build.mutation<{ status: number; data: RefundRequest }, ApproveRefundApiArg>({
-				query: (body) => ({
-					url: `/api/admin/refunds/${body.id}/approve`,
-					method: 'POST',
-					body: {
-						refund_amount: body.refund_amount,
-						admin_notes: body.admin_notes
-					}
-				}),
-				invalidatesTags: ['refundRequests']
-			}),
-
-			rejectRefund: build.mutation<{ status: number; data: RefundRequest }, RejectRefundApiArg>({
-				query: (body) => ({
-					url: `/api/admin/refunds/${body.id}/reject`,
-					method: 'POST',
-					body: {
-						admin_notes: body.admin_notes
-					}
-				}),
-				invalidatesTags: ['refundRequests']
-			}),
+			providesTags: ['refundRequests']
 		}),
-		overrideExisting: false
-	});
+
+		getRefundRequest: build.query<{ status: number; data: RefundRequest }, number>({
+			query: (id) => ({
+				url: `/api/admin/refunds/${id}`,
+				method: 'GET'
+			}),
+			providesTags: (result, error, id) => [{ type: 'refundRequests', id }]
+		}),
+
+		requestMoreDetails: build.mutation<{ status: number; data: RefundRequest }, RequestMoreDetailsApiArg>({
+			query: (body) => ({
+				url: `/api/admin/refunds/${body.id}/request-more-details`,
+				method: 'POST',
+				body: {
+					admin_question: body.admin_question,
+					admin_notes: body.admin_notes
+				}
+			}),
+			invalidatesTags: ['refundRequests']
+		}),
+
+		approveRefund: build.mutation<{ status: number; data: RefundRequest }, ApproveRefundApiArg>({
+			query: (body) => ({
+				url: `/api/admin/refunds/${body.id}/approve`,
+				method: 'POST',
+				body: {
+					refund_amount: body.refund_amount,
+					admin_notes: body.admin_notes
+				}
+			}),
+			invalidatesTags: ['refundRequests']
+		}),
+
+		rejectRefund: build.mutation<{ status: number; data: RefundRequest }, RejectRefundApiArg>({
+			query: (body) => ({
+				url: `/api/admin/refunds/${body.id}/reject`,
+				method: 'POST',
+				body: {
+					admin_notes: body.admin_notes
+				}
+			}),
+			invalidatesTags: ['refundRequests']
+		})
+	}),
+	overrideExisting: false
+});
 
 export default RefundRequestsApi;
 
@@ -145,6 +143,5 @@ export const {
 	useGetRefundRequestQuery,
 	useRequestMoreDetailsMutation,
 	useApproveRefundMutation,
-	useRejectRefundMutation,
+	useRejectRefundMutation
 } = RefundRequestsApi;
-

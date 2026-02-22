@@ -2,7 +2,7 @@
 
 /**
  * Test Page for Inventory Sync Feature
- * 
+ *
  * This page allows you to test the inventory sync functionality
  * Navigate to: /apps/e-commerce/products/test-inventory-sync
  */
@@ -17,10 +17,13 @@ export default function TestInventorySyncPage() {
 		<div className="p-24">
 			<h1 className="text-3xl font-bold mb-4">Inventory Sync Test Page</h1>
 			<p className="mb-6 text-gray-600">
-				Use this page to test the inventory sync feature. Change the productId and userRole in the code to test different scenarios.
+				Use this page to test the inventory sync feature. Change the productId and userRole in the code to test
+				different scenarios.
 			</p>
-			<InventorySyncTab productId={productId} userRole={userRole} />
+			<InventorySyncTab
+				productId={productId}
+				userRole={userRole}
+			/>
 		</div>
 	);
 }
-

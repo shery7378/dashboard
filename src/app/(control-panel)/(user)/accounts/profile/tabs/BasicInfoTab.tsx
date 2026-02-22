@@ -1,8 +1,7 @@
 'use client';
 
 import { Controller, useFormContext } from 'react-hook-form';
-import { TextField, Button, MenuItem } from '@mui/material';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
+import { TextField, MenuItem } from '@mui/material';
 
 function BasicInfoTab() {
 	const { control, formState } = useFormContext();
@@ -138,7 +137,7 @@ function BasicInfoTab() {
 						fullWidth
 						value="active" // always shows Active
 						InputProps={{
-							readOnly: true, // prevents user input
+							readOnly: true // prevents user input
 						}}
 						error={!!errors.status}
 						helperText={errors.status?.message as string}
@@ -147,7 +146,6 @@ function BasicInfoTab() {
 					</TextField>
 				)}
 			/>
-
 		</div>
 	);
 }

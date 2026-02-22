@@ -70,7 +70,9 @@ function NewOrdersWidget() {
 				<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-blue-500">
 					{String(data?.count ?? 0)}
 				</Typography>
-				<Typography className="text-base font-semibold text-blue-600 mt-2">{data?.name ?? 'New Orders'}</Typography>
+				<Typography className="text-base font-semibold text-blue-600 mt-2">
+					{data?.name ?? 'New Orders'}
+				</Typography>
 			</div>
 			<Typography
 				className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
@@ -84,4 +86,3 @@ function NewOrdersWidget() {
 }
 
 export default memo(NewOrdersWidget);
-

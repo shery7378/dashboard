@@ -23,7 +23,7 @@ const Root = styled(FusePageSimple)(({ theme }) => ({
  */
 function SellerDashboardApp() {
 	const { isLoading, error } = useGetProjectDashboardWidgetsQuery(undefined, {
-		skip: false, // Keep querying, but handle errors gracefully
+		skip: false // Keep querying, but handle errors gracefully
 	});
 
 	const [tabValue, setTabValue] = useState('home');
@@ -76,4 +76,3 @@ function SellerDashboardApp() {
 }
 
 export default SellerDashboardApp;
-

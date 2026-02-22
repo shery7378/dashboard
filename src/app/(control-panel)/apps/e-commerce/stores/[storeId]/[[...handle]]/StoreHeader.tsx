@@ -30,7 +30,15 @@ const tabFields: Record<string, (keyof EcommerceStore)[]> = {
 	'basic-info': ['name', 'description', 'slug'],
 	'store-images': ['logo', 'banner_image'],
 	'store-address': ['address', 'zip_code', 'city', 'country', 'latitude', 'longitude'],
-	'store-settings': ['contact_email', 'contact_phone', 'active', 'offers_delivery', 'offers_pickup', 'delivery_radius', 'delivery_slots'],
+	'store-settings': [
+		'contact_email',
+		'contact_phone',
+		'active',
+		'offers_delivery',
+		'offers_pickup',
+		'delivery_radius',
+		'delivery_slots'
+	],
 	'seo-settings': ['meta_title', 'meta_description', 'meta_keywords']
 };
 
@@ -49,7 +57,7 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 
 	const { data: session } = useSession();
 	const userRoles = session?.user?.role || []; // ["vendor"] etc
-	const isAdmin = userRoles.includes("admin");
+	const isAdmin = userRoles.includes('admin');
 
 	// console.log(userRoles, 'user roles from store header', isAdmin);
 	const { setError, clearErrors } = useFormContext<FieldValues>();
@@ -95,6 +103,7 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 		});
 
 		if (!valid) enqueueSnackbar('Please fix errors before saving', { variant: 'error' });
+
 		return valid;
 	};
 
@@ -106,6 +115,7 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 
 		fieldsToSave.forEach((field) => {
 			const value = currentValues[field];
+
 			if (field === 'logo' || field === 'banner_image') {
 				payload[field] = sanitizeImageFields({ [field]: value } as EcommerceStore)[field];
 			} else {
@@ -120,6 +130,7 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 			const allTabFields = Object.values(tabFields).flat();
 			allTabFields.forEach((field) => {
 				const value = currentValues[field];
+
 				if (value !== undefined && value !== null && value !== '') {
 					if (field === 'logo' || field === 'banner_image') {
 						if (!payload[field]) {
@@ -138,20 +149,24 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 	// --- Save Handler ---
 	const saveTabData = () => {
 		if (!validateTab()) return;
+
 		const payload = buildPayload();
 
 		if (storeId === 'new') {
 			// Validate that required fields are present for new store creation
 			if (!payload.name || payload.name.trim() === '') {
-				enqueueSnackbar('Store name is required. Please fill in the Basic Info tab first.', { variant: 'error' });
+				enqueueSnackbar('Store name is required. Please fill in the Basic Info tab first.', {
+					variant: 'error'
+				});
 				setError('name', { type: 'manual', message: 'Store name is required' });
 				return;
 			}
-			
+
 			createStore(payload)
 				.unwrap()
 				.then((response) => {
 					enqueueSnackbar('Store created successfully', { variant: 'success' });
+
 					// Navigate to the created store's edit page
 					if (response?.data?.id) {
 						navigate(`/apps/e-commerce/stores/${response.data.id}`);
@@ -159,15 +174,17 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 				})
 				.catch((error) => {
 					const errorMessage = error?.data?.message || error?.data?.errors || 'Failed to create store';
-					enqueueSnackbar(typeof errorMessage === 'string' ? errorMessage : 'Failed to create store', { variant: 'error' });
-					
+					enqueueSnackbar(typeof errorMessage === 'string' ? errorMessage : 'Failed to create store', {
+						variant: 'error'
+					});
+
 					// Set field errors if validation errors are returned
 					if (error?.data?.errors && typeof error.data.errors === 'object') {
 						Object.keys(error.data.errors).forEach((field) => {
 							setError(field as keyof EcommerceStore, {
 								type: 'manual',
-								message: Array.isArray(error.data.errors[field]) 
-									? error.data.errors[field][0] 
+								message: Array.isArray(error.data.errors[field])
+									? error.data.errors[field][0]
 									: error.data.errors[field]
 							});
 						});
@@ -178,20 +195,22 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 				.unwrap()
 				.then(() => {
 					enqueueSnackbar('Tab updated successfully', { variant: 'success' });
-					setSuccessMessage("Your store has been updated successfully.");
+					setSuccessMessage('Your store has been updated successfully.');
 					setSuccessDialogOpen(true);
 				})
 				.catch((error) => {
 					const errorMessage = error?.data?.message || error?.data?.errors || 'Failed to update tab';
-					enqueueSnackbar(typeof errorMessage === 'string' ? errorMessage : 'Failed to update tab', { variant: 'error' });
-					
+					enqueueSnackbar(typeof errorMessage === 'string' ? errorMessage : 'Failed to update tab', {
+						variant: 'error'
+					});
+
 					// Set field errors if validation errors are returned
 					if (error?.data?.errors && typeof error.data.errors === 'object') {
 						Object.keys(error.data.errors).forEach((field) => {
 							setError(field as keyof EcommerceStore, {
 								type: 'manual',
-								message: Array.isArray(error.data.errors[field]) 
-									? error.data.errors[field][0] 
+								message: Array.isArray(error.data.errors[field])
+									? error.data.errors[field][0]
 									: error.data.errors[field]
 							});
 						});
@@ -226,7 +245,10 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 			<div className="flex flex-col sm:flex-row flex-1 w-full items-center justify-between space-y-2 sm:space-y-0 py-6 sm:py-8">
 				{/* Left Section */}
 				<div className="flex flex-col items-start space-y-2 sm:space-y-0 w-full sm:max-w-full min-w-0">
-					<motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1, transition: { delay: 0.3 } }}>
+					<motion.div
+						initial={{ x: 20, opacity: 0 }}
+						animate={{ x: 0, opacity: 1, transition: { delay: 0.3 } }}
+					>
 						<PageBreadcrumb className="mb-2" />
 					</motion.div>
 					<div className="flex items-center max-w-full space-x-3">
@@ -249,7 +271,10 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 							<Typography className="text-lg sm:text-2xl truncate font-semibold">
 								{values.name || 'New Store'}
 							</Typography>
-							<Typography variant="caption" className="font-medium">
+							<Typography
+								variant="caption"
+								className="font-medium"
+							>
 								Store Detail
 							</Typography>
 						</motion.div>

@@ -31,11 +31,10 @@ const translations = {
 	processing: 'Elaborazione...',
 	payout_request_successful: 'Richiesta di pagamento riuscita!',
 	minimum_payout_amount: 'Importo minimo di pagamento è ${{min}}',
-	amount_exceeds_balance: 'L\'importo supera il saldo disponibile',
+	amount_exceeds_balance: "L'importo supera il saldo disponibile",
 	failed_to_process_payout: 'Impossibile elaborare il pagamento',
 	failed_to_load_wallet: 'Impossibile caricare i dati del portafoglio',
 	na: 'N/D'
 };
 
 export default translations;
-

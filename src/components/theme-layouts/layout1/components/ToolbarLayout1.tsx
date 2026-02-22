@@ -66,8 +66,8 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
 									<>
 										{(config.navbar.style === 'style-3' ||
 											config.navbar.style === 'style-3-dense') && (
-												<NavbarToggleButton className="h-10 w-10 p-0" />
-											)}
+											<NavbarToggleButton className="h-10 w-10 p-0" />
+										)}
 
 										{config.navbar.style === 'style-1' && !navbar.open && (
 											<NavbarToggleButton className="h-10 w-10 p-0" />
@@ -82,10 +82,9 @@ function ToolbarLayout1(props: ToolbarLayout1Props) {
 						{!isMobile && <NavigationShortcuts />}
 
 						{/* Conditionally render AddStoreButton if user.store_id is null */}
-						{!isGuest && user?.store_id === null && !user?.role?.includes("admin") && (
+						{!isGuest && user?.store_id === null && !user?.role?.includes('admin') && (
 							<AddStoreButton className="whitespace-nowrap" />
 						)}
-
 					</div>
 					<div className="flex items-center overflow-x-auto px-2 md:px-4 space-x-1.5">
 						<LanguageSwitcher />

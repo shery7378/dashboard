@@ -78,7 +78,6 @@ function Layout4(props: Layout4Props) {
 						<FuseDialog />
 						{children}
 					</div>
-
 				</main>
 
 				{config.navbar.display && config.navbar.position === 'right' && <NavbarWrapperLayout4 />}

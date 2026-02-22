@@ -1,6 +1,5 @@
 import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
-import MainProjectSelection from '@/components/MainProjectSelection';
 
 const Root = styled('div')(({ theme }) => ({
 	'& > .logo-icon': {
@@ -30,12 +29,15 @@ function Logo() {
 					alt="logo"
 				/> */}
 				<div className="logo-text flex flex-col flex-auto gap-0.5">
-					<Typography className="text-2xl tracking-light font-semibold leading-none"
+					<Typography
+						className="text-2xl tracking-light font-semibold leading-none"
 						color="primary"
 						sx={{
 							color: '#FF5A2A'
 						}}
-					>MultiKonnect</Typography>
+					>
+						MultiKonnect
+					</Typography>
 					{/* <Typography
 						className="text-[13.6px] tracking-light font-semibold leading-none"
 						color="primary"

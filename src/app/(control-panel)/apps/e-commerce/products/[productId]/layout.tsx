@@ -3,11 +3,7 @@
 import { useParams, usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
-export default function ProductLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
+export default function ProductLayout({ children }: { children: React.ReactNode }) {
 	const params = useParams<{ productId: string }>();
 	const pathname = usePathname();
 	const productId = params?.productId;
@@ -20,13 +16,13 @@ export default function ProductLayout({
 	// - Product creation pages: /apps/e-commerce/products/new
 	// - Product edit/update pages: /apps/e-commerce/products/[productId] (when productId exists)
 	// - Product creation with /s suffix: /apps/e-commerce/products/[id]/s
-	const isProductPage = pathname && (
-		pathname.match(/\/products\/[^\/]+\/s$/) ||
-		pathname.includes('/products/') && pathname.includes('/listing') ||
-		pathname.includes('/listing/') ||
-		// Hide sidebar on product creation and edit/update pages
-		(pathname.includes('/apps/e-commerce/products/') && productId)
-	);
+	const isProductPage =
+		pathname &&
+		(pathname.match(/\/products\/[^\/]+\/s$/) ||
+			(pathname.includes('/products/') && pathname.includes('/listing')) ||
+			pathname.includes('/listing/') ||
+			// Hide sidebar on product creation and edit/update pages
+			(pathname.includes('/apps/e-commerce/products/') && productId));
 
 	useEffect(() => {
 		// Add style element with comprehensive selectors to hide sidebar
@@ -103,7 +99,7 @@ export default function ProductLayout({
 
 			// Remove any other matching style elements (cleanup)
 			const existingStyleElements = document.querySelectorAll('style#product-layout-hide-ui');
-			existingStyleElements.forEach(el => {
+			existingStyleElements.forEach((el) => {
 				if (el.parentNode) {
 					el.parentNode.removeChild(el);
 				}
@@ -120,10 +116,11 @@ export default function ProductLayout({
 				'nav[class*="sidebar"]'
 			];
 
-			selectors.forEach(selector => {
+			selectors.forEach((selector) => {
 				const elements = document.querySelectorAll(selector);
-				elements.forEach(el => {
+				elements.forEach((el) => {
 					const htmlEl = el as HTMLElement;
+
 					if (htmlEl.style.display === 'none') {
 						htmlEl.style.display = '';
 					}
@@ -135,11 +132,5 @@ export default function ProductLayout({
 		};
 	}, [isProductPage, pathname]);
 
-	return (
-		<>
-			{children}
-		</>
-	);
+	return <>{children}</>;
 }
-
-

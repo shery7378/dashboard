@@ -7,7 +7,7 @@ import { useTheme, alpha } from '@mui/material/styles';
 
 function MessagesAppHeader() {
 	const theme = useTheme();
-	
+
 	return (
 		<FusePageCardedHeader>
 			<div className="flex flex-col sm:flex-row flex-1 w-full items-center justify-between py-12 px-24">
@@ -21,12 +21,10 @@ function MessagesAppHeader() {
 							alignItems: 'center',
 							justifyContent: 'center',
 							background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
-							boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`,
+							boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.3)}`
 						}}
 					>
-						<Icon sx={{ color: theme.palette.primary.contrastText, fontSize: 28 }}>
-							chat_bubble
-						</Icon>
+						<Icon sx={{ color: theme.palette.primary.contrastText, fontSize: 28 }}>chat_bubble</Icon>
 					</Box>
 					<div>
 						<Typography
@@ -36,12 +34,16 @@ function MessagesAppHeader() {
 								background: `linear-gradient(135deg, ${theme.palette.text.primary} 0%, ${theme.palette.primary.main} 100%)`,
 								backgroundClip: 'text',
 								WebkitBackgroundClip: 'text',
-								WebkitTextFillColor: 'transparent',
+								WebkitTextFillColor: 'transparent'
 							}}
 						>
 							Messages
 						</Typography>
-						<Typography variant="caption" color="text.secondary" className="mt-4 block">
+						<Typography
+							variant="caption"
+							color="text.secondary"
+							className="mt-4 block"
+						>
 							Communicate with your customers
 						</Typography>
 					</div>
@@ -52,4 +54,3 @@ function MessagesAppHeader() {
 }
 
 export default MessagesAppHeader;
-

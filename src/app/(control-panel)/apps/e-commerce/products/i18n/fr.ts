@@ -18,7 +18,8 @@ const translations = {
 	delete_selected_items: 'Supprimer les éléments sélectionnés',
 	confirm_deletion: 'Confirmer la suppression',
 	confirm_delete_product: 'Êtes-vous sûr de vouloir supprimer ce produit ?',
-	confirm_delete_products: 'Êtes-vous sûr de vouloir supprimer {{count}} produit(s) ? Cette action ne peut pas être annulée.',
+	confirm_delete_products:
+		'Êtes-vous sûr de vouloir supprimer {{count}} produit(s) ? Cette action ne peut pas être annulée.',
 	cancel: 'Annuler',
 	product_deleted_successfully: 'Produit supprimé avec succès',
 	products_deleted_successfully: 'Produits supprimés avec succès',
@@ -39,4 +40,3 @@ const translations = {
 };
 
 export default translations;
-

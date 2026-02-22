@@ -4,8 +4,6 @@ import OverdueWidget from '../../../vendor/tabs/home/widgets/OverdueWidget';
 import IssuesWidget from '../../../vendor/tabs/home/widgets/IssuesWidget';
 import FeaturesWidget from '../../../vendor/tabs/home/widgets/FeaturesWidget';
 import GithubIssuesWidget from '../../../vendor/tabs/home/widgets/GithubIssuesWidget';
-import TaskDistributionWidget from '../../../vendor/tabs/home/widgets/TaskDistributionWidget';
-import ScheduleWidget from '../../../vendor/tabs/home/widgets/ScheduleWidget';
 import OrdersTableForHome from '@/app/(control-panel)/apps/e-commerce/orders/OrdersTableForHome';
 import ProductsTableForHome from '@/app/(control-panel)/apps/e-commerce/products/ProductsTableForHome';
 
@@ -35,16 +33,28 @@ function HomeTab() {
 			initial="hidden"
 			animate="show"
 		>
-			<motion.div variants={item} className="flex flex-col h-full">
+			<motion.div
+				variants={item}
+				className="flex flex-col h-full"
+			>
 				<SummaryWidget />
 			</motion.div>
-			<motion.div variants={item} className="flex flex-col h-full">
+			<motion.div
+				variants={item}
+				className="flex flex-col h-full"
+			>
 				<OverdueWidget />
 			</motion.div>
-			<motion.div variants={item} className="flex flex-col h-full">
+			<motion.div
+				variants={item}
+				className="flex flex-col h-full"
+			>
 				<IssuesWidget />
 			</motion.div>
-			<motion.div variants={item} className="flex flex-col h-full">
+			<motion.div
+				variants={item}
+				className="flex flex-col h-full"
+			>
 				<FeaturesWidget />
 			</motion.div>
 			<motion.div
@@ -84,4 +94,3 @@ function HomeTab() {
 }
 
 export default HomeTab;
-

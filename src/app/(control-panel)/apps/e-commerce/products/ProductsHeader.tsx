@@ -18,7 +18,7 @@ function ProductsHeader() {
 	const { t } = useTranslation('products');
 	const { data: session } = useSession();
 	const [importModalOpen, setImportModalOpen] = useState(false);
-	
+
 	// Get current user's store
 	const { data: storeData } = useGetCurrentUserStoreQuery();
 	const store = storeData?.data;
@@ -27,7 +27,7 @@ function ProductsHeader() {
 	const user = session?.user || session?.db;
 	const userRoles = user?.role || session?.db?.role || [];
 	const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
-	
+
 	// Hide import button for suppliers and admins
 	const isSupplier = roles.includes('supplier');
 	const isAdmin = roles.includes('admin');
@@ -44,7 +44,9 @@ function ProductsHeader() {
 			>
 				<div>
 					<PageBreadcrumb className="mb-2" />
-					<Typography className="text-4xl font-extrabold leading-none tracking-tight">{t('products')}</Typography>
+					<Typography className="text-4xl font-extrabold leading-none tracking-tight">
+						{t('products')}
+					</Typography>
 				</div>
 			</motion.span>
 			<motion.div
@@ -59,7 +61,9 @@ function ProductsHeader() {
 						startIcon={<FuseSvgIcon size={16}>heroicons-outline:arrow-down-tray</FuseSvgIcon>}
 						onClick={() => setImportModalOpen(true)}
 						disabled={bothDeliveryAndPickupOff}
-						title={bothDeliveryAndPickupOff ? 'Import is disabled when both delivery and pickup are off' : ''}
+						title={
+							bothDeliveryAndPickupOff ? 'Import is disabled when both delivery and pickup are off' : ''
+						}
 					>
 						<span className="hidden sm:inline">{t('import_product')}</span>
 						<span className="sm:hidden">{t('import')}</span>
@@ -73,16 +77,22 @@ function ProductsHeader() {
 					color="primary"
 					startIcon={<FuseSvgIcon size={16}>heroicons-outline:plus</FuseSvgIcon>}
 					disabled={bothDeliveryAndPickupOff}
-					title={bothDeliveryAndPickupOff ? 'Adding products is disabled when both delivery and pickup are off' : ''}
+					title={
+						bothDeliveryAndPickupOff
+							? 'Adding products is disabled when both delivery and pickup are off'
+							: ''
+					}
 				>
-					<span className="hidden sm:inline">{t('add')} {t('new_product')}</span>
+					<span className="hidden sm:inline">
+						{t('add')} {t('new_product')}
+					</span>
 					<span className="sm:hidden">{t('add')}</span>
 				</Button>
 			</motion.div>
 			{showImportButton && (
-				<ImportProductModal 
-					open={importModalOpen} 
-					onClose={() => setImportModalOpen(false)} 
+				<ImportProductModal
+					open={importModalOpen}
+					onClose={() => setImportModalOpen(false)}
 				/>
 			)}
 		</div>

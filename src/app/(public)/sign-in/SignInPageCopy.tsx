@@ -5,7 +5,6 @@ import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import CardContent from '@mui/material/CardContent';
-import { lighten } from '@mui/material/styles';
 import AuthJsForm from '@auth/forms/AuthJsForm';
 
 /**
@@ -40,7 +39,6 @@ function SignInPage() {
 					</div>
 
 					<AuthJsForm formType="signin" />
-
 				</CardContent>
 			</Paper>
 
@@ -115,8 +113,8 @@ function SignInPage() {
 						<div>our community</div>
 					</div>
 					<div className="mt-6 text-lg leading-6 tracking-tight text-gray-100">
-						MultiKonnect helps developers to build organized and well coded dashboards full of beautiful and rich
-						modules. Join us and start building your application today.
+						MultiKonnect helps developers to build organized and well coded dashboards full of beautiful and
+						rich modules. Join us and start building your application today.
 					</div>
 					<div className="mt-8 flex items-center">
 						<AvatarGroup

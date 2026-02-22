@@ -1,8 +1,5 @@
-import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { motion } from 'framer-motion'; // ✅ fix: correct import from framer-motion
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import NavLinkAdapter from '@fuse/core/NavLinkAdapter';
 import useThemeMediaQuery from '@fuse/hooks/useThemeMediaQuery';
 import PageBreadcrumb from 'src/components/PageBreadcrumb';
 
@@ -21,9 +18,7 @@ function StoresHeader() {
 			>
 				<div>
 					<PageBreadcrumb className="mb-2" />
-					<Typography className="text-4xl font-extrabold leading-none tracking-tight">
-						Stores
-					</Typography>
+					<Typography className="text-4xl font-extrabold leading-none tracking-tight">Stores</Typography>
 				</div>
 			</motion.span>
 

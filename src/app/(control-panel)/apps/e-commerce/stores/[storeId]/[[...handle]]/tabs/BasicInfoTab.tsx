@@ -52,7 +52,10 @@ function StoreBasicInfoTab() {
 
 			{/* Display Slug */}
 			{slug && (
-				<Typography variant="body2" className="mb-4 text-gray-600">
+				<Typography
+					variant="body2"
+					className="mb-4 text-gray-600"
+				>
 					Slug: <span className="font-mono text-sm">{slug}</span>
 				</Typography>
 			)}
@@ -61,7 +64,12 @@ function StoreBasicInfoTab() {
 			<Controller
 				name="slug"
 				control={control}
-				render={({ field }) => <input type="hidden" {...field} />}
+				render={({ field }) => (
+					<input
+						type="hidden"
+						{...field}
+					/>
+				)}
 			/>
 
 			{/* Description */}

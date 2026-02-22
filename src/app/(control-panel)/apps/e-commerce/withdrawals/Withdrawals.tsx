@@ -26,4 +26,3 @@ function Withdrawals() {
 }
 
 export default Withdrawals;
-

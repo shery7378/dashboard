@@ -46,9 +46,9 @@ const translations = {
 	importing: 'Importing...',
 	import: 'Import',
 	close: 'Close',
-	product_imported_successfully: 'Product imported successfully. Please set your price and quantity before activating.',
+	product_imported_successfully:
+		'Product imported successfully. Please set your price and quantity before activating.',
 	failed_to_import_product: 'Failed to import product'
 };
 
 export default translations;
-

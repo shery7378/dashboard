@@ -7,8 +7,8 @@ const dynamicInstance = createDynamicMiddleware();
 export const { middleware: dynamicMiddleware } = dynamicInstance;
 
 type Config = {
-  state: RootState;
-  dispatch: AppDispatch;
+	state: RootState;
+	dispatch: AppDispatch;
 };
 
 export const addAppMiddleware = dynamicInstance.addMiddleware.withTypes<Config>();

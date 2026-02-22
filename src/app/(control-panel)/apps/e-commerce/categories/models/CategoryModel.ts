@@ -33,6 +33,6 @@ export function createDefaultCategory(): EcommerceCategory {
 		created_at: '',
 		updated_at: '',
 		deleted_at: null,
-		category_type: "child",
+		category_type: 'child'
 	};
 }

@@ -1,63 +1,60 @@
 import { apiServiceLaravel as api } from '@/store/apiServiceLaravel';
-import { PartialDeep } from 'type-fest';
 
 // Tags for cache invalidation and auto-refetching
 export const addTagTypes = ['wallet', 'wallet_transaction'] as const;
 
 // Enhance base API with wallet support
-const WalletApi = api
-	.enhanceEndpoints({ addTagTypes })
-	.injectEndpoints({
-		endpoints: (build) => ({
-			// Get wallet data
-			getWallet: build.query<GetWalletApiResponse, void>({
-				query: () => ({ url: `/api/wallet` }),
-				providesTags: ['wallet']
-			}),
-
-			// Get wallet transactions
-			getWalletTransactions: build.query<GetWalletTransactionsApiResponse, GetWalletTransactionsApiArg>({
-				query: (params) => ({
-					url: `/api/wallet/transactions`,
-					params
-				}),
-				providesTags: ['wallet_transaction']
-			}),
-
-			// Get wallet statistics
-			getWalletStatistics: build.query<GetWalletStatisticsApiResponse, void>({
-				query: () => ({ url: `/api/wallet/statistics` }),
-				providesTags: ['wallet']
-			}),
-
-			// Request payout
-			requestPayout: build.mutation<RequestPayoutApiResponse, RequestPayoutApiArg>({
-				query: (body) => ({
-					url: `/api/wallet/payout`,
-					method: 'POST',
-					body
-				}),
-				invalidatesTags: ['wallet', 'wallet_transaction']
-			}),
-
-			// Create Stripe Connect account
-			createStripeAccount: build.mutation<CreateStripeAccountApiResponse, CreateStripeAccountApiArg>({
-				query: (body) => ({
-					url: `/api/stripe-connect/create-account`,
-					method: 'POST',
-					body
-				}),
-				invalidatesTags: ['wallet']
-			}),
-
-			// Get Stripe Connect account
-			getStripeAccount: build.query<GetStripeAccountApiResponse, void>({
-				query: () => ({ url: `/api/stripe-connect/account` }),
-				providesTags: ['wallet']
-			}),
+const WalletApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
+	endpoints: (build) => ({
+		// Get wallet data
+		getWallet: build.query<GetWalletApiResponse, void>({
+			query: () => ({ url: `/api/wallet` }),
+			providesTags: ['wallet']
 		}),
-		overrideExisting: false
-	});
+
+		// Get wallet transactions
+		getWalletTransactions: build.query<GetWalletTransactionsApiResponse, GetWalletTransactionsApiArg>({
+			query: (params) => ({
+				url: `/api/wallet/transactions`,
+				params
+			}),
+			providesTags: ['wallet_transaction']
+		}),
+
+		// Get wallet statistics
+		getWalletStatistics: build.query<GetWalletStatisticsApiResponse, void>({
+			query: () => ({ url: `/api/wallet/statistics` }),
+			providesTags: ['wallet']
+		}),
+
+		// Request payout
+		requestPayout: build.mutation<RequestPayoutApiResponse, RequestPayoutApiArg>({
+			query: (body) => ({
+				url: `/api/wallet/payout`,
+				method: 'POST',
+				body
+			}),
+			invalidatesTags: ['wallet', 'wallet_transaction']
+		}),
+
+		// Create Stripe Connect account
+		createStripeAccount: build.mutation<CreateStripeAccountApiResponse, CreateStripeAccountApiArg>({
+			query: (body) => ({
+				url: `/api/stripe-connect/create-account`,
+				method: 'POST',
+				body
+			}),
+			invalidatesTags: ['wallet']
+		}),
+
+		// Get Stripe Connect account
+		getStripeAccount: build.query<GetStripeAccountApiResponse, void>({
+			query: () => ({ url: `/api/stripe-connect/account` }),
+			providesTags: ['wallet']
+		})
+	}),
+	overrideExisting: false
+});
 
 export default WalletApi;
 
@@ -184,4 +181,3 @@ export const {
 	useCreateStripeAccountMutation,
 	useGetStripeAccountQuery
 } = WalletApi;
-

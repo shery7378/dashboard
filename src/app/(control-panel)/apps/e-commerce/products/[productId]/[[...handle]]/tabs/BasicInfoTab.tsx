@@ -29,9 +29,9 @@ function BasicInfoTab() {
 	const userId = user?.id || user?.user_id || session?.db?.id;
 	// Check if store_id is available in user session - it's in session.db.store_id
 	const userStoreId = session?.db?.store_id || user?.store_id;
-	
+
 	// console.log('User data:', { user, userId, userRoles, isAdmin });
-	
+
 	const name = watch('name');
 	const slug = watch('slug');
 	const storeId = watch('store_id');
@@ -56,9 +56,13 @@ function BasicInfoTab() {
 	}, [name, productId, setValue, formState.defaultValues]);
 
 	// Fetch Stores data - fetch all stores (not paginated) to find user's store
-	const { data: storeData, isLoading: loadingStores, refetch: refetchStores } = useGetECommerceStoresQuery({
+	const {
+		data: storeData,
+		isLoading: loadingStores,
+		refetch: refetchStores
+	} = useGetECommerceStoresQuery({
 		page: 1,
-		perPage: 1000, // Fetch all stores to ensure we find the user's store
+		perPage: 1000 // Fetch all stores to ensure we find the user's store
 	});
 	const storeOptions = storeData?.data || [];
 
@@ -71,11 +75,13 @@ function BasicInfoTab() {
 
 	const filteredStores = useMemo(() => {
 		if (!user || !userId) return storeOptions;
+
 		if (isAdmin) {
 			return storeOptions; // Super Admin or Admin can see all
 		}
+
 		// For sellers/sellers: filter by user_id
-		return storeOptions.filter(store => {
+		return storeOptions.filter((store) => {
 			const storeUserId = store.user_id || store.userId;
 			return storeUserId === userId || storeUserId === Number(userId);
 		});
@@ -84,41 +90,44 @@ function BasicInfoTab() {
 	// Check if vendor/vendor has a store
 	const myStore = useMemo(() => {
 		if (!user || !userId || isAdmin) return null;
+
 		if (!storeOptions || storeOptions.length === 0) return null;
-		
+
 		// Try to find store by user_id (handle both string and number)
-		const foundStore = storeOptions.find(store => {
+		const foundStore = storeOptions.find((store) => {
 			const storeUserId = store.user_id || store.userId;
 			// Try multiple comparison methods
 			return (
-				storeUserId === userId || 
-				storeUserId === Number(userId) || 
+				storeUserId === userId ||
+				storeUserId === Number(userId) ||
 				String(storeUserId) === String(userId) ||
 				Number(storeUserId) === Number(userId)
 			);
 		});
-		
+
 		// Debug logging
 		if (productId === 'new') {
 			console.log('Store detection:', {
 				userId,
 				userIdType: typeof userId,
 				storeOptionsCount: storeOptions.length,
-				storeOptions: storeOptions.map(s => ({ 
-					id: s.id, 
-					user_id: s.user_id, 
+				storeOptions: storeOptions.map((s) => ({
+					id: s.id,
+					user_id: s.user_id,
 					userId: s.userId,
 					user_id_type: typeof s.user_id,
 					userId_type: typeof s.userId
 				})),
-				foundStore: foundStore ? { 
-					id: foundStore.id, 
-					user_id: foundStore.user_id,
-					userId: foundStore.userId
-				} : null,
+				foundStore: foundStore
+					? {
+							id: foundStore.id,
+							user_id: foundStore.user_id,
+							userId: foundStore.userId
+						}
+					: null
 			});
 		}
-		
+
 		return foundStore;
 	}, [user, userId, storeOptions, isAdmin, productId]);
 
@@ -126,14 +135,15 @@ function BasicInfoTab() {
 	useEffect(() => {
 		if (user && userId && !isAdmin && !loadingStores && productId === 'new') {
 			const currentStoreId = watch('store_id');
-			
+
 			// Priority 1: Use store_id from user session if available (session.db.store_id)
 			if (userStoreId && (!currentStoreId || currentStoreId !== userStoreId)) {
 				const numericStoreId = Number(userStoreId);
+
 				if (!isNaN(numericStoreId) && numericStoreId > 0) {
 					console.log('✅ Setting store_id from user session:', numericStoreId, 'User ID:', userId);
-					setValue('store_id', numericStoreId, { 
-						shouldValidate: true, 
+					setValue('store_id', numericStoreId, {
+						shouldValidate: true,
 						shouldDirty: true,
 						shouldTouch: true
 					});
@@ -142,19 +152,28 @@ function BasicInfoTab() {
 					console.error('❌ Invalid store_id from session:', userStoreId);
 				}
 			}
-			
+
 			// Priority 2: Use myStore if found (fallback if session doesn't have store_id OR if userStoreId is invalid)
 			// Also try myStore if currentStoreId is not set, even if userStoreId exists
 			if (myStore) {
 				const storeIdToSet = myStore.id || myStore.store_id;
+
 				// Set store_id if not already set or if it's different
 				if (!currentStoreId || currentStoreId !== storeIdToSet) {
-					console.log('✅ Setting store_id from stores list:', storeIdToSet, 'for user:', userId, 'Store:', myStore);
+					console.log(
+						'✅ Setting store_id from stores list:',
+						storeIdToSet,
+						'for user:',
+						userId,
+						'Store:',
+						myStore
+					);
 					// Ensure store_id is a number
 					const numericStoreId = Number(storeIdToSet);
+
 					if (!isNaN(numericStoreId) && numericStoreId > 0) {
-						setValue('store_id', numericStoreId, { 
-							shouldValidate: true, 
+						setValue('store_id', numericStoreId, {
+							shouldValidate: true,
 							shouldDirty: true,
 							shouldTouch: true
 						}); // Set default Store id and trigger validation
@@ -167,8 +186,16 @@ function BasicInfoTab() {
 				}
 			} else if (!userStoreId && !myStore) {
 				// Supplier/Vendor doesn't have a store - clear store_id to trigger validation error
-				console.log('⚠️ No store found for user:', userId, 'User store_id:', userStoreId, 'Available stores:', storeOptions.length);
+				console.log(
+					'⚠️ No store found for user:',
+					userId,
+					'User store_id:',
+					userStoreId,
+					'Available stores:',
+					storeOptions.length
+				);
 				console.log('⚠️ User roles:', userRoles, 'Is admin:', isAdmin);
+
 				if (!currentStoreId) {
 					setValue('store_id', null, { shouldValidate: true });
 				}
@@ -187,7 +214,7 @@ function BasicInfoTab() {
 
 		// Avoid duplicates when combining both
 		const combined = [...mainChildren, ...selected].filter(
-			(value, index, self) => self.findIndex(v => v.id === value.id) === index
+			(value, index, self) => self.findIndex((v) => v.id === value.id) === index
 		);
 
 		return combined;
@@ -195,7 +222,7 @@ function BasicInfoTab() {
 
 	// Fetch attributes
 	const { data: attributeData, isLoading: loadingAttributes } = useGetECommerceAttributesQuery(mainCategoryId, {
-		skip: !mainCategoryId,
+		skip: !mainCategoryId
 	});
 	const attributeOptions = attributeData?.data || [];
 
@@ -206,19 +233,22 @@ function BasicInfoTab() {
 		if (!productId || didPreFill.current || !attributeOptions.length || !productAttributes.length) return;
 
 		// Pre-select attributes based on product_attributes
-		const baseAttrs = productAttributes.filter(attr => attr.variant_id === null);
+		const baseAttrs = productAttributes.filter((attr) => attr.variant_id === null);
 		const preSelected = attributeOptions
-			.filter(opt => baseAttrs.some(attr => attr.attribute_id === opt.id))
-			.map(attr => ({ id: attr.id, name: attr.name, type: attr.type, options: attr.options, unit: attr.unit }));
+			.filter((opt) => baseAttrs.some((attr) => attr.attribute_id === opt.id))
+			.map((attr) => ({ id: attr.id, name: attr.name, type: attr.type, options: attr.options, unit: attr.unit }));
 
 		// Prepare extraFields with values from product_attributes
 		const extraFields = {};
-		baseAttrs.forEach(attr => {
-			const match = attributeOptions.find(opt => opt.id === attr.attribute_id);
+		baseAttrs.forEach((attr) => {
+			const match = attributeOptions.find((opt) => opt.id === attr.attribute_id);
+
 			if (match) {
 				const name = match.name;
+
 				if (name === 'Color') {
 					if (!Array.isArray(extraFields[name])) extraFields[name] = [];
+
 					extraFields[name].push(attr.attribute_value || ''); // Default to empty string if undefined
 				} else {
 					extraFields[name] = attr.attribute_value || '';
@@ -239,8 +269,8 @@ function BasicInfoTab() {
 			backgroundColor: selected ? 'lightblue' : safeOption.toLowerCase(),
 			color: getContrastColor(safeOption.toLowerCase()),
 			'&:hover': {
-				backgroundColor: selected ? 'lightblue' : `${safeOption.toLowerCase()}AA`,
-			},
+				backgroundColor: selected ? 'lightblue' : `${safeOption.toLowerCase()}AA`
+			}
 		};
 	};
 
@@ -257,12 +287,15 @@ function BasicInfoTab() {
 							getOptionLabel={(option) => option.name}
 							isOptionEqualToValue={(option, val) => option.id === (val?.id ?? val)}
 							loading={loadingStores}
-							value={storeOptions.find(store => store.id === value) || null}
+							value={storeOptions.find((store) => store.id === value) || null}
 							onChange={(event, newValue) => {
 								onChange(newValue ? newValue.id : null); // only save store_id
 							}}
 							renderOption={(props, option) => (
-								<li {...props} key={option.id}>
+								<li
+									{...props}
+									key={option.id}
+								>
 									{option.name}
 								</li>
 							)}
@@ -286,16 +319,27 @@ function BasicInfoTab() {
 						name="store_id"
 						control={control}
 						render={({ field }) => (
-							<input type="hidden" {...field} value={field.value ?? null} />
+							<input
+								type="hidden"
+								{...field}
+								value={field.value ?? null}
+							/>
 						)}
 					/>
 					{!myStore && !loadingStores && productId === 'new' && (
 						<div className="mt-2 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-							<Typography variant="body1" className="text-red-800 font-semibold mb-2">
+							<Typography
+								variant="body1"
+								className="text-red-800 font-semibold mb-2"
+							>
 								⚠️ Store Required
 							</Typography>
-							<Typography variant="body2" className="text-red-700 mb-3">
-								You need to create a store before you can add products. Click the button below to create your store now.
+							<Typography
+								variant="body2"
+								className="text-red-700 mb-3"
+							>
+								You need to create a store before you can add products. Click the button below to create
+								your store now.
 							</Typography>
 							<Button
 								component={Link}
@@ -314,7 +358,10 @@ function BasicInfoTab() {
 								Create Store Now
 							</Button>
 							{errors.store_id && (
-								<Typography variant="body2" className="text-red-600 mt-3">
+								<Typography
+									variant="body2"
+									className="text-red-600 mt-3"
+								>
 									{errors.store_id.message as string}
 								</Typography>
 							)}
@@ -323,8 +370,13 @@ function BasicInfoTab() {
 					{/* Debug info for sellers - can be removed later */}
 					{productId === 'new' && !isAdmin && process.env.NODE_ENV === 'development' && (
 						<div className="mt-2 mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs">
-							<Typography variant="caption" className="text-blue-800">
-								Debug: User ID: {userId}, Store ID: {storeId}, My Store: {myStore ? `Found (ID: ${myStore.id})` : 'Not found'}, Loading: {loadingStores ? 'Yes' : 'No'}, Stores Count: {storeOptions.length}
+							<Typography
+								variant="caption"
+								className="text-blue-800"
+							>
+								Debug: User ID: {userId}, Store ID: {storeId}, My Store:{' '}
+								{myStore ? `Found (ID: ${myStore.id})` : 'Not found'}, Loading:{' '}
+								{loadingStores ? 'Yes' : 'No'}, Stores Count: {storeOptions.length}
 							</Typography>
 							<Button
 								size="small"
@@ -359,7 +411,10 @@ function BasicInfoTab() {
 			/>
 
 			{slug && (
-				<Typography variant="body2" className="mb-4 text-gray-600">
+				<Typography
+					variant="body2"
+					className="mb-4 text-gray-600"
+				>
 					Slug: <span className="font-mono text-sm">{slug}</span>
 				</Typography>
 			)}
@@ -367,7 +422,12 @@ function BasicInfoTab() {
 			<Controller
 				name="slug"
 				control={control}
-				render={({ field }) => <input type="hidden" {...field} />}
+				render={({ field }) => (
+					<input
+						type="hidden"
+						{...field}
+					/>
+				)}
 			/>
 
 			{/* Description */}
@@ -376,8 +436,7 @@ function BasicInfoTab() {
 				control={control}
 				rules={{
 					required: 'Description is required',
-					validate: (value) =>
-						value.trim().length > 0 || 'Description cannot be empty spaces',
+					validate: (value) => value.trim().length > 0 || 'Description cannot be empty spaces'
 				}}
 				render={({ field }) => (
 					<TextField
@@ -471,10 +530,7 @@ function BasicInfoTab() {
 					const { data: tagData, isLoading: loadingTags } = useGetECommerceTagsQuery();
 					const tagOptions = tagData?.data || [];
 
-					const normalizeTags = (tags) =>
-						tags.map((tag) =>
-							typeof tag === 'string' ? { name: tag } : tag
-						);
+					const normalizeTags = (tags) => tags.map((tag) => (typeof tag === 'string' ? { name: tag } : tag));
 
 					return (
 						<Autocomplete
@@ -495,6 +551,7 @@ function BasicInfoTab() {
 									if (event.key === 'Enter') {
 										event.preventDefault();
 										const input = event.target.value?.trim();
+
 										if (input && !value.some((v) => v.name === input)) {
 											const updated = [...value, { name: input }];
 											onChange(updated);
@@ -510,16 +567,21 @@ function BasicInfoTab() {
 										variant="outlined"
 										onKeyDown={handleKeyDown}
 										InputLabelProps={{
-											shrink: true,
+											shrink: true
 										}}
 										InputProps={{
 											...params.InputProps,
 											endAdornment: (
 												<>
-													{loadingTags ? <CircularProgress color="inherit" size={20} /> : null}
+													{loadingTags ? (
+														<CircularProgress
+															color="inherit"
+															size={20}
+														/>
+													) : null}
 													{params.InputProps.endAdornment}
 												</>
-											),
+											)
 										}}
 									/>
 								);
@@ -532,7 +594,10 @@ function BasicInfoTab() {
 			{/* Extra Fields Section */}
 			<div className="mt-8 relative">
 				<div className="absolute top-0 left-1/80 transform -translate-x-1/80 -translate-y-1/2 px-1">
-					<Typography variant="h6" className="text-gray-800 font-semibold">
+					<Typography
+						variant="h6"
+						className="text-gray-800 font-semibold"
+					>
 						Extra Fields
 					</Typography>
 				</div>
@@ -541,9 +606,10 @@ function BasicInfoTab() {
 						name="attributes"
 						control={control}
 						render={({ field: { onChange, value } }) => {
-							const { data: attributeData, isLoading: loadingAttributes } = useGetECommerceAttributesQuery(mainCategoryId, {
-								skip: !mainCategoryId,
-							});
+							const { data: attributeData, isLoading: loadingAttributes } =
+								useGetECommerceAttributesQuery(mainCategoryId, {
+									skip: !mainCategoryId
+								});
 							const attributeOptions = attributeData?.data || [];
 
 							// Handle dynamic fields state
@@ -559,11 +625,12 @@ function BasicInfoTab() {
 										if (attr.type === 'select') {
 											try {
 												if (Array.isArray(attr.options)) {
-													options = attr.options.filter(opt => typeof opt === 'string');
+													options = attr.options.filter((opt) => typeof opt === 'string');
 												} else if (typeof attr.options === 'string') {
 													const parsed = JSON.parse(attr.options);
+
 													if (Array.isArray(parsed)) {
-														options = parsed.filter(opt => typeof opt === 'string');
+														options = parsed.filter((opt) => typeof opt === 'string');
 													} else {
 														console.warn('Parsed options is not an array:', parsed);
 													}
@@ -579,7 +646,7 @@ function BasicInfoTab() {
 											value: '',
 											options: options.length ? options : [], // Default to empty array if no valid options
 											id: attr.id,
-											unit: attr.unit || '',
+											unit: attr.unit || ''
 										};
 									});
 
@@ -592,7 +659,8 @@ function BasicInfoTab() {
 							const handleRemoveField = (idToRemove) => {
 								setDynamicFields((prev) => prev.filter((field) => field.id !== idToRemove));
 								onChange(value.filter((attr) => attr.id !== idToRemove));
-								const fieldToRemove = value.find(attr => attr.id === idToRemove);
+								const fieldToRemove = value.find((attr) => attr.id === idToRemove);
+
 								if (fieldToRemove) {
 									setValue(`extraFields.${fieldToRemove.name}`, undefined, { shouldValidate: true });
 								}
@@ -604,7 +672,7 @@ function BasicInfoTab() {
 										multiple
 										className="mt-2 mb-4"
 										options={attributeOptions}
-										getOptionLabel={(option) => option.name || ""}
+										getOptionLabel={(option) => option.name || ''}
 										isOptionEqualToValue={(option, val) => option.id === val?.id}
 										loading={loadingAttributes}
 										value={value || []}
@@ -619,16 +687,24 @@ function BasicInfoTab() {
 													...params.InputProps,
 													endAdornment: (
 														<>
-															{loadingAttributes ? <CircularProgress color="inherit" size={20} /> : null}
+															{loadingAttributes ? (
+																<CircularProgress
+																	color="inherit"
+																	size={20}
+																/>
+															) : null}
 															{params.InputProps.endAdornment}
 														</>
-													),
+													)
 												}}
 											/>
 										)}
 									/>
 									{dynamicFields.map((field) => (
-										<div key={field.id} className="mt-4 flex items-center">
+										<div
+											key={field.id}
+											className="mt-4 flex items-center"
+										>
 											<Controller
 												name={`extraFields.${field.name}`}
 												control={control}
@@ -643,7 +719,9 @@ function BasicInfoTab() {
 																getOptionLabel={(option) => option || ''}
 																isOptionEqualToValue={(option, val) => option === val}
 																value={fieldProps.value || []}
-																onChange={(e, newValue) => fieldProps.onChange(newValue)}
+																onChange={(e, newValue) =>
+																	fieldProps.onChange(newValue)
+																}
 																renderOption={(props, option, { selected }) => (
 																	<ListItem
 																		{...props}
@@ -658,7 +736,6 @@ function BasicInfoTab() {
 																		{...params}
 																		label={`${field.name}`}
 																		variant="outlined"
-
 																		fullWidth
 																	/>
 																)}
@@ -669,16 +746,31 @@ function BasicInfoTab() {
 																			key={option || `tag-${index}`} // Use option or fallback to index-based key
 																			label={option || 'Unknown'}
 																			sx={{
-																				backgroundColor: (typeof option === 'string' ? option.toLowerCase() : 'gray'),
+																				backgroundColor:
+																					typeof option === 'string'
+																						? option.toLowerCase()
+																						: 'gray',
 																				'&.MuiChip-root': {
-																					color: getContrastColor(typeof option === 'string' ? option.toLowerCase() : 'gray'),
+																					color: getContrastColor(
+																						typeof option === 'string'
+																							? option.toLowerCase()
+																							: 'gray'
+																					)
 																				},
 																				'& .MuiChip-deleteIcon': {
-																					color: getContrastColor(typeof option === 'string' ? option.toLowerCase() : 'gray'),
+																					color: getContrastColor(
+																						typeof option === 'string'
+																							? option.toLowerCase()
+																							: 'gray'
+																					),
 																					'&:hover': {
-																						color: getContrastColor(typeof option === 'string' ? option.toLowerCase() : 'gray'),
-																					},
-																				},
+																						color: getContrastColor(
+																							typeof option === 'string'
+																								? option.toLowerCase()
+																								: 'gray'
+																						)
+																					}
+																				}
 																			}}
 																		/>
 																	))
@@ -690,15 +782,24 @@ function BasicInfoTab() {
 																multiple={field.multiple || false}
 																options={field.options || []}
 																getOptionLabel={(option) => option || ''}
-																isOptionEqualToValue={(option, value) => option === value}
+																isOptionEqualToValue={(option, value) =>
+																	option === value
+																}
 																value={
 																	field.multiple
 																		? fieldProps.value || []
 																		: fieldProps.value || null
 																}
-																onChange={(event, newValue) => fieldProps.onChange(newValue)}
+																onChange={(event, newValue) =>
+																	fieldProps.onChange(newValue)
+																}
 																renderOption={(props, option) => (
-																	<li {...props} key={option || `option-${index}`}> {/* Add key here if needed */}
+																	<li
+																		{...props}
+																		key={option || `option-${index}`}
+																	>
+																		{' '}
+																		{/* Add key here if needed */}
 																		{option || 'Unknown'}
 																	</li>
 																)}
@@ -721,7 +822,7 @@ function BasicInfoTab() {
 																fullWidth
 																required
 																InputProps={{
-																	sx: { backgroundColor: 'white' },
+																	sx: { backgroundColor: 'white' }
 																}}
 															/>
 														)}
@@ -750,7 +851,7 @@ function BasicInfoTab() {
 				control={control}
 				// defaultValue={0}
 				render={({ field }) => {
-					console.log("Active field value:", field.value);
+					console.log('Active field value:', field.value);
 					return (
 						<div className="mt-6">
 							<FormControlLabel
@@ -769,14 +870,14 @@ function BasicInfoTab() {
 									color="textSecondary"
 									className="block mt-1"
 								>
-									⚠️ Before activating, make sure required fields (Name, Description, Category, Sub-category, one extraFields with its value, Image, All Prices,etc.) are filled.
+									⚠️ Before activating, make sure required fields (Name, Description, Category,
+									Sub-category, one extraFields with its value, Image, All Prices,etc.) are filled.
 								</Typography>
 							)}
 						</div>
-					)
+					);
 				}}
 			/>
-
 		</div>
 	);
 }

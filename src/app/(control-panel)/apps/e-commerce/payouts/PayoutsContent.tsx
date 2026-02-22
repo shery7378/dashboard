@@ -1,7 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Card, CardContent, Grid, Typography, Box, Alert, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton } from '@mui/material';
+import {
+	Button,
+	Card,
+	CardContent,
+	Grid,
+	Typography,
+	Box,
+	Alert,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	TextField,
+	IconButton
+} from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 import {
@@ -38,7 +52,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 
 	const handlePayout = async () => {
 		const amount = parseFloat(payoutAmount);
-		const minPayout = 10.00;
+		const minPayout = 10.0;
 
 		if (isNaN(amount) || amount < minPayout) {
 			setPayoutError(t('minimum_payout_amount', { min: minPayout.toFixed(2) }));
@@ -68,7 +82,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			style: 'currency',
 			currency: 'GBP',
 			minimumFractionDigits: 2,
-			maximumFractionDigits: 2,
+			maximumFractionDigits: 2
 		}).format(parseFloat(amount || 0));
 	};
 
@@ -79,22 +93,32 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			month: 'short',
 			day: 'numeric',
 			hour: '2-digit',
-			minute: '2-digit',
+			minute: '2-digit'
 		});
 	};
 
 	return (
 		<Box sx={{ py: 2 }}>
 			{success && (
-				<Alert severity="success" sx={{ mb: 2 }}>
+				<Alert
+					severity="success"
+					sx={{ mb: 2 }}
+				>
 					{t('payout_request_successful')}
 				</Alert>
 			)}
 
 			{!isStripeConnected && (
-				<Alert severity="info" sx={{ mb: 2 }}>
-					<Typography variant="body2" component="span">
-						Connect your Stripe Connect account to receive payouts. Our platform handles all customer payments - you only need to connect for receiving your earnings.
+				<Alert
+					severity="info"
+					sx={{ mb: 2 }}
+				>
+					<Typography
+						variant="body2"
+						component="span"
+					>
+						Connect your Stripe Connect account to receive payouts. Our platform handles all customer
+						payments - you only need to connect for receiving your earnings.
 					</Typography>
 					<Button
 						size="small"
@@ -108,8 +132,8 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			)}
 
 			{/* Stripe Email Input Dialog */}
-			<Dialog 
-				open={showStripeEmailModal} 
+			<Dialog
+				open={showStripeEmailModal}
 				onClose={() => {
 					setShowStripeEmailModal(false);
 					setStripeEmail('');
@@ -130,22 +154,33 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 						sx={{
 							position: 'absolute',
 							right: 8,
-							top: 8,
+							top: 8
 						}}
 					>
 						<CloseIcon />
 					</IconButton>
 				</DialogTitle>
 				<DialogContent>
-					<Alert severity="info" sx={{ mb: 2 }}>
-						<Typography variant="body2" sx={{ mb: 1, fontWeight: 600 }}>
+					<Alert
+						severity="info"
+						sx={{ mb: 2 }}
+					>
+						<Typography
+							variant="body2"
+							sx={{ mb: 1, fontWeight: 600 }}
+						>
 							How Stripe Connect Works:
 						</Typography>
-						<Typography variant="body2" component="div">
-							• Our platform handles all customer payments<br/>
-							• You connect a Stripe Connect account to receive your payouts<br/>
-							• This is for receiving earnings, not processing payments<br/>
-							• Enter your email to set up your connected account
+						<Typography
+							variant="body2"
+							component="div"
+						>
+							• Our platform handles all customer payments
+							<br />
+							• You connect a Stripe Connect account to receive your payouts
+							<br />
+							• This is for receiving earnings, not processing payments
+							<br />• Enter your email to set up your connected account
 						</Typography>
 					</Alert>
 					<TextField
@@ -167,7 +202,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 					/>
 				</DialogContent>
 				<DialogActions>
-					<Button 
+					<Button
 						onClick={() => {
 							setShowStripeEmailModal(false);
 							setStripeEmail('');
@@ -189,7 +224,7 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 								const response = await createStripeAccount({ email: stripeEmail.trim() }).unwrap();
 								setShowStripeEmailModal(false);
 								setStripeEmail('');
-								
+
 								if (response.onboarding_url) {
 									window.open(response.onboarding_url, '_blank');
 								} else if (response.is_connected) {
@@ -197,13 +232,13 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 								}
 							} catch (err: any) {
 								// Extract error message from various possible locations
-								const errorMessage = 
-									err?.data?.message || 
-									err?.data?.error || 
-									err?.message || 
+								const errorMessage =
+									err?.data?.message ||
+									err?.data?.error ||
+									err?.message ||
 									err?.error?.message ||
 									'Failed to connect Stripe account. Please check the error details.';
-								
+
 								setStripeError(errorMessage);
 								console.error('Error creating Stripe account:', {
 									error: err,
@@ -221,50 +256,98 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			</Dialog>
 
 			{/* Balance Cards */}
-			<Grid container spacing={3} sx={{ mb: 3 }}>
-				<Grid item xs={12} sm={6} md={3}>
+			<Grid
+				container
+				spacing={3}
+				sx={{ mb: 3 }}
+			>
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
 					<Card>
 						<CardContent>
-							<Typography color="textSecondary" gutterBottom>
+							<Typography
+								color="textSecondary"
+								gutterBottom
+							>
 								{t('available_balance')}
 							</Typography>
-							<Typography variant="h4" component="div">
+							<Typography
+								variant="h4"
+								component="div"
+							>
 								{formatCurrency(availableBalance)}
 							</Typography>
 						</CardContent>
 					</Card>
 				</Grid>
-				<Grid item xs={12} sm={6} md={3}>
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
 					<Card>
 						<CardContent>
-							<Typography color="textSecondary" gutterBottom>
+							<Typography
+								color="textSecondary"
+								gutterBottom
+							>
 								{t('total_earned')}
 							</Typography>
-							<Typography variant="h4" component="div">
+							<Typography
+								variant="h4"
+								component="div"
+							>
 								{formatCurrency(wallet?.total_earned || 0)}
 							</Typography>
 						</CardContent>
 					</Card>
 				</Grid>
-				<Grid item xs={12} sm={6} md={3}>
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
 					<Card>
 						<CardContent>
-							<Typography color="textSecondary" gutterBottom>
+							<Typography
+								color="textSecondary"
+								gutterBottom
+							>
 								{t('total_paid_out')}
 							</Typography>
-							<Typography variant="h4" component="div">
+							<Typography
+								variant="h4"
+								component="div"
+							>
 								{formatCurrency(wallet?.total_paid_out || 0)}
 							</Typography>
 						</CardContent>
 					</Card>
 				</Grid>
-				<Grid item xs={12} sm={6} md={3}>
+				<Grid
+					item
+					xs={12}
+					sm={6}
+					md={3}
+				>
 					<Card>
 						<CardContent>
-							<Typography color="textSecondary" gutterBottom>
+							<Typography
+								color="textSecondary"
+								gutterBottom
+							>
 								{t('pending')}
 							</Typography>
-							<Typography variant="h4" component="div">
+							<Typography
+								variant="h4"
+								component="div"
+							>
 								{formatCurrency(wallet?.pending_balance || 0)}
 							</Typography>
 						</CardContent>
@@ -283,7 +366,10 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 						{t('request_payout')}
 					</Button>
 				)}
-				<Button variant="outlined" onClick={onRefresh}>
+				<Button
+					variant="outlined"
+					onClick={onRefresh}
+				>
 					{t('refresh')}
 				</Button>
 			</Box>
@@ -292,41 +378,69 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			{statistics && (
 				<Card sx={{ mb: 3 }}>
 					<CardContent>
-						<Typography variant="h6" gutterBottom>
+						<Typography
+							variant="h6"
+							gutterBottom
+						>
 							{t('statistics')}
 						</Typography>
-						<Grid container spacing={2}>
-							<Grid item xs={6} md={3}>
-								<Typography color="textSecondary" variant="body2">
+						<Grid
+							container
+							spacing={2}
+						>
+							<Grid
+								item
+								xs={6}
+								md={3}
+							>
+								<Typography
+									color="textSecondary"
+									variant="body2"
+								>
 									{t('today_earnings')}
 								</Typography>
-								<Typography variant="h6">
-									{formatCurrency(statistics.today_earnings || 0)}
-								</Typography>
+								<Typography variant="h6">{formatCurrency(statistics.today_earnings || 0)}</Typography>
 							</Grid>
-							<Grid item xs={6} md={3}>
-								<Typography color="textSecondary" variant="body2">
+							<Grid
+								item
+								xs={6}
+								md={3}
+							>
+								<Typography
+									color="textSecondary"
+									variant="body2"
+								>
 									{t('this_month_earnings')}
 								</Typography>
-								<Typography variant="h6">
-									{formatCurrency(statistics.month_earnings || 0)}
-								</Typography>
+								<Typography variant="h6">{formatCurrency(statistics.month_earnings || 0)}</Typography>
 							</Grid>
-							<Grid item xs={6} md={3}>
-								<Typography color="textSecondary" variant="body2">
+							<Grid
+								item
+								xs={6}
+								md={3}
+							>
+								<Typography
+									color="textSecondary"
+									variant="body2"
+								>
 									{t('last_month_earnings')}
 								</Typography>
 								<Typography variant="h6">
 									{formatCurrency(statistics.last_month_earnings || 0)}
 								</Typography>
 							</Grid>
-							<Grid item xs={6} md={3}>
-								<Typography color="textSecondary" variant="body2">
+							<Grid
+								item
+								xs={6}
+								md={3}
+							>
+								<Typography
+									color="textSecondary"
+									variant="body2"
+								>
 									{t('this_month_payouts')}
 								</Typography>
-								<Typography variant="h6">
-									{formatCurrency(statistics.month_payouts || 0)}
-								</Typography>
+								<Typography variant="h6">{formatCurrency(statistics.month_payouts || 0)}</Typography>
 							</Grid>
 						</Grid>
 					</CardContent>
@@ -336,7 +450,10 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			{/* Recent Transactions */}
 			<Card>
 				<CardContent>
-					<Typography variant="h6" gutterBottom>
+					<Typography
+						variant="h6"
+						gutterBottom
+					>
 						{t('recent_transactions')}
 					</Typography>
 					{recentTransactions.length === 0 ? (
@@ -356,25 +473,43 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 								</thead>
 								<tbody>
 									{recentTransactions.map((transaction: any) => (
-										<tr key={transaction.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+										<tr
+											key={transaction.id}
+											style={{ borderBottom: '1px solid #f0f0f0' }}
+										>
 											<td style={{ padding: '12px' }}>{formatDate(transaction.created_at)}</td>
 											<td style={{ padding: '12px' }}>
-												<span style={{
-													padding: '4px 8px',
-													borderRadius: '4px',
-													fontSize: '12px',
-													backgroundColor: transaction.type === 'credit' ? '#e8f5e9' : '#ffebee',
-													color: transaction.type === 'credit' ? '#2e7d32' : '#c62828'
-												}}>
+												<span
+													style={{
+														padding: '4px 8px',
+														borderRadius: '4px',
+														fontSize: '12px',
+														backgroundColor:
+															transaction.type === 'credit' ? '#e8f5e9' : '#ffebee',
+														color: transaction.type === 'credit' ? '#2e7d32' : '#c62828'
+													}}
+												>
 													{transaction.type === 'credit' ? t('credit') : t('debit')}
 												</span>
 											</td>
 											<td style={{ padding: '12px' }}>{transaction.description || t('na')}</td>
-											<td style={{ padding: '12px' }}>{transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}</td>
-											<td style={{ padding: '12px', textAlign: 'right', color: transaction.type === 'credit' ? '#2e7d32' : '#c62828' }}>
-												{transaction.type === 'credit' ? '+' : '-'}{formatCurrency(transaction.amount)}
+											<td style={{ padding: '12px' }}>
+												{transaction.status.charAt(0).toUpperCase() +
+													transaction.status.slice(1)}
 											</td>
-											<td style={{ padding: '12px', textAlign: 'right' }}>{formatCurrency(transaction.balance_after)}</td>
+											<td
+												style={{
+													padding: '12px',
+													textAlign: 'right',
+													color: transaction.type === 'credit' ? '#2e7d32' : '#c62828'
+												}}
+											>
+												{transaction.type === 'credit' ? '+' : '-'}
+												{formatCurrency(transaction.amount)}
+											</td>
+											<td style={{ padding: '12px', textAlign: 'right' }}>
+												{formatCurrency(transaction.balance_after)}
+											</td>
 										</tr>
 									))}
 								</tbody>
@@ -385,7 +520,12 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 			</Card>
 
 			{/* Payout Modal */}
-			<Dialog open={showPayoutModal} onClose={() => setShowPayoutModal(false)} maxWidth="sm" fullWidth>
+			<Dialog
+				open={showPayoutModal}
+				onClose={() => setShowPayoutModal(false)}
+				maxWidth="sm"
+				fullWidth
+			>
 				<DialogTitle>
 					{t('request_payout')}
 					<IconButton
@@ -404,25 +544,44 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 							value={payoutAmount}
 							onChange={(e) => setPayoutAmount(e.target.value)}
 							inputProps={{ min: 10, max: availableBalance, step: 0.01 }}
-							helperText={`${t('available')}: ${formatCurrency(availableBalance)} | ${t('minimum')}: ${formatCurrency(10.00)}`}
+							helperText={`${t('available')}: ${formatCurrency(availableBalance)} | ${t('minimum')}: ${formatCurrency(10.0)}`}
 							sx={{ mb: 2 }}
 						/>
 						<Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-							<Button size="small" variant="outlined" onClick={() => setPayoutAmount((availableBalance * 0.25).toFixed(2))}>
+							<Button
+								size="small"
+								variant="outlined"
+								onClick={() => setPayoutAmount((availableBalance * 0.25).toFixed(2))}
+							>
 								25%
 							</Button>
-							<Button size="small" variant="outlined" onClick={() => setPayoutAmount((availableBalance * 0.5).toFixed(2))}>
+							<Button
+								size="small"
+								variant="outlined"
+								onClick={() => setPayoutAmount((availableBalance * 0.5).toFixed(2))}
+							>
 								50%
 							</Button>
-							<Button size="small" variant="outlined" onClick={() => setPayoutAmount((availableBalance * 0.75).toFixed(2))}>
+							<Button
+								size="small"
+								variant="outlined"
+								onClick={() => setPayoutAmount((availableBalance * 0.75).toFixed(2))}
+							>
 								75%
 							</Button>
-							<Button size="small" variant="outlined" onClick={() => setPayoutAmount(availableBalance.toFixed(2))}>
+							<Button
+								size="small"
+								variant="outlined"
+								onClick={() => setPayoutAmount(availableBalance.toFixed(2))}
+							>
 								{t('all')}
 							</Button>
 						</Box>
 						{payoutError && (
-							<Alert severity="error" sx={{ mb: 2 }}>
+							<Alert
+								severity="error"
+								sx={{ mb: 2 }}
+							>
 								{payoutError}
 							</Alert>
 						)}
@@ -433,7 +592,12 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 					<Button
 						variant="contained"
 						onClick={handlePayout}
-						disabled={payoutLoading || !payoutAmount || parseFloat(payoutAmount) < 10 || parseFloat(payoutAmount) > availableBalance}
+						disabled={
+							payoutLoading ||
+							!payoutAmount ||
+							parseFloat(payoutAmount) < 10 ||
+							parseFloat(payoutAmount) > availableBalance
+						}
 					>
 						{payoutLoading ? t('processing') : t('request_payout')}
 					</Button>
@@ -444,4 +608,3 @@ function PayoutsContent({ walletData, onRefresh }: PayoutsContentProps) {
 }
 
 export default PayoutsContent;
-

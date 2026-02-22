@@ -15,9 +15,8 @@ const pusherEncrypted = process.env.NEXT_PUBLIC_PUSHER_ENCRYPTED !== 'false';
 
 // Create Echo instance with dynamic auth
 const createEcho = () => {
-	const token = typeof window !== 'undefined' 
-		? (localStorage.getItem('auth_token') || localStorage.getItem('token') || '')
-		: '';
+	const token =
+		typeof window !== 'undefined' ? localStorage.getItem('auth_token') || localStorage.getItem('token') || '' : '';
 
 	return new Echo({
 		broadcaster: 'pusher',
@@ -30,9 +29,9 @@ const createEcho = () => {
 		authEndpoint: `${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/broadcasting/auth`,
 		auth: {
 			headers: {
-				Authorization: `Bearer ${token}`,
-			},
-		},
+				Authorization: `Bearer ${token}`
+			}
+		}
 	});
 };
 
@@ -43,13 +42,12 @@ const getEcho = () => {
 	if (typeof window === 'undefined') {
 		return null;
 	}
-	
+
 	if (!echoInstance) {
 		echoInstance = createEcho();
 	}
-	
+
 	return echoInstance;
 };
 
 export default getEcho;
-

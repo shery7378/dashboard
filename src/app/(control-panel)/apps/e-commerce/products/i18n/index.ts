@@ -20,4 +20,3 @@ i18n.addResourceBundle('pt', 'products', pt);
 i18n.addResourceBundle('zh', 'products', zh);
 
 export default { en, tr, ar, es, fr, de, it, pt, zh };
-

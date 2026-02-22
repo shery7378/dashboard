@@ -3,7 +3,6 @@ import { memo } from 'react';
 import GlobalStyles from '@mui/material/GlobalStyles';
 import FuseNavHorizontalLayout1 from './horizontal/FuseNavHorizontalLayout1';
 import FuseNavVerticalLayout1 from './vertical/FuseNavVerticalLayout1';
-import FuseNavVerticalLayout2 from './vertical/FuseNavVerticalLayout2';
 import FuseNavHorizontalCollapse from './horizontal/types/FuseNavHorizontalCollapse';
 import FuseNavHorizontalGroup from './horizontal/types/FuseNavHorizontalGroup';
 import FuseNavHorizontalItem from './horizontal/types/FuseNavHorizontalItem';

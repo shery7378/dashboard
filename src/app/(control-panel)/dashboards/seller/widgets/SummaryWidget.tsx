@@ -68,7 +68,9 @@ function SummaryWidget() {
 				<Typography className="text-6xl sm:text-7xl font-bold tracking-tight leading-none text-orange-500">
 					{data?.count?.[currentRange] ?? 0}
 				</Typography>
-				<Typography className="text-base font-semibold text-orange-600 dark:text-orange-500 mt-2">{data?.name ?? 'Pending Orders'}</Typography>
+				<Typography className="text-base font-semibold text-orange-600 dark:text-orange-500 mt-2">
+					{data?.name ?? 'Pending Orders'}
+				</Typography>
 			</div>
 			<Typography
 				className="flex items-baseline justify-center w-full mt-5 mb-6 space-x-2"
@@ -82,4 +84,3 @@ function SummaryWidget() {
 }
 
 export default memo(SummaryWidget);
-

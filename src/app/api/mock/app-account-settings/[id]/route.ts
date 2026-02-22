@@ -8,20 +8,21 @@ import { cookies } from 'next/headers';
  */
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
 	const { id } = await props.params;
-	
+
 	try {
 		// Get token from Authorization header or cookies
 		const headersList = await headers();
 		const authHeader = headersList.get('authorization');
 		let token = authHeader?.replace('Bearer ', '') || null;
-		
+
 		// If no token in header, try to get from cookies (next-auth stores tokens in cookies)
 		if (!token) {
 			const cookieStore = await cookies();
-			token = cookieStore.get('next-auth.session-token')?.value || 
-			        cookieStore.get('auth_token')?.value ||
-			        cookieStore.get('token')?.value ||
-			        null;
+			token =
+				cookieStore.get('next-auth.session-token')?.value ||
+				cookieStore.get('auth_token')?.value ||
+				cookieStore.get('token')?.value ||
+				null;
 		}
 
 		if (!token) {
@@ -33,24 +34,26 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 		// Fetch user profile from Laravel backend
 		const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
 			headers: {
-				'Accept': 'application/json',
-				'Authorization': `Bearer ${token}`,
+				Accept: 'application/json',
+				Authorization: `Bearer ${token}`
 			},
-			credentials: 'include',
+			credentials: 'include'
 		});
 
 		if (!userResponse.ok) {
 			// If user endpoint fails, try to get profile
 			const profileResponse = await fetch(`${API_BASE_URL}/api/profiles`, {
 				headers: {
-					'Accept': 'application/json',
-					'Authorization': `Bearer ${token}`,
+					Accept: 'application/json',
+					Authorization: `Bearer ${token}`
 				},
-				credentials: 'include',
+				credentials: 'include'
 			});
 
 			if (!profileResponse.ok) {
-				return new Response(JSON.stringify({ message: 'Failed to fetch user data' }), { status: profileResponse.status });
+				return new Response(JSON.stringify({ message: 'Failed to fetch user data' }), {
+					status: profileResponse.status
+				});
 			}
 
 			const profileData = await profileResponse.json();
@@ -59,7 +62,10 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 			// Transform profile to account settings format
 			const accountSettings: SettingsAccount = {
 				id: profile?.id || id,
-				name: profile?.user?.name || profile?.first_name && profile?.last_name ? `${profile.first_name} ${profile.last_name}` : '',
+				name:
+					profile?.user?.name || (profile?.first_name && profile?.last_name)
+						? `${profile.first_name} ${profile.last_name}`
+						: '',
 				username: profile?.user?.email?.split('@')[0] || '',
 				title: '',
 				company: profile?.company_name || '',
@@ -67,23 +73,23 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 				email: profile?.user?.email || '',
 				phone: profile?.phone || '',
 				country: profile?.country || '',
-				language: 'English',
+				language: 'English'
 			};
 
 			return new Response(JSON.stringify(accountSettings), { status: 200 });
 		}
 
 		const userData = await userResponse.json();
-		
+
 		// Try to fetch profile for additional info like company_name
 		let profile = null;
 		try {
 			const profileResponse = await fetch(`${API_BASE_URL}/api/profiles`, {
 				headers: {
-					'Accept': 'application/json',
-					'Authorization': `Bearer ${token}`,
+					Accept: 'application/json',
+					Authorization: `Bearer ${token}`
 				},
-				credentials: 'include',
+				credentials: 'include'
 			});
 
 			if (profileResponse.ok) {
@@ -105,7 +111,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
 			email: userData?.email || '',
 			phone: profile?.phone || userData?.phone || '',
 			country: profile?.country || '',
-			language: 'English',
+			language: 'English'
 		};
 
 		return new Response(JSON.stringify(accountSettings), { status: 200 });
@@ -128,14 +134,15 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 		const headersList = await headers();
 		const authHeader = headersList.get('authorization');
 		let token = authHeader?.replace('Bearer ', '') || null;
-		
+
 		// If no token in header, try to get from cookies (next-auth stores tokens in cookies)
 		if (!token) {
 			const cookieStore = await cookies();
-			token = cookieStore.get('next-auth.session-token')?.value || 
-			        cookieStore.get('auth_token')?.value ||
-			        cookieStore.get('token')?.value ||
-			        null;
+			token =
+				cookieStore.get('next-auth.session-token')?.value ||
+				cookieStore.get('auth_token')?.value ||
+				cookieStore.get('token')?.value ||
+				null;
 		}
 
 		if (!token) {
@@ -147,14 +154,16 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 		// Fetch current profile to get profile ID
 		const profileResponse = await fetch(`${API_BASE_URL}/api/profiles`, {
 			headers: {
-				'Accept': 'application/json',
-				'Authorization': `Bearer ${token}`,
+				Accept: 'application/json',
+				Authorization: `Bearer ${token}`
 			},
-			credentials: 'include',
+			credentials: 'include'
 		});
 
 		if (!profileResponse.ok) {
-			return new Response(JSON.stringify({ message: 'Failed to fetch profile' }), { status: profileResponse.status });
+			return new Response(JSON.stringify({ message: 'Failed to fetch profile' }), {
+				status: profileResponse.status
+			});
 		}
 
 		const profileData = await profileResponse.json();
@@ -168,7 +177,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 		const updateData: any = {
 			company_name: data.company || profile.company_name,
 			phone: data.phone || profile.phone,
-			country: data.country || profile.country,
+			country: data.country || profile.country
 		};
 
 		// Update user name if provided
@@ -181,17 +190,19 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 		const updateResponse = await fetch(`${API_BASE_URL}/api/profiles/${profile.id}`, {
 			method: 'PUT',
 			headers: {
-				'Accept': 'application/json',
+				Accept: 'application/json',
 				'Content-Type': 'application/json',
-				'Authorization': `Bearer ${token}`,
+				Authorization: `Bearer ${token}`
 			},
 			credentials: 'include',
-			body: JSON.stringify(updateData),
+			body: JSON.stringify(updateData)
 		});
 
 		if (!updateResponse.ok) {
 			const errorData = await updateResponse.json().catch(() => ({}));
-			return new Response(JSON.stringify({ message: errorData.message || 'Failed to update profile' }), { status: updateResponse.status });
+			return new Response(JSON.stringify({ message: errorData.message || 'Failed to update profile' }), {
+				status: updateResponse.status
+			});
 		}
 
 		const updatedProfile = await updateResponse.json();
@@ -200,7 +211,12 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 		// Return updated account settings format
 		const updatedAccountSettings: SettingsAccount = {
 			id: updatedProfileData?.id || id,
-			name: data.name || updatedProfileData?.user?.name || (updatedProfileData?.first_name && updatedProfileData?.last_name ? `${updatedProfileData.first_name} ${updatedProfileData.last_name}` : ''),
+			name:
+				data.name ||
+				updatedProfileData?.user?.name ||
+				(updatedProfileData?.first_name && updatedProfileData?.last_name
+					? `${updatedProfileData.first_name} ${updatedProfileData.last_name}`
+					: ''),
 			username: data.username || updatedProfileData?.user?.email?.split('@')[0] || '',
 			title: data.title || '',
 			company: updatedProfileData?.company_name || data.company || '',
@@ -208,7 +224,7 @@ export async function PUT(req: Request, props: { params: Promise<{ id: string }>
 			email: data.email || updatedProfileData?.user?.email || '',
 			phone: updatedProfileData?.phone || data.phone || '',
 			country: updatedProfileData?.country || data.country || '',
-			language: data.language || 'English',
+			language: data.language || 'English'
 		};
 
 		return new Response(JSON.stringify(updatedAccountSettings), { status: 200 });

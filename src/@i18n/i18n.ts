@@ -12,7 +12,7 @@ const resources = {
 	},
 	tr: {
 		translation: {
-			'Welcome to React': 'React ve react-i18next\'e hoş geldiniz'
+			'Welcome to React': "React ve react-i18next'e hoş geldiniz"
 		}
 	},
 	ar: {

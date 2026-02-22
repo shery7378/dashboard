@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { orange } from '@mui/material/colors';
 import { lighten, styled } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import { Controller, useFormContext } from 'react-hook-form';
@@ -36,10 +35,7 @@ function StoreImagesTab() {
 		originalBannerRef.current = bannerImage;
 	}, []);
 
-	const handleFileUpload = (
-		file: File,
-		fieldName: 'logo' | 'banner_image'
-	) => {
+	const handleFileUpload = (file: File, fieldName: 'logo' | 'banner_image') => {
 		const reader = new FileReader();
 		reader.onload = () => {
 			const base64 = `data:${file.type};base64,${btoa(reader.result as string)}`;
@@ -74,12 +70,16 @@ function StoreImagesTab() {
 					type="file"
 					onChange={(e) => {
 						const file = e.target.files?.[0];
+
 						if (file) {
 							handleFileUpload(file, fieldName);
 						}
 					}}
 				/>
-				<FuseSvgIcon size={32} color="action">
+				<FuseSvgIcon
+					size={32}
+					color="action"
+				>
 					heroicons-outline:arrow-up-on-square
 				</FuseSvgIcon>
 			</Box>
@@ -94,7 +94,11 @@ function StoreImagesTab() {
 					})}
 					className="imagePreviewBox flex items-center justify-center relative w-32 h-32 mt-2 rounded-lg overflow-hidden"
 				>
-					<img className="max-w-none w-auto h-full" src={value} alt={label} />
+					<img
+						className="max-w-none w-auto h-full"
+						src={value}
+						alt={label}
+					/>
 				</Box>
 			)}
 		</div>
@@ -106,9 +110,7 @@ function StoreImagesTab() {
 				<Controller
 					name="logo"
 					control={control}
-					render={({ field: { onChange, value } }) =>
-						renderImageField('logo', 'Store Logo', value, onChange)
-					}
+					render={({ field: { onChange, value } }) => renderImageField('logo', 'Store Logo', value, onChange)}
 				/>
 
 				<Controller

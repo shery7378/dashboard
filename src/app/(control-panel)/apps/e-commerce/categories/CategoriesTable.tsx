@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { MRT_ColumnDef, MRT_TableInstance } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
 import FuseLoading from '@fuse/core/FuseLoading';
-import { ListItemIcon, MenuItem, Paper, Typography, Button, Avatar, IconButton } from '@mui/material';
+import { ListItemIcon, MenuItem, Paper, Typography, Button, Avatar } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
 import {
 	EcommerceCategory,
 	useGetECommerceCategoriesQuery,
 	useDeleteECommerceCategoryMutation,
-	useDeleteECommerceCategoriesMutation,
+	useDeleteECommerceCategoriesMutation
 } from '../apis/CategoriesLaravelApi';
 import { useIsMounted } from 'src/hooks/useIsMounted';
 import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
@@ -28,7 +28,7 @@ function CategoriesTable() {
 		clearSuccessMessage,
 		requestAction,
 		confirmAction,
-		cancelAction,
+		cancelAction
 	} = useEntityManager();
 
 	const [tableInstance, setTableInstance] = useState<MRT_TableInstance<EcommerceCategory> | null>(null);
@@ -36,7 +36,7 @@ function CategoriesTable() {
 
 	const [pagination, setPagination] = useState({
 		pageIndex: 0, // MRT uses 0-based indexing
-		pageSize: 1000, // Increased to show all categories
+		pageSize: 1000 // Increased to show all categories
 	});
 
 	const [deleteCategory] = useDeleteECommerceCategoryMutation();
@@ -45,10 +45,10 @@ function CategoriesTable() {
 	const {
 		data: categoriesRes,
 		isLoading,
-		error,
+		error
 	} = useGetECommerceCategoriesQuery({
 		page: pagination.pageIndex + 1,
-		perPage: pagination.pageSize,
+		perPage: pagination.pageSize
 	});
 
 	const categories = categoriesRes?.data ?? [];
@@ -72,10 +72,13 @@ function CategoriesTable() {
 				Cell: ({ row }) => {
 					const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 					let img: string | null = null;
-					
+
 					// Check image_url first (from API response)
 					if (row.original.image_url) {
-						if (row.original.image_url.startsWith('http://') || row.original.image_url.startsWith('https://')) {
+						if (
+							row.original.image_url.startsWith('http://') ||
+							row.original.image_url.startsWith('https://')
+						) {
 							img = row.original.image_url;
 						} else if (row.original.image_url.startsWith('/')) {
 							img = `${apiBaseUrl}${row.original.image_url}`;
@@ -84,7 +87,11 @@ function CategoriesTable() {
 						}
 					} else if (row.original.image) {
 						// Fall back to image field
-						if (row.original.image.startsWith('http://') || row.original.image.startsWith('https://') || row.original.image.startsWith('data:')) {
+						if (
+							row.original.image.startsWith('http://') ||
+							row.original.image.startsWith('https://') ||
+							row.original.image.startsWith('data:')
+						) {
 							img = row.original.image;
 						} else if (row.original.image.startsWith('/')) {
 							img = `${apiBaseUrl}${row.original.image}`;
@@ -93,11 +100,11 @@ function CategoriesTable() {
 							img = `${apiBaseUrl}/storage/${row.original.image}`;
 						}
 					}
-					
+
 					if (!img) {
 						img = '/assets/images/apps/ecommerce/product-image-placeholder.png';
 					}
-					
+
 					return (
 						<Avatar
 							variant="rounded"
@@ -106,7 +113,7 @@ function CategoriesTable() {
 							sx={{ width: 40, height: 40 }}
 						/>
 					);
-				},
+				}
 			},
 			{
 				accessorKey: 'name',
@@ -119,7 +126,7 @@ function CategoriesTable() {
 					>
 						<u>{row.original.name}</u>
 					</Typography>
-				),
+				)
 			},
 			{ accessorKey: 'slug', header: 'Slug' },
 			{ accessorKey: 'description', header: 'Description' },
@@ -134,7 +141,7 @@ function CategoriesTable() {
 					>
 						{row.original.active === 1 ? 'Active' : 'Inactive'}
 					</Typography>
-				),
+				)
 			},
 			{
 				accessorKey: 'parent_id',
@@ -145,17 +152,16 @@ function CategoriesTable() {
 						const parentName = parentCategoryMap.get(row.original.parent_id);
 						return parentName || row.original.parent_id;
 					}
+
 					return '—';
-				},
+				}
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Created At',
 				Cell: ({ row }) =>
-					row.original.created_at
-						? new Date(row.original.created_at).toLocaleDateString()
-						: '—',
-			},
+					row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : '—'
+			}
 		],
 		[parentCategoryMap]
 	);
@@ -166,6 +172,7 @@ function CategoriesTable() {
 		if (categoriesRes) {
 			setRowSelection({});
 		}
+
 		if (error) {
 			console.error('Failed to load categories:', error);
 		}
@@ -176,6 +183,7 @@ function CategoriesTable() {
 		const ids = rows.map((r) => r.id);
 		console.log(ids, 'slected ids');
 		let confirmTitle = '';
+
 		if (ids.length > 1) {
 			if (rows.every((r) => r.parent_id)) {
 				confirmTitle = 'Delete Child Categories';
@@ -209,11 +217,12 @@ function CategoriesTable() {
 				setTableInstance(null);
 				setRowSelection({});
 			},
-			snackbarOptions: { autoHideDuration: 5000 },
+			snackbarOptions: { autoHideDuration: 5000 }
 		});
 	};
 
 	if (isLoading) return <FuseLoading />;
+
 	if (error) return <Typography color="error">Failed to load categories</Typography>;
 
 	return (
@@ -223,9 +232,7 @@ function CategoriesTable() {
 		>
 			<DataTable
 				data={categories}
-				columns={[
-					...columns,
-				]}
+				columns={[...columns]}
 				manualPagination
 				rowCount={categoriesRes?.pagination.total ?? 0}
 				state={{ pagination, rowSelection }}
@@ -260,10 +267,11 @@ function CategoriesTable() {
 							<FuseSvgIcon>heroicons-outline:trash</FuseSvgIcon>
 						</ListItemIcon>
 						Delete
-					</MenuItem>,
+					</MenuItem>
 				]}
 				renderTopToolbarCustomActions={({ table }) => {
 					const { rowSelection } = table.getState();
+
 					if (Object.keys(rowSelection).length === 0) return null;
 
 					const selectedRows = table.getSelectedRowModel().flatRows.map((r) => r.original);
@@ -287,7 +295,11 @@ function CategoriesTable() {
 				}}
 			/>
 
-			<SuccessDialog open={!!successMessage} onClose={clearSuccessMessage} message={successMessage} />
+			<SuccessDialog
+				open={!!successMessage}
+				onClose={clearSuccessMessage}
+				message={successMessage}
+			/>
 
 			<ConfirmDialog
 				open={confirmOpen}

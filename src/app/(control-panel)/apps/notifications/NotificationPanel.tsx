@@ -1,37 +1,27 @@
 import FuseScrollbars from '@fuse/core/FuseScrollbars';
 import { styled } from '@mui/material/styles';
-import IconButton from '@mui/material/IconButton';
 import Popover from '@mui/material/Popover';
 import Typography from '@mui/material/Typography';
 import { useSnackbar } from 'notistack';
 import { useEffect, useRef, useState } from 'react';
 import { useAppDispatch, useAppSelector } from 'src/store/hooks';
-import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Button from '@mui/material/Button';
 import _ from 'lodash';
 import usePathname from '@fuse/hooks/usePathname';
 import NotificationCard from './NotificationCard';
-import {
-	closeNotificationPanel,
-	selectNotificationPanelState,
-	toggleNotificationPanel
-} from './notificationPanelSlice';
+import { closeNotificationPanel, selectNotificationPanelState } from './notificationPanelSlice';
 import {
 	useCreateNotificationMutation,
 	useDeleteNotificationMutation,
 	useDeleteNotificationsMutation,
 	useGetAllNotificationsQuery
 } from './NotificationApi';
-import NotificationModel from './models/NotificationModel';
-import NotificationTemplate from './NotificationTemplate';
 import { useUnreadMessagesCount } from '../messages/useUnreadMessagesCount';
 import useUser from '@auth/useUser';
 
 const StyledPopover = styled(Popover)(({ theme }) => ({
 	'& .MuiPaper-root': {
-		backgroundColor: theme.palette.mode === 'dark' 
-			? theme.palette.background.paper 
-			: '#ffffff',
+		backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : '#ffffff',
 		width: 380,
 		maxWidth: '90vw',
 		maxHeight: '80vh',
@@ -63,7 +53,6 @@ function NotificationPanel() {
 
 	const { enqueueSnackbar, closeSnackbar } = useSnackbar();
 
-
 	// Close panel when navigating to a new page (but not when just opening it)
 	const prevPathnameRef = useRef(pathname);
 	useEffect(() => {
@@ -73,6 +62,7 @@ function NotificationPanel() {
 				dispatch(closeNotificationPanel());
 			}
 		}
+
 		prevPathnameRef.current = pathname;
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [pathname, state]);
@@ -81,7 +71,7 @@ function NotificationPanel() {
 	// useEffect(() => {
 	// 	// Only show changelog notification to admin users
 	// 	const isAdmin = user?.role && Array.isArray(user.role) && user.role.includes('admin');
-	// 	
+	//
 	// 	if (!isAdmin) {
 	// 		return; // Don't show notification to non-admin users
 	// 	}
@@ -112,7 +102,6 @@ function NotificationPanel() {
 	// 	}, 2000);
 	// }, [addNotification, closeSnackbar, enqueueSnackbar, user]);
 
-
 	function handleDismiss(id: string) {
 		deleteNotification(id);
 	}
@@ -129,11 +118,13 @@ function NotificationPanel() {
 	useEffect(() => {
 		const findButton = () => {
 			const button = document.getElementById('notification-bell-button');
+
 			if (button && button !== anchorElRef.current) {
 				anchorElRef.current = button;
 				setAnchorEl(button);
 				return true;
 			}
+
 			return false;
 		};
 
@@ -157,11 +148,13 @@ function NotificationPanel() {
 		if (state) {
 			const findButton = () => {
 				const button = document.getElementById('notification-bell-button');
+
 				if (button) {
 					anchorElRef.current = button;
 					setAnchorEl(button);
 					return true;
 				}
+
 				return false;
 			};
 
@@ -171,7 +164,7 @@ function NotificationPanel() {
 				requestAnimationFrame(() => {
 					findButton();
 				});
-				
+
 				// Final retry after a short delay
 				setTimeout(() => {
 					findButton();
@@ -188,21 +181,25 @@ function NotificationPanel() {
 		if (event.type === 'keydown' && (event as React.KeyboardEvent).key !== 'Escape') {
 			return;
 		}
+
 		handleClose();
 	};
-	
+
 	// Use a fallback anchor position if button not found
 	const getAnchorPosition = () => {
 		if (anchorEl) {
 			return anchorEl;
 		}
+
 		// Fallback: try to find button one more time
 		const button = document.getElementById('notification-bell-button');
+
 		if (button) {
 			setAnchorEl(button);
 			anchorElRef.current = button;
 			return button;
 		}
+
 		// Ultimate fallback: return null but still try to open with default position
 		return null;
 	};
@@ -210,24 +207,26 @@ function NotificationPanel() {
 	const anchorPosition = state ? getAnchorPosition() : null;
 	// Allow popup to open even if anchor isn't found yet
 	const shouldOpen = state;
-	
+
 	// If state is true but anchorEl is null, keep trying to find it
 	if (state && !anchorPosition) {
 		setTimeout(() => {
 			const button = document.getElementById('notification-bell-button');
+
 			if (button) {
 				setAnchorEl(button);
 				anchorElRef.current = button;
 			}
 		}, 50);
 	}
-	
+
 	// Calculate fallback position
 	const getFallbackPosition = () => {
 		if (typeof window === 'undefined') return { top: 80, left: 0 };
-		return { 
-			top: 80, 
-			left: window.innerWidth - 400 
+
+		return {
+			top: 80,
+			left: window.innerWidth - 400
 		};
 	};
 
@@ -241,11 +240,11 @@ function NotificationPanel() {
 			disablePortal={false}
 			anchorOrigin={{
 				vertical: 'bottom',
-				horizontal: 'right',
+				horizontal: 'right'
 			}}
 			transformOrigin={{
 				vertical: 'top',
-				horizontal: 'right',
+				horizontal: 'right'
 			}}
 			PaperProps={{
 				sx: {
@@ -259,12 +258,18 @@ function NotificationPanel() {
 				zIndex: 1300
 			}}
 		>
-			<div className="flex flex-col" style={{ width: 380, maxWidth: '90vw' }}>
+			<div
+				className="flex flex-col"
+				style={{ width: 380, maxWidth: '90vw' }}
+			>
 				{/* Header */}
-				<div className="flex items-center justify-between p-4 border-b border-divider" style={{ backgroundColor: 'transparent' }}>
-					<Typography 
+				<div
+					className="flex items-center justify-between p-4 border-b border-divider"
+					style={{ backgroundColor: 'transparent' }}
+				>
+					<Typography
 						className="text-lg font-semibold"
-						sx={{ 
+						sx={{
 							color: '#000000',
 							fontWeight: 600
 						}}
@@ -288,27 +293,27 @@ function NotificationPanel() {
 				</div>
 
 				{/* Content */}
-				<FuseScrollbars 
-					className="flex flex-col" 
-					style={{ 
+				<FuseScrollbars
+					className="flex flex-col"
+					style={{
 						maxHeight: '60vh',
 						backgroundColor: 'transparent'
 					}}
 				>
-					<div 
+					<div
 						className="flex flex-col p-2"
 						style={{ backgroundColor: 'transparent' }}
 					>
 						{/* Unread Messages Section */}
 						{unreadMessagesCount > 0 && (
-							<div 
+							<div
 								className="mb-3 p-3 rounded-lg"
 								style={{
 									backgroundColor: 'rgba(25, 118, 210, 0.1)'
 								}}
 							>
-								<Typography 
-									className="text-sm font-semibold mb-2" 
+								<Typography
+									className="text-sm font-semibold mb-2"
 									sx={{
 										color: '#000000',
 										fontWeight: 600
@@ -336,7 +341,7 @@ function NotificationPanel() {
 								</Button>
 							</div>
 						)}
-						
+
 						{/* System Notifications Section */}
 						{notifications && notifications?.length > 0 ? (
 							<div>

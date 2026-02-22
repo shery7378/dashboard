@@ -1,15 +1,12 @@
 //src/@auth/forms/AuthJsCredentialsSignInForm.jsx
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
 import { z } from 'zod';
 import _ from 'lodash';
-import TextField from '@mui/material/TextField';
 import FormControl from '@mui/material/FormControl';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import Link from '@fuse/core/Link';
-import Button from '@mui/material/Button';
 import { signIn, getSession } from 'next-auth/react';
 import { Alert } from '@mui/material';
 import signinErrors from './signinErrors';
@@ -57,38 +54,38 @@ function AuthJsCredentialsSignInForm() {
 	// 	});
 	// }, [setValue]);
 
-async function onSubmit(formData: FormType) {
-	const { email, password } = formData;
-	// const { enqueueSnackbar } = useSnackbar(); // ✅ useSnackbar inside component
+	async function onSubmit(formData: FormType) {
+		const { email, password } = formData;
+		// const { enqueueSnackbar } = useSnackbar(); // ✅ useSnackbar inside component
 
-	const result = await signIn('credentials', {
-		email,
-		password,
-		formType: 'signin',
-		redirect: false
-	});
-
-	if (!result?.error) {
-		// After successful sign-in, get the session to retrieve the token and store it in localStorage as fallback
-		const session = await getSession();
-		if (session?.accessAuthToken && typeof window !== 'undefined') {
-			localStorage.setItem('auth_token', session.accessAuthToken);
-			localStorage.setItem('token', session.accessAuthToken);
-		}
-		
-		// enqueueSnackbar('Successfully signed in!', { variant: 'success' }); // ✅ success toast
-		window.location.href = '/dashboards';
-	} else {
-
-		setError('root', {
-			type: 'manual',
-			message: signinErrors[result.error]
+		const result = await signIn('credentials', {
+			email,
+			password,
+			formType: 'signin',
+			redirect: false
 		});
-		// enqueueSnackbar(signinErrors[result.error] || 'Sign-in failed.', { variant: 'error' }); // ✅ error toast
-	}
 
-	return true;
-}
+		if (!result?.error) {
+			// After successful sign-in, get the session to retrieve the token and store it in localStorage as fallback
+			const session = await getSession();
+
+			if (session?.accessAuthToken && typeof window !== 'undefined') {
+				localStorage.setItem('auth_token', session.accessAuthToken);
+				localStorage.setItem('token', session.accessAuthToken);
+			}
+
+			// enqueueSnackbar('Successfully signed in!', { variant: 'success' }); // ✅ success toast
+			window.location.href = '/dashboards';
+		} else {
+			setError('root', {
+				type: 'manual',
+				message: signinErrors[result.error]
+			});
+			// enqueueSnackbar(signinErrors[result.error] || 'Sign-in failed.', { variant: 'error' }); // ✅ error toast
+		}
+
+		return true;
+	}
 
 	return (
 		<form
@@ -111,16 +108,14 @@ async function onSubmit(formData: FormType) {
 			)}
 			<Controller
 				name="email"
-
 				control={control}
 				render={({ field }) => (
 					<AuthInput
 						{...field}
- 						label="Email"
+						label="Email"
 						type="email"
 						error={errors?.email?.message}
 					/>
-				
 				)}
 			/>
 			<Controller
@@ -128,7 +123,7 @@ async function onSubmit(formData: FormType) {
 				control={control}
 				render={({ field }) => (
 					<AuthInput
-						{...field}						 
+						{...field}
 						label="Password"
 						type="password"
 						error={errors?.password?.message}

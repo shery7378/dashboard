@@ -9,7 +9,7 @@ const translations = {
 	request_payout: 'Demander un paiement',
 	refresh: 'Actualiser',
 	statistics: 'Statistiques',
-	today_earnings: 'Gains d\'aujourd\'hui',
+	today_earnings: "Gains d'aujourd'hui",
 	this_month_earnings: 'Gains de ce mois',
 	last_month_earnings: 'Gains du mois dernier',
 	this_month_payouts: 'Paiements de ce mois',
@@ -38,4 +38,3 @@ const translations = {
 };
 
 export default translations;
-

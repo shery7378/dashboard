@@ -24,7 +24,10 @@ import InputLabel from '@mui/material/InputLabel';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Chip from '@mui/material/Chip';
-import { useGetECommerceCategoriesQuery, useGetECommerceParentCategoriesQuery, useGetECommerceAllCategoriesQuery } from '../../../apis/CategoriesLaravelApi';
+import {
+	useGetECommerceParentCategoriesQuery,
+	useGetECommerceAllCategoriesQuery
+} from '../../../apis/CategoriesLaravelApi';
 import { useGetECommerceProductsQuery, useGetOtherSellersProductsQuery } from '../../../apis/ProductsLaravelApi';
 import { useGetECommerceStoreQuery } from '../../../apis/StoresLaravelApi';
 import { useGetAdminProductFeesSettingsQuery } from '../../../../../pages/settings/product-fees/ProductFeesAdminApi';
@@ -97,13 +100,13 @@ function MultiKonnectListingCreation() {
 	const [feeSettingsDialogOpen, setFeeSettingsDialogOpen] = useState(false);
 	const [tempFeeSettings, setTempFeeSettings] = useState({
 		commissionRate: 0,
-		promoFee: 0,
+		promoFee: 0
 	});
 	const [offers, setOffers] = useState({
 		accessoryShield: false,
 		setupAtDoorstep: false,
 		priceDropProtection: false,
-		tradeInAssist: false,
+		tradeInAssist: false
 	});
 	const [isInitialized, setIsInitialized] = useState(false);
 	const [barcodeDialogOpen, setBarcodeDialogOpen] = useState(false);
@@ -138,7 +141,7 @@ function MultiKonnectListingCreation() {
 	const [isValidating, setIsValidating] = useState(false);
 	const [isSavingDraft, setIsSavingDraft] = useState(false);
 	const [isPublishing, setIsPublishing] = useState(false);
-	const sectionRefs = useRef<{ [key: number]: HTMLElement | null }>({});
+	const sectionRefs = useRef<Record<number, HTMLElement | null>>({});
 	const observerRef = useRef<IntersectionObserver | null>(null);
 	const prevProductTitleRef = useRef<string>('');
 	const prevVariantsRef = useRef<string>('');
@@ -159,9 +162,11 @@ function MultiKonnectListingCreation() {
 		if (!galleryImagesRaw) {
 			return [];
 		}
+
 		if (!Array.isArray(galleryImagesRaw)) {
 			return [];
 		}
+
 		const filtered = galleryImagesRaw.filter((img: any) => {
 			const hasUrl = img && img.url && typeof img.url === 'string' && img.url.length > 0;
 			return hasUrl;
@@ -196,8 +201,12 @@ function MultiKonnectListingCreation() {
 	const extraFields = watch('extraFields') || {};
 
 	// Fetch admin product fees settings
-	const { data: adminFeesData, isLoading: isLoadingAdminFees, error: adminFeesError } = useGetAdminProductFeesSettingsQuery(undefined, {
-		refetchOnMountOrArgChange: true,
+	const {
+		data: adminFeesData,
+		isLoading: isLoadingAdminFees,
+		error: adminFeesError
+	} = useGetAdminProductFeesSettingsQuery(undefined, {
+		refetchOnMountOrArgChange: true
 	});
 
 	// Debug admin fees data
@@ -216,18 +225,25 @@ function MultiKonnectListingCreation() {
 		if (extraFields?.commissionRate !== undefined || extraFields?.promoFee !== undefined) {
 			// If commissionRate is explicitly set to undefined/null, check admin default first
 			let commissionRate = extraFields.commissionRate;
+
 			if (commissionRate === undefined || commissionRate === null) {
 				// Check admin default before using fallback
 				const adminFees = adminFeesData?.data;
-				if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+
+				if (
+					adminFees &&
+					adminFees.standard_product_fee_type === 'percentage' &&
+					adminFees.standard_product_fee > 0
+				) {
 					commissionRate = adminFees.standard_product_fee / 100;
 				} else {
 					commissionRate = 0; // Will be updated when admin fees load
 				}
 			}
+
 			return {
 				commissionRate: commissionRate,
-				promoFee: extraFields.promoFee ?? 0,
+				promoFee: extraFields.promoFee ?? 0
 			};
 		}
 
@@ -239,7 +255,7 @@ function MultiKonnectListingCreation() {
 			const adminCommissionRate = adminFees.standard_product_fee / 100;
 			return {
 				commissionRate: adminCommissionRate,
-				promoFee: 0,
+				promoFee: 0
 			};
 		}
 
@@ -247,7 +263,7 @@ function MultiKonnectListingCreation() {
 		// Otherwise wait for admin fees to load (will return 0 initially, then update when loaded)
 		return {
 			commissionRate: 0, // Will be updated when admin fees load
-			promoFee: 0,
+			promoFee: 0
 		};
 	}, [extraFields, adminFeesData]);
 
@@ -255,7 +271,7 @@ function MultiKonnectListingCreation() {
 		// Initialize with 0, will be updated when extraFields or admin fees load
 		return {
 			commissionRate: 0,
-			promoFee: 0,
+			promoFee: 0
 		};
 	});
 
@@ -264,6 +280,7 @@ function MultiKonnectListingCreation() {
 		const productFees = getProductFees();
 		// Always update feeSettings with calculated fees
 		setFeeSettings(productFees);
+
 		// Only update tempFeeSettings if dialog is not open (to avoid overriding user edits)
 		if (!feeSettingsDialogOpen) {
 			setTempFeeSettings(productFees);
@@ -285,16 +302,21 @@ function MultiKonnectListingCreation() {
 			if (extraFields?.commissionRate !== undefined) {
 				setTempFeeSettings({
 					commissionRate: extraFields.commissionRate,
-					promoFee: extraFields.promoFee ?? 0,
+					promoFee: extraFields.promoFee ?? 0
 				});
 			} else {
 				// No product-specific fees, use admin default if available
 				const adminFees = adminFeesData?.data;
-				if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+
+				if (
+					adminFees &&
+					adminFees.standard_product_fee_type === 'percentage' &&
+					adminFees.standard_product_fee > 0
+				) {
 					// Use admin default percentage as initial value (user can change it)
 					setTempFeeSettings({
 						commissionRate: adminFees.standard_product_fee / 100, // Convert percentage to decimal
-						promoFee: extraFields?.promoFee ?? 0,
+						promoFee: extraFields?.promoFee ?? 0
 					});
 				} else {
 					// Use current feeSettings (which may have defaults)
@@ -320,28 +342,33 @@ function MultiKonnectListingCreation() {
 
 	// Fetch store data to get postcode (skip query if no store_id)
 	const { data: storeData } = useGetECommerceStoreQuery(userStoreId || '', {
-		skip: !userStoreId, // Skip query if no store_id
+		skip: !userStoreId // Skip query if no store_id
 	});
 
 	// Normalize delivery slots from store (backend may return string[] or a comma-separated string)
 	const storeDeliverySlots: string[] = useMemo(() => {
 		const raw: any = storeData?.data?.delivery_slots;
+
 		if (Array.isArray(raw)) {
 			return raw.map((s) => String(s).trim()).filter(Boolean);
 		}
+
 		if (typeof raw === 'string') {
 			return raw
 				.split(/[,\n]/g)
 				.map((s) => s.trim())
 				.filter(Boolean);
 		}
+
 		return [];
 	}, [storeData]);
 
 	// Normalize delivery radius from store (backend may return number or numeric string)
 	const storeDeliveryRadius: number | null = useMemo(() => {
 		const raw: any = storeData?.data?.delivery_radius;
+
 		if (raw === null || raw === undefined || raw === '') return null;
+
 		const n = typeof raw === 'number' ? raw : Number(raw);
 		return Number.isFinite(n) ? n : null;
 	}, [storeData]);
@@ -353,9 +380,10 @@ function MultiKonnectListingCreation() {
 		// 1. Store data is available
 		// 2. Store has a zip_code
 		// 3. Current store_postcode is empty/null/undefined (don't overwrite existing value)
-		const postcodeIsEmpty = !storePostcode || storePostcode === '' || storePostcode === null || storePostcode === undefined;
+		const postcodeIsEmpty =
+			!storePostcode || storePostcode === '' || storePostcode === null || storePostcode === undefined;
 		const storeZipCode = storeData?.data?.zip_code;
-		
+
 		if (storeZipCode && postcodeIsEmpty) {
 			// Ensure we set the value even if form hasn't fully initialized
 			setValue('store_postcode', storeZipCode, { shouldDirty: false, shouldValidate: false });
@@ -371,8 +399,12 @@ function MultiKonnectListingCreation() {
 		// 3. Current delivery_slots is empty/null/undefined (don't overwrite existing value from imported product)
 		const currentDeliverySlots = watch('delivery_slots');
 		const isNewProduct = productId === 'new' || !productId || productId === 'undefined';
-		const deliverySlotsIsEmpty = !currentDeliverySlots || currentDeliverySlots === '' || currentDeliverySlots === null || currentDeliverySlots === undefined;
-		
+		const deliverySlotsIsEmpty =
+			!currentDeliverySlots ||
+			currentDeliverySlots === '' ||
+			currentDeliverySlots === null ||
+			currentDeliverySlots === undefined;
+
 		if (isNewProduct && storeDeliverySlots.length > 0 && deliverySlotsIsEmpty) {
 			setValue('delivery_slots', storeDeliverySlots[0], { shouldDirty: false });
 		}
@@ -383,12 +415,16 @@ function MultiKonnectListingCreation() {
 	useEffect(() => {
 		// Get the actual form value (not the default)
 		const currentDeliveryRadius = watch('delivery_radius');
-		
+
 		// Only set delivery radius if:
 		// 1. Product is new (productId === 'new' or undefined)
 		// 2. Store has delivery radius
 		// 3. Current delivery_radius is empty/null/undefined (don't overwrite existing value from imported product)
-		if ((productId === 'new' || !productId) && storeDeliveryRadius !== null && (currentDeliveryRadius === null || currentDeliveryRadius === undefined || currentDeliveryRadius === '')) {
+		if (
+			(productId === 'new' || !productId) &&
+			storeDeliveryRadius !== null &&
+			(currentDeliveryRadius === null || currentDeliveryRadius === undefined || currentDeliveryRadius === '')
+		) {
 			setValue('delivery_radius', storeDeliveryRadius, { shouldDirty: false });
 		}
 	}, [storeDeliveryRadius, setValue, productId, watch]);
@@ -398,39 +434,43 @@ function MultiKonnectListingCreation() {
 		// Get city from postcode (simplified - in production, use a postcode lookup API)
 		const getCityFromPostcode = (postcode: string): string => {
 			if (!postcode) return 'London';
+
 			// Simple mapping - in production, use proper postcode lookup
 			const postcodePrefix = postcode.split(' ')[0]?.toUpperCase() || '';
 			const cityMap: Record<string, string> = {
-				'E': 'London',
-				'W': 'London',
-				'N': 'London',
-				'SW': 'London',
-				'SE': 'London',
-				'NW': 'London',
-				'EC': 'London',
-				'WC': 'London',
-				'M': 'Manchester',
-				'B': 'Birmingham',
-				'L': 'Liverpool',
-				'LS': 'Leeds',
-				'S1': 'Sheffield',
-				'S2': 'Sheffield',
-				'S3': 'Sheffield',
-				'S4': 'Sheffield',
-				'S5': 'Sheffield',
-				'S6': 'Sheffield',
-				'S7': 'Sheffield',
-				'S8': 'Sheffield',
-				'S9': 'Sheffield',
-				'S10': 'Sheffield',
+				E: 'London',
+				W: 'London',
+				N: 'London',
+				SW: 'London',
+				SE: 'London',
+				NW: 'London',
+				EC: 'London',
+				WC: 'London',
+				M: 'Manchester',
+				B: 'Birmingham',
+				L: 'Liverpool',
+				LS: 'Leeds',
+				S1: 'Sheffield',
+				S2: 'Sheffield',
+				S3: 'Sheffield',
+				S4: 'Sheffield',
+				S5: 'Sheffield',
+				S6: 'Sheffield',
+				S7: 'Sheffield',
+				S8: 'Sheffield',
+				S9: 'Sheffield',
+				S10: 'Sheffield'
 			};
+
 			// Handle single 'S' prefix (check if it's London or Sheffield based on second character)
 			if (postcodePrefix === 'S' && postcode.length > 1) {
 				const secondChar = postcode[1];
+
 				if (secondChar && /[0-9]/.test(secondChar)) {
 					return 'Sheffield';
 				}
 			}
+
 			return cityMap[postcodePrefix] || 'London';
 		};
 
@@ -443,7 +483,7 @@ function MultiKonnectListingCreation() {
 		let basePrice = 0;
 
 		// First, try to get price from local variants state
-		const variantPrice = variants.find(v => {
+		const variantPrice = variants.find((v) => {
 			const price = parseFloat(v.price?.toString() || '0');
 			return price > 0;
 		});
@@ -456,6 +496,7 @@ function MultiKonnectListingCreation() {
 				const price = parseFloat(v.price_tax_excl?.toString() || '0');
 				return price > 0;
 			});
+
 			if (formVariantWithPrice?.price_tax_excl) {
 				basePrice = parseFloat(formVariantWithPrice.price_tax_excl.toString()) || 0;
 			}
@@ -469,27 +510,27 @@ function MultiKonnectListingCreation() {
 		// Mock recent listings data (in production, fetch from API)
 		// This simulates price data for similar products in the city
 		// Optimized: reduced count and use deterministic variation to prevent blocking
-		const generateMockPrices = (base: number, count: number = 20): number[] => {
+		const generateMockPrices = (base: number, count = 20): number[] => {
 			if (base <= 0) return [];
+
 			const prices: number[] = [];
 			// Use deterministic variation based on base price to avoid Math.random() blocking
 			const seed = Math.floor(base) % 1000;
 			for (let i = 0; i < count; i++) {
 				// Generate prices within ±15% of base price using seeded variation
-				const variation = ((seed + i) % 30 - 15) / 100; // -15% to +15%
+				const variation = (((seed + i) % 30) - 15) / 100; // -15% to +15%
 				const price = base * (1 + variation);
 				prices.push(Math.round(price * 100) / 100); // Round to 2 decimal places
 			}
 			return prices.sort((a, b) => a - b);
 		};
 
-		const recentPrices = basePrice > 0
-			? generateMockPrices(basePrice)
-			: [];
+		const recentPrices = basePrice > 0 ? generateMockPrices(basePrice) : [];
 
 		// Calculate percentiles
 		const calculatePercentile = (arr: number[], percentile: number): number => {
 			if (arr.length === 0) return 0;
+
 			const index = Math.ceil((percentile / 100) * arr.length) - 1;
 			return arr[Math.max(0, Math.min(index, arr.length - 1))];
 		};
@@ -502,10 +543,10 @@ function MultiKonnectListingCreation() {
 		const commission = basePrice > 0 ? basePrice * feeSettings.commissionRate : 0;
 
 		// Shipping charge: set by vendor/vendor (not admin)
-		const hasSameDay = variants.some(v => v.sameDay) || false;
+		const hasSameDay = variants.some((v) => v.sameDay) || false;
 		const shippingCharge = hasSameDay
-			? (parseFloat(shippingChargeSameDay.toString()) || 0)
-			: (parseFloat(shippingChargeRegular.toString()) || 0);
+			? parseFloat(shippingChargeSameDay.toString()) || 0
+			: parseFloat(shippingChargeRegular.toString()) || 0;
 
 		// Promotional fees (if any promotions are enabled) - admin set
 		const promoFee = feeSettings.promoFee || 0;
@@ -521,12 +562,20 @@ function MultiKonnectListingCreation() {
 				commission: Math.round(commission * 100) / 100,
 				shipping: shippingCharge,
 				promos: promoFee,
-				total: Math.round(totalFees * 100) / 100,
+				total: Math.round(totalFees * 100) / 100
 			},
 			net: Math.round(netPrice * 100) / 100,
-			basePrice,
+			basePrice
 		};
-	}, [storePostcode, variants, priceTaxExcl, feeSettings, shippingChargeRegular, shippingChargeSameDay, productVariants]);
+	}, [
+		storePostcode,
+		variants,
+		priceTaxExcl,
+		feeSettings,
+		shippingChargeRegular,
+		shippingChargeSameDay,
+		productVariants
+	]);
 
 	// Format currency
 	const formatCurrency = (amount: number): string => {
@@ -534,12 +583,15 @@ function MultiKonnectListingCreation() {
 			style: 'currency',
 			currency: 'GBP',
 			minimumFractionDigits: 0,
-			maximumFractionDigits: 0,
+			maximumFractionDigits: 0
 		}).format(amount);
 	};
 
 	// Fetch user's past products - exclude current product if editing
-	const { data: pastProductsData, isLoading: loadingPastProducts } = useGetECommerceProductsQuery({ page: 1, perPage: 100 });
+	const { data: pastProductsData, isLoading: loadingPastProducts } = useGetECommerceProductsQuery({
+		page: 1,
+		perPage: 100
+	});
 	// Handle different response formats and exclude current product
 	const pastProducts = useMemo(() => {
 		if (!pastProductsData) return [];
@@ -579,34 +631,43 @@ function MultiKonnectListingCreation() {
 
 		// Product Identity (20 points)
 		if (productTitle && productTitle.length > 10) score += 10;
+
 		if (mpidMatched) score += 10;
 
 		// Media (25 points)
 		if (Array.isArray(galleryImages)) {
 			if (galleryImages.length >= 1) score += 10;
+
 			if (galleryImages.length >= 4) score += 5;
+
 			if (galleryImages.length >= 8) score += 10;
 		}
 
 		// Variants (20 points)
 		if (variants.length > 0) score += 10;
-		if (variants.length > 0 && variants.every(v => v.price && parseFloat(v.price) > 0)) score += 10;
+
+		if (variants.length > 0 && variants.every((v) => v.price && parseFloat(v.price) > 0)) score += 10;
 
 		// Pricing (10 points)
 		if (priceTaxExcl && parseFloat(priceTaxExcl.toString()) > 0) score += 10;
 
 		// Copy & SEO (15 points)
 		if (description && description.length > 50) score += 5;
+
 		if (seoTitle && seoTitle.length > 20 && seoTitle.length <= 70) score += 5;
+
 		if (metaDescription && metaDescription.length > 50 && metaDescription.length <= 160) score += 5;
 
 		// Same-day & Delivery (10 points)
 		if (storePostcode && storePostcode.length > 0) score += 5;
+
 		if (deliverySlots && deliverySlots !== '12-3pm') score += 5;
 
 		// QC & Policies (10 points)
 		if (condition && condition !== 'New') score += 3;
+
 		if (conditionNotes && conditionNotes.length > 10) score += 3;
+
 		if (boxContents && boxContents.length > 5) score += 4;
 
 		return Math.min(maxScore, score);
@@ -635,13 +696,13 @@ function MultiKonnectListingCreation() {
 			items.push({
 				id: 1,
 				text: `Add at least 8 photos including box contents (${Array.isArray(galleryImages) ? galleryImages.length : 0}/8)`,
-				completed: false,
+				completed: false
 			});
 		} else {
 			items.push({
 				id: 1,
 				text: 'Add at least 8 photos including box contents',
-				completed: true,
+				completed: true
 			});
 		}
 
@@ -649,22 +710,22 @@ function MultiKonnectListingCreation() {
 		// Check if both store_postcode and delivery_slots are properly set
 		// Also check store settings as fallback (for products using store defaults)
 		const storeZipCode = storeData?.data?.zip_code;
-		const hasStorePostcode = (storePostcode && storePostcode.trim().length > 0) || 
-			(storeZipCode && storeZipCode.trim().length > 0); // Check store settings as fallback
-		const hasDeliverySlots = (deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') || 
-			(storeDeliverySlots.length > 0); // Also check store settings as fallback
+		const hasStorePostcode =
+			(storePostcode && storePostcode.trim().length > 0) || (storeZipCode && storeZipCode.trim().length > 0); // Check store settings as fallback
+		const hasDeliverySlots =
+			(deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') || storeDeliverySlots.length > 0; // Also check store settings as fallback
 
 		if (!hasStorePostcode || !hasDeliverySlots) {
 			items.push({
 				id: 3,
 				text: 'Same-day slots configured',
-				completed: false,
+				completed: false
 			});
 		} else {
 			items.push({
 				id: 3,
 				text: 'Same-day slots configured',
-				completed: true,
+				completed: true
 			});
 		}
 
@@ -673,19 +734,19 @@ function MultiKonnectListingCreation() {
 			items.push({
 				id: 4,
 				text: 'Add and price variants',
-				completed: false,
+				completed: false
 			});
-		} else if (!variants.every(v => v.price && parseFloat(v.price) > 0)) {
+		} else if (!variants.every((v) => v.price && parseFloat(v.price) > 0)) {
 			items.push({
 				id: 4,
-				text: `Price all variants (${variants.filter(v => v.price && parseFloat(v.price) > 0).length}/${variants.length} priced)`,
-				completed: false,
+				text: `Price all variants (${variants.filter((v) => v.price && parseFloat(v.price) > 0).length}/${variants.length} priced)`,
+				completed: false
 			});
 		} else {
 			items.push({
 				id: 4,
 				text: 'Variants priced',
-				completed: true,
+				completed: true
 			});
 		}
 
@@ -694,13 +755,13 @@ function MultiKonnectListingCreation() {
 			items.push({
 				id: 5,
 				text: 'Add SEO title (20-70 characters)',
-				completed: false,
+				completed: false
 			});
 		} else {
 			items.push({
 				id: 5,
 				text: 'Add SEO title (20-70 characters)',
-				completed: true,
+				completed: true
 			});
 		}
 
@@ -709,69 +770,105 @@ function MultiKonnectListingCreation() {
 			items.push({
 				id: 6,
 				text: 'Add product description (min 50 characters)',
-				completed: false,
+				completed: false
 			});
 		} else {
 			items.push({
 				id: 6,
 				text: 'Add product description (min 50 characters)',
-				completed: true,
+				completed: true
 			});
 		}
 
 		return items;
-	}, [galleryImages.length, variants, storePostcode, deliverySlots, storeDeliverySlots, storeData, seoTitle, description, colorOptions, colorImages]);
+	}, [
+		galleryImages.length,
+		variants,
+		storePostcode,
+		deliverySlots,
+		storeDeliverySlots,
+		storeData,
+		seoTitle,
+		description,
+		colorOptions,
+		colorImages
+	]);
 
 	// Calculate step completion status dynamically
-	const getStepCompletion = useCallback((stepId: number): boolean => {
-		switch (stepId) {
-			case 1: // Identity
-				return !!(productTitle && productTitle.length >= 5 && watch('main_category'));
-			case 2: // Media
-				return Array.isArray(galleryImages) && galleryImages.length >= 6;
-			case 3: // Variants
-				return variants.length > 0 && variants.every(v => v.price && v.stock);
-			case 4: // Pricing & intel
-				return !!(priceTaxExcl || variants.some(v => v.price));
-			case 5: // Same-day & stores
-				const storeZipCode = storeData?.data?.zip_code;
-				const hasStorePostcode = (storePostcode && storePostcode.trim().length > 0) || 
-					(storeZipCode && storeZipCode.trim().length > 0); // Check store settings as fallback
-				const hasDeliverySlots = (deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') || 
-					(storeDeliverySlots.length > 0); // Also check store settings as fallback
-				return !!(hasStorePostcode && hasDeliverySlots);
-			case 6: // Copy & SEO
-				return !!(seoTitle && description && description.length >= 50);
-			case 7: // QC & policies
-				return !!(condition && returns);
-			case 8: // Offers
-				return true; // Optional step
-			case 9: // Trust & Compliance
-				return !!(kycTier && safeSellingLimit);
-			case 10: // Preview & checks
-				return true; // Always accessible
-			default:
-				return false;
-		}
-	}, [productTitle, galleryImages.length, variants, priceTaxExcl, storePostcode, deliverySlots, storeDeliverySlots, storeData, seoTitle, description, condition, returns, kycTier, safeSellingLimit, watch]);
+	const getStepCompletion = useCallback(
+		(stepId: number): boolean => {
+			switch (stepId) {
+				case 1: // Identity
+					return !!(productTitle && productTitle.length >= 5 && watch('main_category'));
+				case 2: // Media
+					return Array.isArray(galleryImages) && galleryImages.length >= 6;
+				case 3: // Variants
+					return variants.length > 0 && variants.every((v) => v.price && v.stock);
+				case 4: // Pricing & intel
+					return !!(priceTaxExcl || variants.some((v) => v.price));
+				case 5: // Same-day & stores
+					const storeZipCode = storeData?.data?.zip_code;
+					const hasStorePostcode =
+						(storePostcode && storePostcode.trim().length > 0) ||
+						(storeZipCode && storeZipCode.trim().length > 0); // Check store settings as fallback
+					const hasDeliverySlots =
+						(deliverySlots && deliverySlots.trim().length > 0 && deliverySlots !== '') ||
+						storeDeliverySlots.length > 0; // Also check store settings as fallback
+					return !!(hasStorePostcode && hasDeliverySlots);
+				case 6: // Copy & SEO
+					return !!(seoTitle && description && description.length >= 50);
+				case 7: // QC & policies
+					return !!(condition && returns);
+				case 8: // Offers
+					return true; // Optional step
+				case 9: // Trust & Compliance
+					return !!(kycTier && safeSellingLimit);
+				case 10: // Preview & checks
+					return true; // Always accessible
+				default:
+					return false;
+			}
+		},
+		[
+			productTitle,
+			galleryImages.length,
+			variants,
+			priceTaxExcl,
+			storePostcode,
+			deliverySlots,
+			storeDeliverySlots,
+			storeData,
+			seoTitle,
+			description,
+			condition,
+			returns,
+			kycTier,
+			safeSellingLimit,
+			watch
+		]
+	);
 
-	const steps: ListingStep[] = useMemo(() => [
-		{ id: 1, title: 'Identity', description: 'MPID, title', completed: getStepCompletion(1) },
-		{ id: 2, title: 'Media', description: 'upload, BG remove', completed: getStepCompletion(2) },
-		{ id: 3, title: 'Variants', description: 'matrix, per-variant photos', completed: getStepCompletion(3) },
-		{ id: 4, title: 'Pricing & intel', description: 'range, fees', completed: getStepCompletion(4) },
-		{ id: 5, title: 'Same-day & stores', description: 'radius, slots', completed: getStepCompletion(5) },
-		{ id: 6, title: 'Copy & SEO', description: 'AI title/bullets', completed: getStepCompletion(6) },
-		{ id: 7, title: 'QC & policies', description: 'IMEI, returns', completed: getStepCompletion(7) },
-		{ id: 8, title: 'Offers', description: 'Shield, concierge', completed: getStepCompletion(8) },
-		{ id: 9, title: 'Trust & Compliance', description: 'KYC, fraud checks', completed: getStepCompletion(9) },
-		{ id: 10, title: 'Preview & checks', description: 'score, validate', completed: getStepCompletion(10) },
-	], [getStepCompletion]);
+	const steps: ListingStep[] = useMemo(
+		() => [
+			{ id: 1, title: 'Identity', description: 'MPID, title', completed: getStepCompletion(1) },
+			{ id: 2, title: 'Media', description: 'upload, BG remove', completed: getStepCompletion(2) },
+			{ id: 3, title: 'Variants', description: 'matrix, per-variant photos', completed: getStepCompletion(3) },
+			{ id: 4, title: 'Pricing & intel', description: 'range, fees', completed: getStepCompletion(4) },
+			{ id: 5, title: 'Same-day & stores', description: 'radius, slots', completed: getStepCompletion(5) },
+			{ id: 6, title: 'Copy & SEO', description: 'AI title/bullets', completed: getStepCompletion(6) },
+			{ id: 7, title: 'QC & policies', description: 'IMEI, returns', completed: getStepCompletion(7) },
+			{ id: 8, title: 'Offers', description: 'Shield, concierge', completed: getStepCompletion(8) },
+			{ id: 9, title: 'Trust & Compliance', description: 'KYC, fraud checks', completed: getStepCompletion(9) },
+			{ id: 10, title: 'Preview & checks', description: 'score, validate', completed: getStepCompletion(10) }
+		],
+		[getStepCompletion]
+	);
 
 	// Initialize from existing product data - fixed to prevent re-running
 	// Split into two useEffects: one for variants (runs once), one for extraFields (runs once)
 	useEffect(() => {
 		if (hasInitializedRef.current || isInitialized) return;
+
 		if (!productVariants || productVariants.length === 0) return;
 
 		// Create a key to compare
@@ -798,12 +895,13 @@ function MultiKonnectListingCreation() {
 			attributes.forEach((attr: any) => {
 				if (attr.attribute_name === 'Storage' || attr.attribute_name === 'storage') {
 					storage = attr.attribute_value || '';
+
 					if (storage) storages.add(storage);
 				}
+
 				if (attr.attribute_name === 'Color' || attr.attribute_name === 'color') {
-					color = Array.isArray(attr.attribute_value)
-						? attr.attribute_value[0]
-						: attr.attribute_value || '';
+					color = Array.isArray(attr.attribute_value) ? attr.attribute_value[0] : attr.attribute_value || '';
+
 					if (color) colors.add(color);
 				}
 			});
@@ -815,12 +913,13 @@ function MultiKonnectListingCreation() {
 				price: variant.price_tax_excl?.toString() || variant.price?.toString() || '',
 				compareAt: variant.compared_price?.toString() || '',
 				stock: variant.quantity?.toString() || variant.qty?.toString() || '',
-				sameDay: variant.same_day || false,
+				sameDay: variant.same_day || false
 			};
 
 			// Add variant image if it exists
 			if (variant.image) {
 				variantData.image = variant.image;
+
 				// Store as color image if not already set
 				if (color && !loadedColorImages[color]) {
 					loadedColorImages[color] = variant.image;
@@ -833,6 +932,7 @@ function MultiKonnectListingCreation() {
 		setVariants(existingVariants);
 		setStorageOptions(Array.from(storages));
 		setColorOptions(Array.from(colors));
+
 		if (Object.keys(loadedColorImages).length > 0) {
 			setColorImages(loadedColorImages);
 		}
@@ -849,6 +949,7 @@ function MultiKonnectListingCreation() {
 			if (prevExtraFieldsRef.current !== '') return; // Already processed
 
 			const extraFieldsKey = JSON.stringify(extraFields || {});
+
 			if (extraFieldsKey === '{}') return; // No data to process
 
 			prevExtraFieldsRef.current = extraFieldsKey;
@@ -859,7 +960,7 @@ function MultiKonnectListingCreation() {
 					accessoryShield: extraFields.accessoryShield || false,
 					setupAtDoorstep: extraFields.setupAtDoorstep || false,
 					priceDropProtection: extraFields.priceDropProtection || false,
-					tradeInAssist: extraFields.tradeInAssist || false,
+					tradeInAssist: extraFields.tradeInAssist || false
 				});
 			}
 
@@ -885,30 +986,43 @@ function MultiKonnectListingCreation() {
 	// MPID search handler - save to extraFields
 	const handleMpidSearch = (value: string) => {
 		setMpidSearch(value);
-		if (value.toLowerCase().includes('iphone') || value.toLowerCase().includes('16') || value.toLowerCase().includes('apple')) {
+
+		if (
+			value.toLowerCase().includes('iphone') ||
+			value.toLowerCase().includes('16') ||
+			value.toLowerCase().includes('apple')
+		) {
 			const matched = {
 				brand: 'Apple',
 				model: 'iPhone 16 Pro Max',
 				display: '6.9"',
 				chip: 'A18 Pro',
-				year: '2025',
+				year: '2025'
 			};
 			setMpidMatched(true);
 			setMatchedProduct(matched);
 			// Save to extraFields
-			setValue('extraFields', {
-				...extraFields,
-				mpidMatched: true,
-				matchedProduct: matched,
-			}, { shouldDirty: true });
+			setValue(
+				'extraFields',
+				{
+					...extraFields,
+					mpidMatched: true,
+					matchedProduct: matched
+				},
+				{ shouldDirty: true }
+			);
 		} else if (value.length > 0) {
 			setMpidMatched(false);
 			setMatchedProduct(null);
-			setValue('extraFields', {
-				...extraFields,
-				mpidMatched: false,
-				matchedProduct: null,
-			}, { shouldDirty: true });
+			setValue(
+				'extraFields',
+				{
+					...extraFields,
+					mpidMatched: false,
+					matchedProduct: null
+				},
+				{ shouldDirty: true }
+			);
 		}
 	};
 
@@ -942,7 +1056,6 @@ function MultiKonnectListingCreation() {
 			const isFirstImage = currentGalleryImages.length === 0;
 
 			const imagePromises = filesArray.map((file, index) => {
-
 				return new Promise<{ url: string; is_featured: boolean }>((resolve, reject) => {
 					// Validate file type
 					if (!file.type.startsWith('image/')) {
@@ -959,6 +1072,7 @@ function MultiKonnectListingCreation() {
 					const reader = new FileReader();
 					reader.onload = () => {
 						const result = reader.result;
+
 						if (!result || typeof result !== 'string') {
 							reject(new Error('Failed to read image file'));
 							return;
@@ -966,7 +1080,7 @@ function MultiKonnectListingCreation() {
 
 						const base64Image = {
 							url: result, // readAsDataURL already returns data URL
-							is_featured: isFirstImage && index === 0, // Only first image of first batch is featured
+							is_featured: isFirstImage && index === 0 // Only first image of first batch is featured
 						};
 						resolve(base64Image);
 					};
@@ -981,11 +1095,15 @@ function MultiKonnectListingCreation() {
 
 			// Filter successful results
 			const newImages = results
-				.filter((result): result is PromiseFulfilledResult<{ url: string; is_featured: boolean }> => result.status === 'fulfilled')
-				.map(result => result.value);
+				.filter(
+					(result): result is PromiseFulfilledResult<{ url: string; is_featured: boolean }> =>
+						result.status === 'fulfilled'
+				)
+				.map((result) => result.value);
 
 			// Log rejected results
-			const rejected = results.filter(result => result.status === 'rejected');
+			const rejected = results.filter((result) => result.status === 'rejected');
+
 			if (rejected.length > 0) {
 				rejected.forEach((r, idx) => {
 					if (r.status === 'rejected') {
@@ -1007,12 +1125,12 @@ function MultiKonnectListingCreation() {
 			const updatedImages = [...latestImages, ...newImages];
 
 			// Ensure all images have valid url strings
-			const validImages = updatedImages.filter((img: any) => img && img.url && typeof img.url === 'string' && img.url.length > 0);
-
+			const validImages = updatedImages.filter(
+				(img: any) => img && img.url && typeof img.url === 'string' && img.url.length > 0
+			);
 
 			// Set the value directly (not using functional update)
 			setValue('gallery_images', validImages, { shouldDirty: true, shouldValidate: true });
-
 		} catch (error) {
 			console.error('Error uploading images:', error);
 			const errorMessage = error instanceof Error ? error.message : 'Failed to upload images. Please try again.';
@@ -1025,21 +1143,26 @@ function MultiKonnectListingCreation() {
 	const handleImageRemove = (index: number) => {
 		// Ensure galleryImages is an array before filtering
 		if (!Array.isArray(galleryImages)) return;
+
 		const updatedImages = galleryImages.filter((_, i) => i !== index);
 		setValue('gallery_images', updatedImages, { shouldDirty: true, shouldValidate: true });
 	};
 
 	const handleImageClick = (index: number) => {
 		if (!Array.isArray(galleryImages)) return;
+
 		const updatedImages = galleryImages.map((img, i) => ({
 			...img,
-			is_featured: i === index ? !img.is_featured : false,
+			is_featured: i === index ? !img.is_featured : false
 		}));
 		setValue('gallery_images', updatedImages, { shouldDirty: true });
 	};
 
 	// Image processing utilities
-	const processImage = async (imageUrl: string, processFn: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, img: HTMLImageElement) => Promise<void>): Promise<string> => {
+	const processImage = async (
+		imageUrl: string,
+		processFn: (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, img: HTMLImageElement) => Promise<void>
+	): Promise<string> => {
 		return new Promise((resolve, reject) => {
 			const img = new Image();
 			img.crossOrigin = 'anonymous';
@@ -1049,10 +1172,12 @@ function MultiKonnectListingCreation() {
 					canvas.width = img.width;
 					canvas.height = img.height;
 					const ctx = canvas.getContext('2d');
+
 					if (!ctx) {
 						reject(new Error('Could not get canvas context'));
 						return;
 					}
+
 					ctx.drawImage(img, 0, 0);
 					await processFn(canvas, ctx, img);
 					resolve(canvas.toDataURL('image/png'));
@@ -1066,7 +1191,7 @@ function MultiKonnectListingCreation() {
 	};
 
 	// Remove background handler
-	const handleRemoveBackground = async (imageIndex: number = 0) => {
+	const handleRemoveBackground = async (imageIndex = 0) => {
 		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
@@ -1083,6 +1208,7 @@ function MultiKonnectListingCreation() {
 				setProcessingImageIndex(null);
 				return;
 			}
+
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				// Simple background removal using edge detection
@@ -1123,7 +1249,7 @@ function MultiKonnectListingCreation() {
 	};
 
 	// Auto-crop & center handler
-	const handleAutoCropAndCenter = async (imageIndex: number = 0) => {
+	const handleAutoCropAndCenter = async (imageIndex = 0) => {
 		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
@@ -1140,13 +1266,17 @@ function MultiKonnectListingCreation() {
 				setProcessingImageIndex(null);
 				return;
 			}
+
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 				const data = imageData.data;
 
 				// Find bounding box of non-transparent/non-white content
-				let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+				let minX = canvas.width,
+					minY = canvas.height,
+					maxX = 0,
+					maxY = 0;
 
 				for (let y = 0; y < canvas.height; y++) {
 					for (let x = 0; x < canvas.width; x++) {
@@ -1183,6 +1313,7 @@ function MultiKonnectListingCreation() {
 				newCanvas.width = size;
 				newCanvas.height = size;
 				const newCtx = newCanvas.getContext('2d');
+
 				if (!newCtx) return;
 
 				// Fill with white background
@@ -1217,7 +1348,7 @@ function MultiKonnectListingCreation() {
 	};
 
 	// Create 360° spin handler
-	const handleCreate360Spin = async (imageIndex: number = 0) => {
+	const handleCreate360Spin = async (imageIndex = 0) => {
 		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
@@ -1234,6 +1365,7 @@ function MultiKonnectListingCreation() {
 				setProcessingImageIndex(null);
 				return;
 			}
+
 			const imageUrl = galleryImages[imageIndex].url;
 			const spinImages: any[] = [];
 			const frames = 36; // 36 frames for smooth 360° rotation
@@ -1257,7 +1389,7 @@ function MultiKonnectListingCreation() {
 					url: processedUrl,
 					is_featured: i === 0,
 					is_360_frame: true,
-					frame_index: i,
+					frame_index: i
 				});
 			}
 
@@ -1267,7 +1399,12 @@ function MultiKonnectListingCreation() {
 				setProcessingImageIndex(null);
 				return;
 			}
-			const updatedImages = [...galleryImages.slice(0, imageIndex), ...spinImages, ...galleryImages.slice(imageIndex + 1)];
+
+			const updatedImages = [
+				...galleryImages.slice(0, imageIndex),
+				...spinImages,
+				...galleryImages.slice(imageIndex + 1)
+			];
 			setValue('gallery_images', updatedImages, { shouldDirty: true });
 			setImageProcessingMessage('360° spin created successfully!');
 			setTimeout(() => {
@@ -1283,7 +1420,7 @@ function MultiKonnectListingCreation() {
 	};
 
 	// Watermark handler
-	const handleWatermark = async (imageIndex: number = 0) => {
+	const handleWatermark = async (imageIndex = 0) => {
 		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
@@ -1300,6 +1437,7 @@ function MultiKonnectListingCreation() {
 				setProcessingImageIndex(null);
 				return;
 			}
+
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				// Add watermark text
@@ -1337,7 +1475,7 @@ function MultiKonnectListingCreation() {
 	};
 
 	// AI Auto-enhance handler
-	const handleAIAutoEnhance = async (imageIndex: number = 0) => {
+	const handleAIAutoEnhance = async (imageIndex = 0) => {
 		if (!Array.isArray(galleryImages) || galleryImages.length === 0) {
 			alert('Please upload an image first');
 			return;
@@ -1354,6 +1492,7 @@ function MultiKonnectListingCreation() {
 				setProcessingImageIndex(null);
 				return;
 			}
+
 			const imageUrl = galleryImages[imageIndex].url;
 			const processedUrl = await processImage(imageUrl, async (canvas, ctx, img) => {
 				const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -1362,7 +1501,7 @@ function MultiKonnectListingCreation() {
 				// Enhance: adjust brightness, contrast, and saturation
 				for (let i = 0; i < data.length; i += 4) {
 					// Brightness adjustment (+10%)
-					data[i] = Math.min(255, data[i] * 1.1);     // R
+					data[i] = Math.min(255, data[i] * 1.1); // R
 					data[i + 1] = Math.min(255, data[i + 1] * 1.1); // G
 					data[i + 2] = Math.min(255, data[i + 2] * 1.1); // B
 
@@ -1410,14 +1549,16 @@ function MultiKonnectListingCreation() {
 			setStorageOptions(updated);
 			setNewStorageInput('');
 			setAddStorageDialogOpen(false);
+
 			// Regenerate ALL variants if colors exist (not just add new ones)
 			if (colorOptions.length > 0) {
 				// Generate complete variant matrix
 				const newVariants: Variant[] = [];
-				updated.forEach(storage => {
-					colorOptions.forEach(color => {
+				updated.forEach((storage) => {
+					colorOptions.forEach((color) => {
 						// Preserve existing variant data if it exists
-						const existing = variants.find(v => v.storage === storage && v.color === color);
+						const existing = variants.find((v) => v.storage === storage && v.color === color);
+
 						if (existing) {
 							newVariants.push(existing);
 						} else {
@@ -1427,7 +1568,7 @@ function MultiKonnectListingCreation() {
 								price: '',
 								compareAt: '',
 								stock: '',
-								sameDay: false,
+								sameDay: false
 							});
 						}
 					});
@@ -1438,10 +1579,10 @@ function MultiKonnectListingCreation() {
 	};
 
 	const handleRemoveStorage = (storageToRemove: string) => {
-		const updated = storageOptions.filter(s => s !== storageToRemove);
+		const updated = storageOptions.filter((s) => s !== storageToRemove);
 		setStorageOptions(updated);
 		// Remove variants with this storage
-		const updatedVariants = variants.filter(v => v.storage !== storageToRemove);
+		const updatedVariants = variants.filter((v) => v.storage !== storageToRemove);
 		setVariants(updatedVariants);
 	};
 
@@ -1455,14 +1596,16 @@ function MultiKonnectListingCreation() {
 			setColorOptions(updated);
 			setNewColorInput('');
 			setAddColorDialogOpen(false);
+
 			// Regenerate ALL variants if storage exists (not just add new ones)
 			if (storageOptions.length > 0) {
 				// Generate complete variant matrix
 				const newVariants: Variant[] = [];
-				storageOptions.forEach(storage => {
-					updated.forEach(color => {
+				storageOptions.forEach((storage) => {
+					updated.forEach((color) => {
 						// Preserve existing variant data if it exists
-						const existing = variants.find(v => v.storage === storage && v.color === color);
+						const existing = variants.find((v) => v.storage === storage && v.color === color);
+
 						if (existing) {
 							newVariants.push(existing);
 						} else {
@@ -1472,7 +1615,7 @@ function MultiKonnectListingCreation() {
 								price: '',
 								compareAt: '',
 								stock: '',
-								sameDay: false,
+								sameDay: false
 							});
 						}
 					});
@@ -1483,19 +1626,20 @@ function MultiKonnectListingCreation() {
 	};
 
 	const handleRemoveColor = (colorToRemove: string) => {
-		const updated = colorOptions.filter(c => c !== colorToRemove);
+		const updated = colorOptions.filter((c) => c !== colorToRemove);
 		setColorOptions(updated);
 		// Remove variants with this color
-		const updatedVariants = variants.filter(v => v.color !== colorToRemove);
+		const updatedVariants = variants.filter((v) => v.color !== colorToRemove);
 		setVariants(updatedVariants);
 	};
 
 	const generateVariantsFromOptions = (storages: string[], colors: string[]) => {
 		const newVariants: Variant[] = [];
-		storages.forEach(storage => {
-			colors.forEach(color => {
+		storages.forEach((storage) => {
+			colors.forEach((color) => {
 				// Check if variant already exists
-				const exists = variants.some(v => v.storage === storage && v.color === color);
+				const exists = variants.some((v) => v.storage === storage && v.color === color);
+
 				if (!exists) {
 					newVariants.push({
 						storage,
@@ -1503,11 +1647,12 @@ function MultiKonnectListingCreation() {
 						price: '',
 						compareAt: '',
 						stock: '',
-						sameDay: false,
+						sameDay: false
 					});
 				}
 			});
 		});
+
 		if (newVariants.length > 0) {
 			setVariants([...variants, ...newVariants]);
 		}
@@ -1515,14 +1660,18 @@ function MultiKonnectListingCreation() {
 
 	const generateVariants = () => {
 		if (storageOptions.length === 0 || colorOptions.length === 0) {
-			alert(`Please add at least one ${attribute1Name.toLowerCase()} and one ${attribute2Name.toLowerCase()} option`);
+			alert(
+				`Please add at least one ${attribute1Name.toLowerCase()} and one ${attribute2Name.toLowerCase()} option`
+			);
 			return;
 		}
+
 		const newVariants: Variant[] = [];
-		storageOptions.forEach(storage => {
-			colorOptions.forEach(color => {
+		storageOptions.forEach((storage) => {
+			colorOptions.forEach((color) => {
 				// Preserve existing variant data if it exists
-				const existing = variants.find(v => v.storage === storage && v.color === color);
+				const existing = variants.find((v) => v.storage === storage && v.color === color);
+
 				if (existing) {
 					newVariants.push(existing);
 				} else {
@@ -1532,12 +1681,14 @@ function MultiKonnectListingCreation() {
 						price: '',
 						compareAt: '',
 						stock: '',
-						sameDay: false,
+						sameDay: false
 					};
+
 					// If there's a per-color image, assign it to this variant
 					if (colorImages[color]) {
 						newVariant.image = colorImages[color];
 					}
+
 					newVariants.push(newVariant);
 				}
 			});
@@ -1550,6 +1701,7 @@ function MultiKonnectListingCreation() {
 	useEffect(() => {
 		// Always ensure product_variants exists in form (even before initialization)
 		const currentProductVariants = watch('product_variants');
+
 		if (!Array.isArray(currentProductVariants)) {
 			setValue('product_variants', [], { shouldDirty: false });
 		}
@@ -1565,18 +1717,24 @@ function MultiKonnectListingCreation() {
 		}
 
 		// Create a string representation to compare (prevents unnecessary updates)
-		const variantsKey = JSON.stringify(variants.map(v => ({
-			storage: v.storage,
-			color: v.color,
-			price: v.price,
-			stock: v.stock,
-			image: (v as any).image
-		})));
+		const variantsKey = JSON.stringify(
+			variants.map((v) => ({
+				storage: v.storage,
+				color: v.color,
+				price: v.price,
+				stock: v.stock,
+				image: (v as any).image
+			}))
+		);
 		const colorImagesKey = JSON.stringify(colorImages);
 		const currentSlug = slug || '';
 
 		// Only update if variants, colorImages, or slug actually changed
-		if (variantsKey !== prevVariantsRef.current || colorImagesKey !== prevColorImagesRef.current || currentSlug !== prevSlugRef.current) {
+		if (
+			variantsKey !== prevVariantsRef.current ||
+			colorImagesKey !== prevColorImagesRef.current ||
+			currentSlug !== prevSlugRef.current
+		) {
 			prevVariantsRef.current = variantsKey;
 			prevColorImagesRef.current = colorImagesKey;
 			prevSlugRef.current = currentSlug;
@@ -1586,7 +1744,11 @@ function MultiKonnectListingCreation() {
 				const variantName = `${variant.storage} - ${variant.color}`;
 				const variantPrice = parseFloat(variant.price) || 0;
 				const variantStock = parseInt(variant.stock) || 0;
-				const variantSku = `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-');
+				const variantSku =
+					`${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(
+						/\s+/g,
+						'-'
+					);
 
 				// Generate uid and uids (backend requires these fields)
 				const variantUid = variant.id ? `variant-${variant.id}` : `variant-${Date.now()}-${index}`;
@@ -1611,9 +1773,9 @@ function MultiKonnectListingCreation() {
 					position: index + 1,
 					attributes: [
 						{ attribute_name: 'Storage', attribute_value: variant.storage },
-						{ attribute_name: 'Color', attribute_value: variant.color },
+						{ attribute_name: 'Color', attribute_value: variant.color }
 					],
-					same_day: variant.sameDay || false,
+					same_day: variant.sameDay || false
 				};
 
 				// Include variant image if it exists, or use per-color image
@@ -1632,7 +1794,7 @@ function MultiKonnectListingCreation() {
 	}, [variants, isInitialized, slug, colorImages]); // Removed setValue to prevent infinite loop
 
 	const handleVariantChange = useCallback((index: number, field: keyof Variant, value: any) => {
-		setVariants(prevVariants => {
+		setVariants((prevVariants) => {
 			const updated = [...prevVariants];
 			updated[index] = { ...updated[index], [field]: value };
 			return updated;
@@ -1641,7 +1803,7 @@ function MultiKonnectListingCreation() {
 	}, []);
 
 	const handleDeleteVariant = useCallback((index: number) => {
-		setVariants(prevVariants => {
+		setVariants((prevVariants) => {
 			const updated = [...prevVariants];
 			updated.splice(index, 1);
 			return updated;
@@ -1655,10 +1817,11 @@ function MultiKonnectListingCreation() {
 
 	const handleConfirmApplyPrice = () => {
 		if (priceToApply && !isNaN(parseFloat(priceToApply))) {
-			const updated = variants.map(v => ({ ...v, price: priceToApply }));
+			const updated = variants.map((v) => ({ ...v, price: priceToApply }));
 			setVariants(updated);
 			setPriceToApply('');
 			setApplyPriceDialogOpen(false);
+
 			// Update main price if variants exist
 			if (updated.length > 0) {
 				setValue('price_tax_excl', parseFloat(priceToApply), { shouldDirty: true });
@@ -1672,7 +1835,7 @@ function MultiKonnectListingCreation() {
 
 	const handleConfirmApplyStock = () => {
 		if (stockToApply && !isNaN(parseInt(stockToApply))) {
-			const updated = variants.map(v => ({ ...v, stock: stockToApply }));
+			const updated = variants.map((v) => ({ ...v, stock: stockToApply }));
 			setVariants(updated);
 			setStockToApply('');
 			setApplyStockDialogOpen(false);
@@ -1710,67 +1873,75 @@ function MultiKonnectListingCreation() {
 	};
 
 	// Color image upload handler - optimized to prevent multiple calls and infinite loops
-	const handleColorImageUpload = useCallback((files: FileList | null) => {
-		if (!files || files.length === 0 || !selectedColorForImage) return;
+	const handleColorImageUpload = useCallback(
+		(files: FileList | null) => {
+			if (!files || files.length === 0 || !selectedColorForImage) return;
 
-		// Prevent multiple simultaneous uploads
-		if (isUploadingColorImage) return;
+			// Prevent multiple simultaneous uploads
+			if (isUploadingColorImage) return;
 
-		setIsUploadingColorImage(true);
-		const file = files[0];
-		const colorName = selectedColorForImage; // Capture value to avoid stale closure
-		const reader = new FileReader();
+			setIsUploadingColorImage(true);
+			const file = files[0];
+			const colorName = selectedColorForImage; // Capture value to avoid stale closure
+			const reader = new FileReader();
 
-		reader.onloadend = () => {
-			const imageUrl = reader.result as string;
-			setColorImages((prev) => {
-				// Only update if the image actually changed
-				if (prev[colorName] === imageUrl) {
-					return prev;
-				}
-				return {
-					...prev,
-					[colorName]: imageUrl,
-				};
-			});
-			// Also update all variants with this color to use this image
-			setVariants((prev) => {
-				const hasChanges = prev.some(v => v.color === colorName && (v as any).image !== imageUrl);
-				if (!hasChanges) {
-					return prev; // No changes needed
-				}
-				return prev.map(v => {
-					if (v.color === colorName) {
-						return { ...v, image: imageUrl };
+			reader.onloadend = () => {
+				const imageUrl = reader.result as string;
+				setColorImages((prev) => {
+					// Only update if the image actually changed
+					if (prev[colorName] === imageUrl) {
+						return prev;
 					}
-					return v;
+
+					return {
+						...prev,
+						[colorName]: imageUrl
+					};
 				});
-			});
-			setColorImageDialogOpen(false);
-			setSelectedColorForImage(null);
-			setIsUploadingColorImage(false);
-		};
+				// Also update all variants with this color to use this image
+				setVariants((prev) => {
+					const hasChanges = prev.some((v) => v.color === colorName && (v as any).image !== imageUrl);
 
-		reader.onerror = () => {
-			console.error('Error reading color image file');
-			alert('Failed to upload image. Please try again.');
-			setIsUploadingColorImage(false);
-		};
+					if (!hasChanges) {
+						return prev; // No changes needed
+					}
 
-		reader.readAsDataURL(file);
-	}, [selectedColorForImage, isUploadingColorImage]);
+					return prev.map((v) => {
+						if (v.color === colorName) {
+							return { ...v, image: imageUrl };
+						}
+
+						return v;
+					});
+				});
+				setColorImageDialogOpen(false);
+				setSelectedColorForImage(null);
+				setIsUploadingColorImage(false);
+			};
+
+			reader.onerror = () => {
+				console.error('Error reading color image file');
+				alert('Failed to upload image. Please try again.');
+				setIsUploadingColorImage(false);
+			};
+
+			reader.readAsDataURL(file);
+		},
+		[selectedColorForImage, isUploadingColorImage]
+	);
 
 	const handleRemoveColorImage = (color: string) => {
 		const updated = { ...colorImages };
 		delete updated[color];
 		setColorImages(updated);
 		// Remove images from variants with this color (but keep variant-specific images)
-		const updatedVariants = variants.map(v => {
+		const updatedVariants = variants.map((v) => {
 			if (v.color === color && (v as any).image === colorImages[color]) {
 				const variantCopy = { ...v };
 				delete (variantCopy as any).image;
 				return variantCopy;
 			}
+
 			return v;
 		});
 		setVariants(updatedVariants);
@@ -1815,19 +1986,22 @@ function MultiKonnectListingCreation() {
 				'QC-verified device with invoice',
 				'Professional setup assistance',
 				'7-day price-drop protection',
-				'Trade-in value check available',
+				'Trade-in value check available'
 			];
 
 			// Add offer-specific bullets
 			if (offers.accessoryShield) {
 				bullets[1] = '1-year AccessoryShield warranty included';
 			}
+
 			if (offers.setupAtDoorstep) {
 				bullets[3] = 'Professional setup assistance at your doorstep';
 			}
+
 			if (offers.priceDropProtection) {
 				bullets[4] = '7-day price-drop protection guarantee';
 			}
+
 			if (offers.tradeInAssist) {
 				bullets[5] = 'Free trade-in value check and assistance';
 			}
@@ -1851,19 +2025,27 @@ function MultiKonnectListingCreation() {
 		setIsWritingDescription(true);
 		try {
 			// Generate description based on product title, tone, and offers
-			const toneStyle = seoTone === 'Professional' ? 'professional' :
-				seoTone === 'Casual' ? 'casual and friendly' :
-					seoTone === 'Friendly' ? 'friendly and approachable' :
-						seoTone === 'Formal' ? 'formal and detailed' : 'clear and informative';
+			const toneStyle =
+				seoTone === 'Professional'
+					? 'professional'
+					: seoTone === 'Casual'
+						? 'casual and friendly'
+						: seoTone === 'Friendly'
+							? 'friendly and approachable'
+							: seoTone === 'Formal'
+								? 'formal and detailed'
+								: 'clear and informative';
 
 			let desc = `This ${productTitle} comes with full manufacturer warranty and original packaging. Includes all accessories, documentation, and SIM tool. Device has been QC-verified and tested.`;
 
 			if (offers.accessoryShield) {
 				desc += ' Includes 1-year AccessoryShield warranty for added protection.';
 			}
+
 			if (offers.setupAtDoorstep) {
 				desc += ' Professional setup assistance available at your doorstep.';
 			}
+
 			if (offers.priceDropProtection) {
 				desc += ' 7-day price-drop protection ensures you get the best value.';
 			}
@@ -1892,19 +2074,23 @@ function MultiKonnectListingCreation() {
 		prevOffersRef.current = offersKey;
 
 		// Use functional update to get current value without triggering re-renders
-		setValue('extraFields', (prev: any) => ({
-			...prev,
-			accessoryShield: offers.accessoryShield,
-			setupAtDoorstep: offers.setupAtDoorstep,
-			priceDropProtection: offers.priceDropProtection,
-			tradeInAssist: offers.tradeInAssist,
-		}), { shouldDirty: true });
+		setValue(
+			'extraFields',
+			(prev: any) => ({
+				...prev,
+				accessoryShield: offers.accessoryShield,
+				setupAtDoorstep: offers.setupAtDoorstep,
+				priceDropProtection: offers.priceDropProtection,
+				tradeInAssist: offers.tradeInAssist
+			}),
+			{ shouldDirty: true }
+		);
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [offers, isInitialized]); // Removed setValue from dependencies
 
 	const handleStepClick = useCallback((stepId: number) => {
 		setCurrentStep(stepId);
-		const sectionMap: { [key: number]: string } = {
+		const sectionMap: Record<number, string> = {
 			1: 'identity',
 			2: 'media',
 			3: 'variants',
@@ -1914,12 +2100,14 @@ function MultiKonnectListingCreation() {
 			7: 'policies',
 			8: 'offers',
 			9: 'trust',
-			10: 'preview',
+			10: 'preview'
 		};
 		const sectionId = sectionMap[stepId];
+
 		if (sectionId) {
 			// Use ref if available, otherwise fallback to getElementById
 			const element = sectionRefs.current[stepId] || document.getElementById(sectionId);
+
 			if (element) {
 				const headerOffset = 60; // Header height
 				const elementPosition = element.getBoundingClientRect().top;
@@ -1968,6 +2156,7 @@ function MultiKonnectListingCreation() {
 	const setSectionRef = useCallback((stepId: number, element: HTMLElement | null) => {
 		if (element) {
 			sectionRefs.current[stepId] = element;
+
 			if (observerRef.current) {
 				observerRef.current.observe(element);
 			}
@@ -1980,11 +2169,13 @@ function MultiKonnectListingCreation() {
 			// Ctrl/Cmd + Arrow keys for navigation
 			if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowDown') {
 				e.preventDefault();
+
 				if (currentStep < 10) {
 					handleStepClick(currentStep + 1);
 				}
 			} else if ((e.ctrlKey || e.metaKey) && e.key === 'ArrowUp') {
 				e.preventDefault();
+
 				if (currentStep > 1) {
 					handleStepClick(currentStep - 1);
 				}
@@ -2013,11 +2204,11 @@ function MultiKonnectListingCreation() {
 
 	const handlePublishClick = () => {
 		setIsPublishing(true);
-		
+
 		// Check if store_id is set (critical for product creation)
 		const currentStoreId = watch('store_id');
 		const userStoreId = user?.store_id || session?.db?.store_id || null;
-		
+
 		if (!currentStoreId && userStoreId) {
 			// Set store_id from session if not set in form
 			setValue('store_id', Number(userStoreId), { shouldDirty: true, shouldValidate: true });
@@ -2029,12 +2220,15 @@ function MultiKonnectListingCreation() {
 			setIsPublishing(false);
 			return;
 		}
-		
+
 		// Validate "New" condition requires at least one picture
 		if (condition === 'New' && (!galleryImages || galleryImages.length === 0)) {
-			enqueueSnackbar('New condition requires at least one picture. Please add at least one image before publishing.', {
-				variant: 'error'
-			});
+			enqueueSnackbar(
+				'New condition requires at least one picture. Please add at least one image before publishing.',
+				{
+					variant: 'error'
+				}
+			);
 			// Scroll to media section
 			setCurrentStep(2);
 			handleStepClick(2);
@@ -2053,7 +2247,10 @@ function MultiKonnectListingCreation() {
 				const variantData: any = {
 					id: variant.id || undefined,
 					name: variantName,
-					sku: `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-'),
+					sku: `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(
+						/\s+/g,
+						'-'
+					),
 					price: variantPrice,
 					price_tax_excl: variantPrice,
 					compared_price: parseFloat(variant.compareAt) || 0,
@@ -2065,9 +2262,9 @@ function MultiKonnectListingCreation() {
 					position: index + 1,
 					attributes: [
 						{ attribute_name: 'Storage', attribute_value: variant.storage },
-						{ attribute_name: 'Color', attribute_value: variant.color },
+						{ attribute_name: 'Color', attribute_value: variant.color }
 					],
-					same_day: variant.sameDay || false,
+					same_day: variant.sameDay || false
 				};
 
 				if ((variant as any).image) {
@@ -2088,91 +2285,97 @@ function MultiKonnectListingCreation() {
 		setValue('active', 1, { shouldDirty: true });
 
 		// Trigger validation to ensure form is valid before submitting
-		trigger().then((isValid) => {
-			if (!isValid) {
-				// Show validation errors
-				const firstError = Object.values(errors)[0];
-				if (firstError) {
-					enqueueSnackbar(
-						firstError.message || 'Please fix validation errors before publishing',
-						{ variant: 'error' }
-					);
-				} else {
-					enqueueSnackbar('Please fix validation errors before publishing', { variant: 'error' });
-				}
-				setIsPublishing(false);
-				return;
-			}
+		trigger()
+			.then((isValid) => {
+				if (!isValid) {
+					// Show validation errors
+					const firstError = Object.values(errors)[0];
 
-			// Longer delay to ensure setValue and validation complete before clicking submit button
-			setTimeout(() => {
-				// Try to find create button first (for new products)
-				let submitButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
-
-				// If not found, try to find save button (for editing existing products)
-				if (!submitButton) {
-					submitButton = document.querySelector('[data-product-save-button]') as HTMLButtonElement;
-				}
-
-				if (submitButton) {
-					// Check if button is disabled
-					if (submitButton.disabled) {
-						const buttonType = submitButton.getAttribute('data-product-create-button') ? 'create' : 'save';
-						console.warn('handlePublishClick: Submit button is disabled', {
-							buttonType,
-							productId,
-							isValid,
-							formState: formState,
-							errors: Object.keys(errors)
+					if (firstError) {
+						enqueueSnackbar(firstError.message || 'Please fix validation errors before publishing', {
+							variant: 'error'
 						});
-						
-						// Show user-friendly error message
-						enqueueSnackbar(
-							'Cannot publish: Please fill all required fields and fix validation errors',
-							{ variant: 'error', autoHideDuration: 6000 }
-						);
-						setIsPublishing(false);
 					} else {
-						console.log('handlePublishClick: Clicking submit button', {
-							buttonType: submitButton.getAttribute('data-product-create-button') ? 'create' : 'save',
-							productId,
-							isValid
-						});
-						
-						// Use a more reliable click method
-						submitButton.focus();
-						submitButton.click();
-						
-						// Reset publishing state after a longer delay to allow for API call
-						setTimeout(() => setIsPublishing(false), 2000);
+						enqueueSnackbar('Please fix validation errors before publishing', { variant: 'error' });
 					}
-				} else {
-					console.error('handlePublishClick: Submit button not found', {
-						productId,
-						createButton: document.querySelector('[data-product-create-button]'),
-						saveButton: document.querySelector('[data-product-save-button]')
-					});
-					
-					// Show user-friendly error message
-					enqueueSnackbar(
-						'Error: Submit button not found. Please try refreshing the page.',
-						{ variant: 'error', autoHideDuration: 6000 }
-					);
+
 					setIsPublishing(false);
+					return;
 				}
-			}, 300); // Increased delay to ensure setValue and validation complete
-		}).catch((error) => {
-			console.error('handlePublishClick: Validation error', error);
-			enqueueSnackbar(
-				'Error validating form. Please check all required fields.',
-				{ variant: 'error', autoHideDuration: 6000 }
-			);
-			setIsPublishing(false);
-		});
+
+				// Longer delay to ensure setValue and validation complete before clicking submit button
+				setTimeout(() => {
+					// Try to find create button first (for new products)
+					let submitButton = document.querySelector('[data-product-create-button]') as HTMLButtonElement;
+
+					// If not found, try to find save button (for editing existing products)
+					if (!submitButton) {
+						submitButton = document.querySelector('[data-product-save-button]') as HTMLButtonElement;
+					}
+
+					if (submitButton) {
+						// Check if button is disabled
+						if (submitButton.disabled) {
+							const buttonType = submitButton.getAttribute('data-product-create-button')
+								? 'create'
+								: 'save';
+							console.warn('handlePublishClick: Submit button is disabled', {
+								buttonType,
+								productId,
+								isValid,
+								formState: formState,
+								errors: Object.keys(errors)
+							});
+
+							// Show user-friendly error message
+							enqueueSnackbar(
+								'Cannot publish: Please fill all required fields and fix validation errors',
+								{ variant: 'error', autoHideDuration: 6000 }
+							);
+							setIsPublishing(false);
+						} else {
+							console.log('handlePublishClick: Clicking submit button', {
+								buttonType: submitButton.getAttribute('data-product-create-button') ? 'create' : 'save',
+								productId,
+								isValid
+							});
+
+							// Use a more reliable click method
+							submitButton.focus();
+							submitButton.click();
+
+							// Reset publishing state after a longer delay to allow for API call
+							setTimeout(() => setIsPublishing(false), 2000);
+						}
+					} else {
+						console.error('handlePublishClick: Submit button not found', {
+							productId,
+							createButton: document.querySelector('[data-product-create-button]'),
+							saveButton: document.querySelector('[data-product-save-button]')
+						});
+
+						// Show user-friendly error message
+						enqueueSnackbar('Error: Submit button not found. Please try refreshing the page.', {
+							variant: 'error',
+							autoHideDuration: 6000
+						});
+						setIsPublishing(false);
+					}
+				}, 300); // Increased delay to ensure setValue and validation complete
+			})
+			.catch((error) => {
+				console.error('handlePublishClick: Validation error', error);
+				enqueueSnackbar('Error validating form. Please check all required fields.', {
+					variant: 'error',
+					autoHideDuration: 6000
+				});
+				setIsPublishing(false);
+			});
 	};
 
 	const handleSaveDraft = () => {
 		setIsSavingDraft(true);
+
 		// Ensure variants are saved to form before saving draft
 		if (variants.length > 0) {
 			const currentSlug = slug || '';
@@ -2183,7 +2386,10 @@ function MultiKonnectListingCreation() {
 				const variantData: any = {
 					id: variant.id || undefined,
 					name: variantName,
-					sku: `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(/\s+/g, '-'),
+					sku: `${currentSlug}-${variant.storage.toLowerCase()}-${variant.color.toLowerCase()}`.replace(
+						/\s+/g,
+						'-'
+					),
 					price: variantPrice,
 					price_tax_excl: variantPrice,
 					compared_price: parseFloat(variant.compareAt) || 0,
@@ -2195,9 +2401,9 @@ function MultiKonnectListingCreation() {
 					position: index + 1,
 					attributes: [
 						{ attribute_name: 'Storage', attribute_value: variant.storage },
-						{ attribute_name: 'Color', attribute_value: variant.color },
+						{ attribute_name: 'Color', attribute_value: variant.color }
 					],
-					same_day: variant.sameDay || false,
+					same_day: variant.sameDay || false
 				};
 
 				if ((variant as any).image) {
@@ -2239,6 +2445,7 @@ function MultiKonnectListingCreation() {
 			} else {
 				console.error('Neither save nor create button found');
 			}
+
 			// Reset saving state after a short delay
 			setTimeout(() => setIsSavingDraft(false), 1000);
 		}, 100);
@@ -2247,6 +2454,7 @@ function MultiKonnectListingCreation() {
 	const handlePreviewClick = () => {
 		// Scroll to preview section
 		const previewSection = document.getElementById('preview');
+
 		if (previewSection) {
 			previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 			setCurrentStep(10);
@@ -2259,7 +2467,7 @@ function MultiKonnectListingCreation() {
 
 	// Calculate missing required fields
 	const missingFields = useMemo(() => {
-		const missing: Array<{ field: string; section: string; step: number }> = [];
+		const missing: { field: string; section: string; step: number }[] = [];
 
 		// Product Identity (Step 1)
 		if (!productTitle || productTitle.length < 5) {
@@ -2267,11 +2475,13 @@ function MultiKonnectListingCreation() {
 		}
 
 		// Check main_category - must be an object with an id property
-		const hasValidMainCategory = mainCategory &&
+		const hasValidMainCategory =
+			mainCategory &&
 			typeof mainCategory === 'object' &&
 			mainCategory.id !== null &&
 			mainCategory.id !== undefined &&
 			mainCategory.id !== '';
+
 		if (!hasValidMainCategory) {
 			missing.push({ field: 'Main Category', section: 'Product Identity', step: 1 });
 		}
@@ -2298,6 +2508,7 @@ function MultiKonnectListingCreation() {
 						step: 3
 					});
 				}
+
 				if (variant.stock === '' || variant.stock === undefined || parseInt(variant.stock) < 0) {
 					missing.push({
 						field: `Variant ${idx + 1} (${variant.storage} ${variant.color}): Stock`,
@@ -2315,10 +2526,12 @@ function MultiKonnectListingCreation() {
 		setIsValidating(true);
 		// Trigger form validation
 		const form = document.querySelector('form');
+
 		if (form) {
 			const event = new Event('submit', { bubbles: true, cancelable: true });
 			form.dispatchEvent(event);
 		}
+
 		// Reset validation state after a short delay
 		setTimeout(() => setIsValidating(false), 1000);
 	};
@@ -2345,21 +2558,34 @@ function MultiKonnectListingCreation() {
 	const handleSelectMasterTemplate = (template: any) => {
 		// Load template data into form
 		if (template.name) setValue('name', template.name, { shouldDirty: true });
+
 		if (template.description) setValue('description', template.description, { shouldDirty: true });
+
 		if (template.meta_title) setValue('meta_title', template.meta_title, { shouldDirty: true });
+
 		if (template.meta_description) setValue('meta_description', template.meta_description, { shouldDirty: true });
+
 		if (template.meta_keywords) setValue('meta_keywords', template.meta_keywords, { shouldDirty: true });
+
 		if (template.price_tax_excl) setValue('price_tax_excl', template.price_tax_excl, { shouldDirty: true });
+
 		if (template.price_tax_incl) setValue('price_tax_incl', template.price_tax_incl, { shouldDirty: true });
+
 		if (template.sku) setValue('sku', template.sku, { shouldDirty: true });
 
 		// Handle categories
 		if (template.categories && template.categories.length > 0) {
 			const mainCategory = template.categories.find((cat: any) => !cat.parent_id);
 			const subcategories = template.categories.filter((cat: any) => cat.parent_id);
+
 			if (mainCategory) setValue('main_category_id', mainCategory.id, { shouldDirty: true });
+
 			if (subcategories.length > 0) {
-				setValue('subcategory_ids', subcategories.map((cat: any) => cat.id), { shouldDirty: true });
+				setValue(
+					'subcategory_ids',
+					subcategories.map((cat: any) => cat.id),
+					{ shouldDirty: true }
+				);
 			}
 		}
 
@@ -2378,6 +2604,7 @@ function MultiKonnectListingCreation() {
 				const color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
 
 				if (storage) storageSet.add(storage);
+
 				if (color) colorSet.add(color);
 
 				return {
@@ -2388,7 +2615,7 @@ function MultiKonnectListingCreation() {
 					compareAt: v.compared_price?.toString() || '',
 					stock: v.quantity?.toString() || v.qty?.toString() || '',
 					sameDay: v.same_day || false,
-					image: v.image || (v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value),
+					image: v.image || v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value
 				};
 			});
 
@@ -2396,12 +2623,14 @@ function MultiKonnectListingCreation() {
 			if (storageSet.size > 0) {
 				setStorageOptions(Array.from(storageSet));
 			}
+
 			if (colorSet.size > 0) {
 				setColorOptions(Array.from(colorSet));
 			}
 
 			setVariants(templateVariants);
 		}
+
 		setMasterTemplateDialogOpen(false);
 	};
 
@@ -2437,9 +2666,13 @@ function MultiKonnectListingCreation() {
 		if (product.main_category && product.main_category.id) {
 			console.log('Setting main_category from product.main_category:', product.main_category);
 			setValue('main_category_id', product.main_category.id, { shouldDirty: true });
-			setValue('main_category', { id: product.main_category.id, name: product.main_category.name }, { shouldDirty: true });
+			setValue(
+				'main_category',
+				{ id: product.main_category.id, name: product.main_category.name },
+				{ shouldDirty: true }
+			);
 		}
-		
+
 		// Also check categories array as fallback
 		if (product.categories && product.categories.length > 0) {
 			const mainCategory = product.categories.find((cat: any) => !cat.parent_id);
@@ -2450,22 +2683,39 @@ function MultiKonnectListingCreation() {
 				setValue('main_category_id', mainCategory.id, { shouldDirty: true });
 				setValue('main_category', { id: mainCategory.id, name: mainCategory.name }, { shouldDirty: true });
 			}
+
 			if (subcategories.length > 0) {
-				setValue('subcategory_ids', subcategories.map((cat: any) => cat.id), { shouldDirty: true });
-				setValue('subcategory', subcategories.map((cat: any) => ({ id: cat.id, name: cat.name })), { shouldDirty: true });
+				setValue(
+					'subcategory_ids',
+					subcategories.map((cat: any) => cat.id),
+					{ shouldDirty: true }
+				);
+				setValue(
+					'subcategory',
+					subcategories.map((cat: any) => ({ id: cat.id, name: cat.name })),
+					{ shouldDirty: true }
+				);
 			}
 		}
-		
+
 		// Also handle subcategory from sanitized product
 		if (product.subcategory && Array.isArray(product.subcategory) && product.subcategory.length > 0) {
 			console.log('Setting subcategory from product.subcategory:', product.subcategory);
-			setValue('subcategory_ids', product.subcategory.map((cat: any) => cat.id), { shouldDirty: true });
+			setValue(
+				'subcategory_ids',
+				product.subcategory.map((cat: any) => cat.id),
+				{ shouldDirty: true }
+			);
 			setValue('subcategory', product.subcategory, { shouldDirty: true });
 		}
 
 		// Tags
 		if (product.tags && Array.isArray(product.tags)) {
-			setValue('tags', product.tags.map((tag: any) => ({ id: tag.id || tag, name: tag.name || tag })), { shouldDirty: true });
+			setValue(
+				'tags',
+				product.tags.map((tag: any) => ({ id: tag.id || tag, name: tag.name || tag })),
+				{ shouldDirty: true }
+			);
 		}
 
 		// Helper function to convert image URL to proper format
@@ -2477,7 +2727,7 @@ function MultiKonnectListingCreation() {
 				return `${apiUrl}/api/files/${fileId}`;
 			}
 
-			let url = img.url || img.path || img;
+			const url = img.url || img.path || img;
 
 			// Return null if URL is missing or not a string
 			if (!url || typeof url !== 'string' || url.length === 0) {
@@ -2533,12 +2783,14 @@ function MultiKonnectListingCreation() {
 			const galleryImages = allImages
 				.map((img: any, index: number) => {
 					const convertedUrl = convertImageUrl(img);
+
 					if (!convertedUrl) return null;
+
 					return {
 						...(img.id ? { id: img.id } : {}),
 						...(img.file_id ? { file_id: img.file_id } : {}),
 						url: convertedUrl,
-						is_featured: img.is_featured || (index === 0), // First image is featured by default
+						is_featured: img.is_featured || index === 0 // First image is featured by default
 					};
 				})
 				.filter((img: any) => img !== null); // Remove invalid images
@@ -2546,11 +2798,11 @@ function MultiKonnectListingCreation() {
 			// Also check featured_image - if it's different from gallery images, add it
 			if (product.featured_image) {
 				const featuredImgUrl = convertImageUrl(product.featured_image);
+
 				if (featuredImgUrl) {
 					// Check if featured image is already in gallery
-					const featuredInGallery = galleryImages.some((img: any) =>
-						img.url === featuredImgUrl ||
-						(img.id && product.featured_image?.id === img.id)
+					const featuredInGallery = galleryImages.some(
+						(img: any) => img.url === featuredImgUrl || (img.id && product.featured_image?.id === img.id)
 					);
 
 					if (!featuredInGallery) {
@@ -2558,14 +2810,15 @@ function MultiKonnectListingCreation() {
 							...(product.featured_image.id ? { id: product.featured_image.id } : {}),
 							...(product.featured_image.file_id ? { file_id: product.featured_image.file_id } : {}),
 							url: featuredImgUrl,
-							is_featured: true,
+							is_featured: true
 						});
 					} else {
 						// Mark the matching image as featured
-						const featuredIndex = galleryImages.findIndex((img: any) =>
-							img.url === featuredImgUrl ||
-							(img.id && product.featured_image?.id === img.id)
+						const featuredIndex = galleryImages.findIndex(
+							(img: any) =>
+								img.url === featuredImgUrl || (img.id && product.featured_image?.id === img.id)
 						);
+
 						if (featuredIndex >= 0) {
 							galleryImages[featuredIndex].is_featured = true;
 						}
@@ -2579,6 +2832,7 @@ function MultiKonnectListingCreation() {
 			if (galleryImages.length > 0) {
 				// Ensure at least one image is marked as featured
 				const hasFeatured = galleryImages.some((img: any) => img.is_featured);
+
 				if (!hasFeatured && galleryImages.length > 0) {
 					galleryImages[0].is_featured = true;
 				}
@@ -2591,12 +2845,13 @@ function MultiKonnectListingCreation() {
 			// Check featured_image as last resort
 			if (product.featured_image) {
 				const featuredImgUrl = convertImageUrl(product.featured_image);
+
 				if (featuredImgUrl) {
 					const featuredImage = {
 						...(product.featured_image.id ? { id: product.featured_image.id } : {}),
 						...(product.featured_image.file_id ? { file_id: product.featured_image.file_id } : {}),
 						url: featuredImgUrl,
-						is_featured: true,
+						is_featured: true
 					};
 					setValue('gallery_images', [featuredImage], { shouldDirty: true });
 					setValue('featured_image', featuredImgUrl, { shouldDirty: true });
@@ -2643,9 +2898,7 @@ function MultiKonnectListingCreation() {
 			if (!attributes || !Array.isArray(attributes)) return '';
 
 			// Try exact match first (case-sensitive)
-			let attr = attributes.find((a: any) =>
-				(a.attribute_name === attributeName || a.name === attributeName)
-			);
+			let attr = attributes.find((a: any) => a.attribute_name === attributeName || a.name === attributeName);
 
 			// Try case-insensitive match
 			if (!attr) {
@@ -2669,101 +2922,132 @@ function MultiKonnectListingCreation() {
 			const basePrice = product.price_tax_excl || product.price || product.price_tax_incl || 0;
 			const baseCompareAtPrice = product.compared_price || 0;
 
-			const pastVariants = product.product_variants.map((v: any) => {
-				// Try multiple sources for storage and color:
-				// 1. Direct properties on variant (some APIs return them directly)
-				let storage = (v.storage || '').trim();
-				let color = (v.color || '').trim();
+			const pastVariants = product.product_variants
+				.map((v: any) => {
+					// Try multiple sources for storage and color:
+					// 1. Direct properties on variant (some APIs return them directly)
+					let storage = (v.storage || '').trim();
+					let color = (v.color || '').trim();
 
-				// 2. Variant attributes array (case-insensitive)
-				if (!storage || !color) {
-					const attrStorage = findAttributeValue(v.attributes || [], 'Storage');
-					const attrColor = findAttributeValue(v.attributes || [], 'Color');
-					if (!storage && attrStorage) storage = attrStorage.trim();
-					if (!color && attrColor) color = attrColor.trim();
-				}
+					// 2. Variant attributes array (case-insensitive)
+					if (!storage || !color) {
+						const attrStorage = findAttributeValue(v.attributes || [], 'Storage');
+						const attrColor = findAttributeValue(v.attributes || [], 'Color');
 
-				// 3. Product attributes filtered by variant_id
-				if ((!storage || !color) && product.product_attributes && Array.isArray(product.product_attributes)) {
-					const variantAttrs = product.product_attributes.filter((attr: any) =>
-						attr.variant_id === v.id || attr.variant_id === String(v.id)
-					);
+						if (!storage && attrStorage) storage = attrStorage.trim();
 
-					if (!storage) {
-						const foundStorage = findAttributeValue(variantAttrs, 'Storage');
-						if (foundStorage) storage = foundStorage.trim();
+						if (!color && attrColor) color = attrColor.trim();
 					}
-					if (!color) {
-						const foundColor = findAttributeValue(variantAttrs, 'Color');
-						if (foundColor) color = foundColor.trim();
-					}
-				}
 
-				// 4. Try variant name parsing (e.g., "64GB - Black" or "Storage: 64GB, Color: Black" format)
-				if ((!storage || !color) && v.name) {
-					const nameStr = String(v.name);
+					// 3. Product attributes filtered by variant_id
+					if (
+						(!storage || !color) &&
+						product.product_attributes &&
+						Array.isArray(product.product_attributes)
+					) {
+						const variantAttrs = product.product_attributes.filter(
+							(attr: any) => attr.variant_id === v.id || attr.variant_id === String(v.id)
+						);
 
-					// Try "Storage - Color" format
-					if (nameStr.includes(' - ')) {
-						const nameParts = nameStr.split(' - ').map((p: string) => p.trim());
-						if (nameParts.length >= 2) {
-							if (!storage && nameParts[0]) storage = nameParts[0].trim();
-							if (!color && nameParts[1]) color = nameParts[1].trim();
+						if (!storage) {
+							const foundStorage = findAttributeValue(variantAttrs, 'Storage');
+
+							if (foundStorage) storage = foundStorage.trim();
+						}
+
+						if (!color) {
+							const foundColor = findAttributeValue(variantAttrs, 'Color');
+
+							if (foundColor) color = foundColor.trim();
 						}
 					}
 
-					// Try "Storage: X, Color: Y" format
-					if ((!storage || !color) && nameStr.includes(':')) {
-						const storageMatch = nameStr.match(/(?:Storage|storage)[:\s]+([^,]+)/i);
-						const colorMatch = nameStr.match(/(?:Color|color)[:\s]+([^,]+)/i);
-						if (!storage && storageMatch && storageMatch[1]) storage = storageMatch[1].trim();
-						if (!color && colorMatch && colorMatch[1]) color = colorMatch[1].trim();
+					// 4. Try variant name parsing (e.g., "64GB - Black" or "Storage: 64GB, Color: Black" format)
+					if ((!storage || !color) && v.name) {
+						const nameStr = String(v.name);
+
+						// Try "Storage - Color" format
+						if (nameStr.includes(' - ')) {
+							const nameParts = nameStr.split(' - ').map((p: string) => p.trim());
+
+							if (nameParts.length >= 2) {
+								if (!storage && nameParts[0]) storage = nameParts[0].trim();
+
+								if (!color && nameParts[1]) color = nameParts[1].trim();
+							}
+						}
+
+						// Try "Storage: X, Color: Y" format
+						if ((!storage || !color) && nameStr.includes(':')) {
+							const storageMatch = nameStr.match(/(?:Storage|storage)[:\s]+([^,]+)/i);
+							const colorMatch = nameStr.match(/(?:Color|color)[:\s]+([^,]+)/i);
+
+							if (!storage && storageMatch && storageMatch[1]) storage = storageMatch[1].trim();
+
+							if (!color && colorMatch && colorMatch[1]) color = colorMatch[1].trim();
+						}
 					}
-				}
 
-				// Add to sets if found (only add non-empty values)
-				if (storage && storage.trim()) {
-					storageSet.add(storage.trim());
-				}
-				if (color && color.trim()) {
-					colorSet.add(color.trim());
-				}
+					// Add to sets if found (only add non-empty values)
+					if (storage && storage.trim()) {
+						storageSet.add(storage.trim());
+					}
 
-				if (!storage && !color) {
-					console.warn(`Variant ${v.id}: No storage or color found. Variant name: "${v.name}", Attributes:`, v.attributes);
-				}
+					if (color && color.trim()) {
+						colorSet.add(color.trim());
+					}
 
-				// Get price from variant, fallback to base product price
-				const variantPrice = v.price_tax_excl || v.price || v.price_tax_incl || basePrice;
-				const variantCompareAtPrice = v.compared_price || v.compared_price || baseCompareAtPrice;
+					if (!storage && !color) {
+						console.warn(
+							`Variant ${v.id}: No storage or color found. Variant name: "${v.name}", Attributes:`,
+							v.attributes
+						);
+					}
 
-				// Ensure price is a valid number (convert to string for form)
-				const priceStr = variantPrice ? (typeof variantPrice === 'number' ? variantPrice.toString() : String(variantPrice)) : basePrice.toString();
-				const compareAtStr = variantCompareAtPrice ? (typeof variantCompareAtPrice === 'number' ? variantCompareAtPrice.toString() : String(variantCompareAtPrice)) : '';
+					// Get price from variant, fallback to base product price
+					const variantPrice = v.price_tax_excl || v.price || v.price_tax_incl || basePrice;
+					const variantCompareAtPrice = v.compared_price || v.compared_price || baseCompareAtPrice;
 
-				// Get stock quantity
-				const stockQty = v.quantity || v.qty || 0;
-				const stockStr = stockQty ? (typeof stockQty === 'number' ? stockQty.toString() : String(stockQty)) : '0';
+					// Ensure price is a valid number (convert to string for form)
+					const priceStr = variantPrice
+						? typeof variantPrice === 'number'
+							? variantPrice.toString()
+							: String(variantPrice)
+						: basePrice.toString();
+					const compareAtStr = variantCompareAtPrice
+						? typeof variantCompareAtPrice === 'number'
+							? variantCompareAtPrice.toString()
+							: String(variantCompareAtPrice)
+						: '';
 
-				return {
-					id: v.id?.toString(),
-					storage: storage || '', // Keep even if empty - user can fill later
-					color: color || '', // Keep even if empty - user can fill later
-					price: priceStr || basePrice.toString(), // Always ensure a price
-					compareAt: compareAtStr || '',
-					stock: stockStr,
-					sameDay: v.same_day || false,
-					image: v.image || findAttributeValue(v.attributes || [], 'Image'),
-				};
-			}).filter((v: any) => {
-				// Only keep variants with valid prices (storage/color can be empty and filled later)
-				const hasValidPrice = v.price && v.price !== '0' && v.price !== '';
-				return hasValidPrice;
-			});
+					// Get stock quantity
+					const stockQty = v.quantity || v.qty || 0;
+					const stockStr = stockQty
+						? typeof stockQty === 'number'
+							? stockQty.toString()
+							: String(stockQty)
+						: '0';
+
+					return {
+						id: v.id?.toString(),
+						storage: storage || '', // Keep even if empty - user can fill later
+						color: color || '', // Keep even if empty - user can fill later
+						price: priceStr || basePrice.toString(), // Always ensure a price
+						compareAt: compareAtStr || '',
+						stock: stockStr,
+						sameDay: v.same_day || false,
+						image: v.image || findAttributeValue(v.attributes || [], 'Image')
+					};
+				})
+				.filter((v: any) => {
+					// Only keep variants with valid prices (storage/color can be empty and filled later)
+					const hasValidPrice = v.price && v.price !== '0' && v.price !== '';
+					return hasValidPrice;
+				});
 
 			// Update storage and color options - ensure they're set even if variants are filtered out
-			const finalStorageOptions = Array.from(storageSet).filter(s => s && s.trim());
-			const finalColorOptions = Array.from(colorSet).filter(c => c && c.trim());
+			const finalStorageOptions = Array.from(storageSet).filter((s) => s && s.trim());
+			const finalColorOptions = Array.from(colorSet).filter((c) => c && c.trim());
 
 			if (finalStorageOptions.length > 0) {
 				setStorageOptions(finalStorageOptions);
@@ -2784,18 +3068,24 @@ function MultiKonnectListingCreation() {
 				// If variants exist, set base product price from first variant (or use base price)
 				if (pastVariants[0]?.price) {
 					const firstVariantPrice = parseFloat(pastVariants[0].price) || basePrice;
+
 					if (firstVariantPrice > 0) {
 						setValue('price_tax_excl', firstVariantPrice, { shouldDirty: true });
 					}
 				}
 
 				// Ensure storage and color options are set from the variants we're keeping
-				const variantStorages = new Set(pastVariants.map((v: any) => v.storage).filter((s: string) => s && s.trim()));
-				const variantColors = new Set(pastVariants.map((v: any) => v.color).filter((c: string) => c && c.trim()));
+				const variantStorages = new Set(
+					pastVariants.map((v: any) => v.storage).filter((s: string) => s && s.trim())
+				);
+				const variantColors = new Set(
+					pastVariants.map((v: any) => v.color).filter((c: string) => c && c.trim())
+				);
 
 				if (variantStorages.size > 0) {
 					setStorageOptions(Array.from(variantStorages));
 				}
+
 				if (variantColors.size > 0) {
 					setColorOptions(Array.from(variantColors));
 				}
@@ -2808,6 +3098,7 @@ function MultiKonnectListingCreation() {
 				if (finalStorageOptions.length === 0) {
 					setStorageOptions([]);
 				}
+
 				if (finalColorOptions.length === 0) {
 					setColorOptions([]);
 				}
@@ -2848,26 +3139,26 @@ function MultiKonnectListingCreation() {
 		console.log('handleSelectVendorProduct called with product:', product);
 		console.log('Current productId from URL:', productId);
 		console.log('Product ID from imported product:', product?.id);
-		
+
 		// Get the product ID - check multiple possible locations
 		const importedProductId = product?.id || product?.data?.id || product?.product_id;
-		
+
 		// If product has an ID (imported product), navigate to edit page
 		// Check if we're on the "new" product page and product was imported (has ID)
 		if (importedProductId && (productId === 'new' || !productId || productId === 'undefined')) {
 			// Product was imported, navigate to edit the imported product
 			const editUrl = `/apps/e-commerce/products/${importedProductId}`;
 			console.log('Navigating to edit page:', editUrl);
-			
+
 			// Close modal first
 			setImportVendorDialogOpen(false);
-			
+
 			// Show success message
 			enqueueSnackbar('Product imported successfully! Redirecting to edit page...', {
 				variant: 'success',
 				anchorOrigin: { vertical: 'top', horizontal: 'right' }
 			});
-			
+
 			// Use setTimeout to ensure modal closes before navigation
 			setTimeout(() => {
 				try {
@@ -2878,14 +3169,14 @@ function MultiKonnectListingCreation() {
 					window.location.href = editUrl;
 				}
 			}, 100);
-			
+
 			return;
 		}
-		
+
 		// Sanitize the product data to ensure it's in the correct format
 		// This is important for imported products which may have different data structures
 		const sanitizedProduct = sanitizeProduct(product);
-		
+
 		console.log('Sanitized product for form population:', sanitizedProduct);
 		console.log('Product name:', sanitizedProduct.name);
 		console.log('Product description:', sanitizedProduct.description);
@@ -2893,7 +3184,7 @@ function MultiKonnectListingCreation() {
 		console.log('Product main_category:', sanitizedProduct.main_category);
 		console.log('Product gallery_images:', sanitizedProduct.gallery_images);
 		console.log('Product product_variants:', sanitizedProduct.product_variants);
-		
+
 		// First, use reset to populate all basic form fields at once
 		// This ensures the form state is properly initialized
 		reset(sanitizedProduct, {
@@ -2903,21 +3194,21 @@ function MultiKonnectListingCreation() {
 			keepIsSubmitted: false,
 			keepTouched: false,
 			keepIsValid: false,
-			keepSubmitCount: false,
+			keepSubmitCount: false
 		});
-		
+
 		// Then use handleSelectPastListing to handle variants, images, and other complex fields
 		// This function handles variants, storage/color options, and other derived state
 		// Use setTimeout to ensure reset completes first
 		setTimeout(() => {
 			handleSelectPastListing(sanitizedProduct);
-			
+
 			// Force trigger validation to update form state
 			trigger();
 		}, 100);
-		
+
 		setImportVendorDialogOpen(false);
-		
+
 		// Show success message
 		enqueueSnackbar('Product imported successfully! All fields have been populated.', {
 			variant: 'success',
@@ -2928,16 +3219,21 @@ function MultiKonnectListingCreation() {
 	// Live Sync toggle handler
 	const handleLiveSyncToggle = (enabled: boolean) => {
 		setLiveSyncEnabled(enabled);
-		setValue('extraFields', {
-			...extraFields,
-			liveSyncEnabled: enabled,
-		}, { shouldDirty: true });
+		setValue(
+			'extraFields',
+			{
+				...extraFields,
+				liveSyncEnabled: enabled
+			},
+			{ shouldDirty: true }
+		);
 	};
 
 	// Back button handler
 	const handleBack = () => {
 		// Check if we're on the listing route
 		const currentPath = window.location.pathname;
+
 		if (currentPath.includes('/listing/')) {
 			navigate('/listing');
 		} else {
@@ -2946,7 +3242,10 @@ function MultiKonnectListingCreation() {
 	};
 
 	return (
-		<div className="flex flex-col h-screen bg-[#f9fafb] overflow-hidden relative" style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif' }}>
+		<div
+			className="flex flex-col h-screen bg-[#f9fafb] overflow-hidden relative"
+			style={{ fontFamily: 'Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif' }}
+		>
 			{/* Hidden ProductHeader for form submission */}
 			<div className="absolute opacity-0 pointer-events-none -z-10">
 				<ProductHeader />
@@ -3029,8 +3328,8 @@ function MultiKonnectListingCreation() {
 							borderRadius: '8px',
 							backgroundColor: 'transparent',
 							'&:hover': {
-								backgroundColor: 'rgba(255, 255, 255, 0.1)',
-							},
+								backgroundColor: 'rgba(255, 255, 255, 0.1)'
+							}
 						}}
 					>
 						Create Listing
@@ -3055,7 +3354,14 @@ function MultiKonnectListingCreation() {
 						disabled={isSavingDraft}
 						onClick={handleSaveDraft}
 						className="hidden sm:flex"
-						startIcon={isSavingDraft ? <CircularProgress size={14} color="inherit" /> : null}
+						startIcon={
+							isSavingDraft ? (
+								<CircularProgress
+									size={14}
+									color="inherit"
+								/>
+							) : null
+						}
 						sx={{
 							color: '#ffffff',
 							textTransform: 'none',
@@ -3066,12 +3372,12 @@ function MultiKonnectListingCreation() {
 							borderRadius: '8px',
 							backgroundColor: 'transparent',
 							'&:hover': {
-								backgroundColor: 'rgba(255, 255, 255, 0.1)',
+								backgroundColor: 'rgba(255, 255, 255, 0.1)'
 							},
 							'&:disabled': {
 								opacity: 0.7,
-								cursor: 'not-allowed',
-							},
+								cursor: 'not-allowed'
+							}
 						}}
 					>
 						<span className="hidden md:inline">{isSavingDraft ? 'Saving...' : 'Save draft'}</span>
@@ -3093,12 +3399,12 @@ function MultiKonnectListingCreation() {
 							borderRadius: '8px',
 							backgroundColor: 'transparent',
 							'&:hover': {
-								backgroundColor: 'rgba(255, 255, 255, 0.1)',
+								backgroundColor: 'rgba(255, 255, 255, 0.1)'
 							},
 							'&:disabled': {
 								opacity: 0.7,
-								cursor: 'not-allowed',
-							},
+								cursor: 'not-allowed'
+							}
 						}}
 					>
 						Preview
@@ -3108,7 +3414,14 @@ function MultiKonnectListingCreation() {
 						size="small"
 						disabled={isPublishing}
 						onClick={handlePublishClick}
-						startIcon={isPublishing ? <CircularProgress size={14} color="inherit" /> : null}
+						startIcon={
+							isPublishing ? (
+								<CircularProgress
+									size={14}
+									color="inherit"
+								/>
+							) : null
+						}
 						sx={{
 							backgroundColor: '#ff6536',
 							color: '#fff',
@@ -3121,12 +3434,12 @@ function MultiKonnectListingCreation() {
 							boxShadow: 'none',
 							'&:hover': {
 								backgroundColor: '#e55a2b',
-								boxShadow: 'none',
+								boxShadow: 'none'
 							},
 							'&:disabled': {
 								opacity: 0.7,
-								cursor: 'not-allowed',
-							},
+								cursor: 'not-allowed'
+							}
 						}}
 					>
 						{isPublishing ? 'Publishing...' : 'Publish'}
@@ -3147,8 +3460,9 @@ function MultiKonnectListingCreation() {
 
 					{/* Left Sidebar - Listing Steps - Light Grey */}
 					<aside
-						className={`fixed lg:static w-[280px] max-w-[85vw] lg:max-w-none border-r overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-							}`}
+						className={`fixed lg:static w-[280px] max-w-[85vw] lg:max-w-none border-r overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
+							sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+						}`}
 						style={{
 							backgroundColor: '#f8f9fa',
 							borderColor: '#e5e7eb',
@@ -3178,6 +3492,7 @@ function MultiKonnectListingCreation() {
 										onClick={(e) => {
 											e.preventDefault();
 											handleStepClick(step.id);
+
 											// Close sidebar on mobile after selecting a step
 											if (window.innerWidth < 1024) {
 												setSidebarOpen(false);
@@ -3190,7 +3505,7 @@ function MultiKonnectListingCreation() {
 											padding: '10px 12px',
 											borderRadius: '6px',
 											backgroundColor: currentStep === step.id ? '#dbeafe' : 'transparent',
-											marginBottom: '1px',
+											marginBottom: '1px'
 										}}
 									>
 										<span
@@ -3206,13 +3521,20 @@ function MultiKonnectListingCreation() {
 											{step.id}.
 										</span>
 										<div style={{ flex: 1, minWidth: 0 }}>
-											<div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '2px' }}>
+											<div
+												style={{
+													display: 'flex',
+													alignItems: 'center',
+													gap: '4px',
+													marginBottom: '2px'
+												}}
+											>
 												<Typography
 													sx={{
 														fontSize: '13px',
 														fontWeight: 500,
 														color: currentStep === step.id ? '#1e40af' : '#111827',
-														lineHeight: '1.5',
+														lineHeight: '1.5'
 													}}
 												>
 													{step.title}
@@ -3246,8 +3568,9 @@ function MultiKonnectListingCreation() {
 
 					{/* Main Content Area */}
 					<main
-						className={`flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${sidebarOpen || rightSidebarOpen ? 'lg:ml-0 lg:mr-0' : ''
-							}`}
+						className={`flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
+							sidebarOpen || rightSidebarOpen ? 'lg:ml-0 lg:mr-0' : ''
+						}`}
 						style={{
 							backgroundColor: '#ffffff',
 							paddingTop: '16px',
@@ -3268,14 +3591,28 @@ function MultiKonnectListingCreation() {
 									border: '1px solid #e5e7eb',
 									backgroundColor: '#ffffff',
 									boxShadow: 'none',
-									scrollMarginTop: '80px',
+									scrollMarginTop: '80px'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}
+								>
 									Product identity
 								</Typography>
-								<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px', margin: '2px 0 10px 0' }}>
-									Match to a Master Product (MPID) to lock canonical specs. You can still add merchant-specific notes.
+								<Typography
+									variant="body2"
+									className="text-gray-600 mb-4"
+									sx={{
+										fontSize: '13px',
+										color: '#6b7280',
+										marginBottom: '10px',
+										margin: '2px 0 10px 0'
+									}}
+								>
+									Match to a Master Product (MPID) to lock canonical specs. You can still add
+									merchant-specific notes.
 								</Typography>
 
 								<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
@@ -3290,8 +3627,8 @@ function MultiKonnectListingCreation() {
 											'& .MuiOutlinedInput-root': {
 												borderRadius: '12px',
 												fontSize: '14px',
-												height: '44px',
-											},
+												height: '44px'
+											}
 										}}
 									/>
 									<Controller
@@ -3311,8 +3648,8 @@ function MultiKonnectListingCreation() {
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
 														fontSize: '14px',
-														height: '44px',
-													},
+														height: '44px'
+													}
 												}}
 											/>
 										)}
@@ -3333,14 +3670,18 @@ function MultiKonnectListingCreation() {
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
 														fontSize: '14px',
-														height: '44px',
-													},
+														height: '44px'
+													}
 												}}
 											/>
 										)}
 									/>
 								</div>
-								<Typography variant="caption" className="text-gray-500 mb-3" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '6px' }}>
+								<Typography
+									variant="caption"
+									className="text-gray-500 mb-3"
+									sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '6px' }}
+								>
 									We'll suggest an SEO title later based on MPID + variants.
 								</Typography>
 
@@ -3372,8 +3713,8 @@ function MultiKonnectListingCreation() {
 															'& .MuiOutlinedInput-root': {
 																borderRadius: '12px',
 																fontSize: '14px',
-																minHeight: '40px',
-															},
+																minHeight: '40px'
+															}
 														}}
 													/>
 												)}
@@ -3387,7 +3728,9 @@ function MultiKonnectListingCreation() {
 											const mainCategory = watch('main_category');
 
 											// Find the parent category with children from parentCategoriesWithChildren
-											const fullMainCategory = parentCategoriesWithChildren.find(cat => cat.id === mainCategory?.id);
+											const fullMainCategory = parentCategoriesWithChildren.find(
+												(cat) => cat.id === mainCategory?.id
+											);
 											const mainChildren = fullMainCategory?.children || [];
 
 											// Use only the children (subcategories) of the selected main category
@@ -3410,16 +3753,20 @@ function MultiKonnectListingCreation() {
 														<TextField
 															{...params}
 															label="Subcategory"
-															placeholder={mainCategory ? "Select subcategories (optional)" : "Select main category first"}
+															placeholder={
+																mainCategory
+																	? 'Select subcategories (optional)'
+																	: 'Select main category first'
+															}
 															size="small"
 															error={!!errors.subcategory}
-															helperText={errors.subcategory?.message as string || ""}
+															helperText={(errors.subcategory?.message as string) || ''}
 															sx={{
 																'& .MuiOutlinedInput-root': {
 																	borderRadius: '12px',
 																	fontSize: '14px',
-																	minHeight: '40px',
-																},
+																	minHeight: '40px'
+																}
 															}}
 														/>
 													)}
@@ -3432,7 +3779,7 @@ function MultiKonnectListingCreation() {
 																size="small"
 																sx={{
 																	fontSize: '12px',
-																	height: '24px',
+																	height: '24px'
 																}}
 															/>
 														))
@@ -3458,8 +3805,8 @@ function MultiKonnectListingCreation() {
 											minHeight: '44px',
 											'&:hover': {
 												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
+												backgroundColor: '#f9fafb'
+											}
 										}}
 									>
 										Scan barcode
@@ -3478,8 +3825,8 @@ function MultiKonnectListingCreation() {
 											minHeight: '44px',
 											'&:hover': {
 												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
+												backgroundColor: '#f9fafb'
+											}
 										}}
 									>
 										Use Master Template
@@ -3498,8 +3845,8 @@ function MultiKonnectListingCreation() {
 											minHeight: '44px',
 											'&:hover': {
 												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
+												backgroundColor: '#f9fafb'
+											}
 										}}
 									>
 										Use My Past Listing
@@ -3519,8 +3866,8 @@ function MultiKonnectListingCreation() {
 												minHeight: '44px',
 												'&:hover': {
 													borderColor: '#d1d5db',
-													backgroundColor: '#f9fafb',
-												},
+													backgroundColor: '#f9fafb'
+												}
 											}}
 										>
 											Import from Other Seller
@@ -3530,7 +3877,13 @@ function MultiKonnectListingCreation() {
 										variant="outlined"
 										size="small"
 										onClick={() => handleLiveSyncToggle(!liveSyncEnabled)}
-										startIcon={<Switch checked={liveSyncEnabled} size="small" sx={{ pointerEvents: 'none' }} />}
+										startIcon={
+											<Switch
+												checked={liveSyncEnabled}
+												size="small"
+												sx={{ pointerEvents: 'none' }}
+											/>
+										}
 										sx={{
 											borderColor: liveSyncEnabled ? '#3b82f6' : '#e5e7eb',
 											color: liveSyncEnabled ? '#3b82f6' : '#374151',
@@ -3542,8 +3895,8 @@ function MultiKonnectListingCreation() {
 											backgroundColor: liveSyncEnabled ? '#eff6ff' : 'transparent',
 											'&:hover': {
 												borderColor: liveSyncEnabled ? '#2563eb' : '#d1d5db',
-												backgroundColor: liveSyncEnabled ? '#dbeafe' : '#f9fafb',
-											},
+												backgroundColor: liveSyncEnabled ? '#dbeafe' : '#f9fafb'
+											}
 										}}
 									>
 										Live Sync (Auto-Update Specs)
@@ -3555,7 +3908,7 @@ function MultiKonnectListingCreation() {
 										className="mt-3"
 										sx={{
 											paddingTop: '10px',
-											borderTop: '1px solid #e5e7eb',
+											borderTop: '1px solid #e5e7eb'
 										}}
 									>
 										<div className="flex flex-wrap gap-2 mb-2">
@@ -3568,7 +3921,7 @@ function MultiKonnectListingCreation() {
 													fontSize: '12px',
 													height: '24px',
 													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													padding: '2px 8px',
+													padding: '2px 8px'
 												}}
 											/>
 											<Chip
@@ -3580,7 +3933,7 @@ function MultiKonnectListingCreation() {
 													fontSize: '12px',
 													height: '24px',
 													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													padding: '2px 8px',
+													padding: '2px 8px'
 												}}
 											/>
 											<Chip
@@ -3592,7 +3945,7 @@ function MultiKonnectListingCreation() {
 													fontSize: '12px',
 													height: '24px',
 													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													padding: '2px 8px',
+													padding: '2px 8px'
 												}}
 											/>
 											<Chip
@@ -3604,7 +3957,7 @@ function MultiKonnectListingCreation() {
 													fontSize: '12px',
 													height: '24px',
 													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													padding: '2px 8px',
+													padding: '2px 8px'
 												}}
 											/>
 											<Chip
@@ -3616,12 +3969,22 @@ function MultiKonnectListingCreation() {
 													fontSize: '12px',
 													height: '24px',
 													fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-													padding: '2px 8px',
+													padding: '2px 8px'
 												}}
 											/>
 										</div>
-										<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '6px' }}>
-											After matching MPID, core specs become read-only to protect catalog quality. You may add condition notes below.
+										<Typography
+											variant="caption"
+											className="text-gray-600"
+											sx={{
+												fontSize: '12px',
+												color: '#6b7280',
+												display: 'block',
+												marginTop: '6px'
+											}}
+										>
+											After matching MPID, core specs become read-only to protect catalog quality.
+											You may add condition notes below.
 										</Typography>
 									</Box>
 								)}
@@ -3638,18 +4001,35 @@ function MultiKonnectListingCreation() {
 									border: '1px solid #e5e7eb',
 									backgroundColor: '#ffffff',
 									boxShadow: 'none',
-									scrollMarginTop: '80px',
+									scrollMarginTop: '80px'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px', margin: '0 0 6px 0' }}
+								>
 									Media
 								</Typography>
-								<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px', margin: '2px 0 10px 0' }}>
-									Upload 6-12 images. Include front/back, box contents, ports. Per-variant photos supported.
+								<Typography
+									variant="body2"
+									className="text-gray-600 mb-4"
+									sx={{
+										fontSize: '13px',
+										color: '#6b7280',
+										marginBottom: '10px',
+										margin: '2px 0 10px 0'
+									}}
+								>
+									Upload 6-12 images. Include front/back, box contents, ports. Per-variant photos
+									supported.
 								</Typography>
 
 								{/* Image Upload Slots */}
-								<div className="flex gap-3 mb-4" style={{ flexWrap: 'wrap' }}>
+								<div
+									className="flex gap-3 mb-4"
+									style={{ flexWrap: 'wrap' }}
+								>
 									{(() => {
 										// Use the memoized galleryImages for reactivity
 										const imagesArray = Array.isArray(galleryImages) ? galleryImages : [];
@@ -3659,7 +4039,8 @@ function MultiKonnectListingCreation() {
 										const totalSlots = Math.max(6, Math.min(12, imagesArray.length + 1));
 
 										return Array.from({ length: totalSlots }, (_, index) => {
-											const hasImage = imagesArray.length > index &&
+											const hasImage =
+												imagesArray.length > index &&
 												imagesArray[index] &&
 												imagesArray[index].url &&
 												typeof imagesArray[index].url === 'string' &&
@@ -3683,7 +4064,7 @@ function MultiKonnectListingCreation() {
 														cursor: 'pointer',
 														backgroundColor: '#f9fafb',
 														transition: 'all 0.2s',
-														overflow: 'hidden',
+														overflow: 'hidden'
 													}}
 													onMouseEnter={(e) => {
 														e.currentTarget.style.borderColor = '#9ca3af';
@@ -3695,7 +4076,13 @@ function MultiKonnectListingCreation() {
 													}}
 												>
 													{hasImage && currentImage ? (
-														<div style={{ position: 'relative', width: '100%', height: '100%' }}>
+														<div
+															style={{
+																position: 'relative',
+																width: '100%',
+																height: '100%'
+															}}
+														>
 															<img
 																src={currentImage.url}
 																alt="Uploaded"
@@ -3703,14 +4090,18 @@ function MultiKonnectListingCreation() {
 																	width: '100%',
 																	height: '100%',
 																	objectFit: 'cover',
-																	borderRadius: '10px',
+																	borderRadius: '10px'
 																}}
 																onError={(e) => {
 																	console.error('Image load error:', e);
 																	// Remove broken image from gallery
 																	const currentImages = watch('gallery_images') || [];
-																	const updatedImages = currentImages.filter((_: any, i: number) => i !== index);
-																	setValue('gallery_images', updatedImages, { shouldDirty: true });
+																	const updatedImages = currentImages.filter(
+																		(_: any, i: number) => i !== index
+																	);
+																	setValue('gallery_images', updatedImages, {
+																		shouldDirty: true
+																	});
 																}}
 															/>
 															<button
@@ -3734,19 +4125,37 @@ function MultiKonnectListingCreation() {
 																	alignItems: 'center',
 																	justifyContent: 'center',
 																	fontSize: '16px',
-																	zIndex: 10,
+																	zIndex: 10
 																}}
 															>
 																×
 															</button>
 														</div>
 													) : isUploadingImage && index === 0 ? (
-														<div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-															<CircularProgress size={24} sx={{ color: '#9ca3af' }} />
-															<span style={{ color: '#9ca3af', fontSize: '12px' }}>Uploading...</span>
+														<div
+															style={{
+																display: 'flex',
+																flexDirection: 'column',
+																alignItems: 'center',
+																gap: '8px'
+															}}
+														>
+															<CircularProgress
+																size={24}
+																sx={{ color: '#9ca3af' }}
+															/>
+															<span style={{ color: '#9ca3af', fontSize: '12px' }}>
+																Uploading...
+															</span>
 														</div>
 													) : (
-														<span style={{ color: '#9ca3af', fontSize: isFirstSlot ? '14px' : '24px', fontWeight: isFirstSlot ? 500 : 300 }}>
+														<span
+															style={{
+																color: '#9ca3af',
+																fontSize: isFirstSlot ? '14px' : '24px',
+																fontWeight: isFirstSlot ? 500 : 300
+															}}
+														>
 															{isFirstSlot ? 'Upload' : '+'}
 														</span>
 													)}
@@ -3768,7 +4177,10 @@ function MultiKonnectListingCreation() {
 								{/* Action Buttons */}
 								<div className="flex flex-col gap-3 mb-4">
 									{/* First row of buttons */}
-									<div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
+									<div
+										className="flex gap-3"
+										style={{ flexWrap: 'wrap' }}
+									>
 										<Button
 											variant="outlined"
 											size="small"
@@ -3790,8 +4202,8 @@ function MultiKonnectListingCreation() {
 												backgroundColor: '#ffffff',
 												'&:hover': {
 													borderColor: '#d1d5db',
-													backgroundColor: '#f9fafb',
-												},
+													backgroundColor: '#f9fafb'
+												}
 											}}
 										>
 											Remove background
@@ -3817,8 +4229,8 @@ function MultiKonnectListingCreation() {
 												backgroundColor: '#ffffff',
 												'&:hover': {
 													borderColor: '#d1d5db',
-													backgroundColor: '#f9fafb',
-												},
+													backgroundColor: '#f9fafb'
+												}
 											}}
 										>
 											Auto-crop & center
@@ -3844,8 +4256,8 @@ function MultiKonnectListingCreation() {
 												backgroundColor: '#ffffff',
 												'&:hover': {
 													borderColor: '#d1d5db',
-													backgroundColor: '#f9fafb',
-												},
+													backgroundColor: '#f9fafb'
+												}
 											}}
 										>
 											Create 360° spin
@@ -3871,8 +4283,8 @@ function MultiKonnectListingCreation() {
 												backgroundColor: '#ffffff',
 												'&:hover': {
 													borderColor: '#d1d5db',
-													backgroundColor: '#f9fafb',
-												},
+													backgroundColor: '#f9fafb'
+												}
 											}}
 										>
 											Watermark
@@ -3902,8 +4314,8 @@ function MultiKonnectListingCreation() {
 												backgroundColor: '#ffffff',
 												'&:hover': {
 													borderColor: '#d1d5db',
-													backgroundColor: '#f9fafb',
-												},
+													backgroundColor: '#f9fafb'
+												}
 											}}
 										>
 											AI Auto-enhance
@@ -3913,8 +4325,12 @@ function MultiKonnectListingCreation() {
 
 								{/* Tip Section */}
 								<div style={{ marginTop: '12px' }}>
-									<Typography variant="body2" sx={{ fontSize: '13px', color: '#6b7280' }}>
-										<span style={{ fontWeight: 600 }}>Tip:</span> Add a photo of serial/IMEI (mask last digits). AI will auto-shadow and white balance.
+									<Typography
+										variant="body2"
+										sx={{ fontSize: '13px', color: '#6b7280' }}
+									>
+										<span style={{ fontWeight: 600 }}>Tip:</span> Add a photo of serial/IMEI (mask
+										last digits). AI will auto-shadow and white balance.
 									</Typography>
 								</div>
 							</section>
@@ -3930,20 +4346,32 @@ function MultiKonnectListingCreation() {
 									border: '1px solid #e5e7eb',
 									backgroundColor: '#ffffff',
 									boxShadow: 'none',
-									scrollMarginTop: '80px',
+									scrollMarginTop: '80px'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}
+								>
 									Variants
 								</Typography>
-								<Typography variant="body2" className="text-gray-600 mb-4" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
+								<Typography
+									variant="body2"
+									className="text-gray-600 mb-4"
+									sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}
+								>
 									Matrix for Storage × Color. Per-variant price / stock / images.
 								</Typography>
 
 								{/* Storage Options Display */}
 								{storageOptions.length > 0 && (
 									<div className="mb-3">
-										<Typography variant="subtitle2" className="mb-2" sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>
+										<Typography
+											variant="subtitle2"
+											className="mb-2"
+											sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}
+										>
 											Storage Options:
 										</Typography>
 										<div className="flex flex-wrap gap-2">
@@ -3958,8 +4386,8 @@ function MultiKonnectListingCreation() {
 														color: '#374151',
 														fontSize: '12px',
 														'& .MuiChip-deleteIcon': {
-															fontSize: '16px',
-														},
+															fontSize: '16px'
+														}
 													}}
 												/>
 											))}
@@ -3970,7 +4398,11 @@ function MultiKonnectListingCreation() {
 								{/* Color Options Display */}
 								{colorOptions.length > 0 && (
 									<div className="mb-3">
-										<Typography variant="subtitle2" className="mb-2" sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}>
+										<Typography
+											variant="subtitle2"
+											className="mb-2"
+											sx={{ fontSize: '12px', fontWeight: 600, color: '#6b7280' }}
+										>
 											Color Options:
 										</Typography>
 										<div className="flex flex-wrap gap-2">
@@ -3985,8 +4417,8 @@ function MultiKonnectListingCreation() {
 														color: '#374151',
 														fontSize: '12px',
 														'& .MuiChip-deleteIcon': {
-															fontSize: '16px',
-														},
+															fontSize: '16px'
+														}
 													}}
 												/>
 											))}
@@ -4008,8 +4440,8 @@ function MultiKonnectListingCreation() {
 											borderRadius: '10px',
 											'&:hover': {
 												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
+												backgroundColor: '#f9fafb'
+											}
 										}}
 									>
 										Add {attribute1Name}
@@ -4027,8 +4459,8 @@ function MultiKonnectListingCreation() {
 											borderRadius: '10px',
 											'&:hover': {
 												borderColor: '#d1d5db',
-												backgroundColor: '#f9fafb',
-											},
+												backgroundColor: '#f9fafb'
+											}
 										}}
 									>
 										Add {attribute2Name}
@@ -4039,7 +4471,11 @@ function MultiKonnectListingCreation() {
 												variant="outlined"
 												size="small"
 												onClick={handleApplyPriceToAll}
-												startIcon={<FuseSvgIcon size={16}>heroicons-outline:currency-pound</FuseSvgIcon>}
+												startIcon={
+													<FuseSvgIcon size={16}>
+														heroicons-outline:currency-pound
+													</FuseSvgIcon>
+												}
 												sx={{
 													borderColor: '#e5e7eb',
 													color: '#374151',
@@ -4049,8 +4485,8 @@ function MultiKonnectListingCreation() {
 													borderRadius: '10px',
 													'&:hover': {
 														borderColor: '#d1d5db',
-														backgroundColor: '#f9fafb',
-													},
+														backgroundColor: '#f9fafb'
+													}
 												}}
 											>
 												Apply price to all
@@ -4069,8 +4505,8 @@ function MultiKonnectListingCreation() {
 													borderRadius: '10px',
 													'&:hover': {
 														borderColor: '#d1d5db',
-														backgroundColor: '#f9fafb',
-													},
+														backgroundColor: '#f9fafb'
+													}
 												}}
 											>
 												Apply stock to all
@@ -4088,58 +4524,90 @@ function MultiKonnectListingCreation() {
 											backgroundColor: '#ff6536',
 											'&:hover': { backgroundColor: '#e55a2b' },
 											textTransform: 'none',
-											borderRadius: '10px',
+											borderRadius: '10px'
 										}}
 									>
 										Generate Variant Matrix
 									</Button>
 								)}
 
-								<div className="overflow-x-auto -mx-3 sm:mx-0" style={{ WebkitOverflowScrolling: 'touch' }}>
-									<table className="w-full border-collapse" style={{ fontSize: '13px', minWidth: '600px' }}>
+								<div
+									className="overflow-x-auto -mx-3 sm:mx-0"
+									style={{ WebkitOverflowScrolling: 'touch' }}
+								>
+									<table
+										className="w-full border-collapse"
+										style={{ fontSize: '13px', minWidth: '600px' }}
+									>
 										<thead>
 											<tr className="bg-gray-100">
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute1Name}</th>
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">{attribute2Name}</th>
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Price (£)</th>
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Compare-at</th>
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Stock</th>
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Same-day</th>
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Images</th>
-												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">Actions</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													{attribute1Name}
+												</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													{attribute2Name}
+												</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													Price (£)
+												</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													Compare-at
+												</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													Stock
+												</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													Same-day
+												</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													Images
+												</th>
+												<th className="border border-gray-300 px-2 sm:px-3 py-2 text-left font-semibold whitespace-nowrap text-xs sm:text-sm">
+													Actions
+												</th>
 											</tr>
 										</thead>
 										<tbody>
 											{variants.length === 0 ? (
 												<tr>
-													<td colSpan={8} className="border border-gray-300 px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-400 text-xs sm:text-sm">
-														No variants added yet. Add {attribute1Name} and {attribute2Name} options to generate variant matrix.
+													<td
+														colSpan={8}
+														className="border border-gray-300 px-3 sm:px-4 py-6 sm:py-8 text-center text-gray-400 text-xs sm:text-sm"
+													>
+														No variants added yet. Add {attribute1Name} and {attribute2Name}{' '}
+														options to generate variant matrix.
 													</td>
 												</tr>
 											) : (
 												variants.map((variant, index) => (
 													<tr key={index}>
-														<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.storage}</td>
-														<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">{variant.color}</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">
+															{variant.storage}
+														</td>
+														<td className="border border-gray-300 px-2 sm:px-3 py-2 whitespace-nowrap text-xs sm:text-sm">
+															{variant.color}
+														</td>
 														<td className="border border-gray-300 px-2 sm:px-3 py-2">
 															<TextField
 																size="small"
 																type="number"
 																value={variant.price}
-																onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+																onChange={(e) =>
+																	handleVariantChange(index, 'price', e.target.value)
+																}
 																placeholder="1299"
 																sx={{
 																	width: '100%',
 																	'& .MuiOutlinedInput-root': {
 																		fontSize: { xs: '12px', sm: '13px' },
 																		minHeight: { xs: '32px', sm: '36px' },
-																		maxHeight: { xs: '32px', sm: '36px' },
+																		maxHeight: { xs: '32px', sm: '36px' }
 																	},
 																	'& .MuiInputBase-input': {
 																		padding: { xs: '6px 8px', sm: '8px 12px' },
 																		overflow: 'hidden',
-																		textOverflow: 'ellipsis',
-																	},
+																		textOverflow: 'ellipsis'
+																	}
 																}}
 															/>
 														</td>
@@ -4148,20 +4616,26 @@ function MultiKonnectListingCreation() {
 																size="small"
 																type="number"
 																value={variant.compareAt}
-																onChange={(e) => handleVariantChange(index, 'compareAt', e.target.value)}
+																onChange={(e) =>
+																	handleVariantChange(
+																		index,
+																		'compareAt',
+																		e.target.value
+																	)
+																}
 																placeholder="1349"
 																sx={{
 																	width: '100%',
 																	'& .MuiOutlinedInput-root': {
 																		fontSize: { xs: '12px', sm: '13px' },
 																		minHeight: { xs: '32px', sm: '36px' },
-																		maxHeight: { xs: '32px', sm: '36px' },
+																		maxHeight: { xs: '32px', sm: '36px' }
 																	},
 																	'& .MuiInputBase-input': {
 																		padding: { xs: '6px 8px', sm: '8px 12px' },
 																		overflow: 'hidden',
-																		textOverflow: 'ellipsis',
-																	},
+																		textOverflow: 'ellipsis'
+																	}
 																}}
 															/>
 														</td>
@@ -4170,27 +4644,35 @@ function MultiKonnectListingCreation() {
 																size="small"
 																type="number"
 																value={variant.stock}
-																onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+																onChange={(e) =>
+																	handleVariantChange(index, 'stock', e.target.value)
+																}
 																placeholder="12"
 																sx={{
 																	width: '100%',
 																	'& .MuiOutlinedInput-root': {
 																		fontSize: { xs: '12px', sm: '13px' },
 																		minHeight: { xs: '32px', sm: '36px' },
-																		maxHeight: { xs: '32px', sm: '36px' },
+																		maxHeight: { xs: '32px', sm: '36px' }
 																	},
 																	'& .MuiInputBase-input': {
 																		padding: { xs: '6px 8px', sm: '8px 12px' },
 																		overflow: 'hidden',
-																		textOverflow: 'ellipsis',
-																	},
+																		textOverflow: 'ellipsis'
+																	}
 																}}
 															/>
 														</td>
 														<td className="border border-gray-300 px-2 sm:px-3 py-2">
 															<Checkbox
 																checked={variant.sameDay}
-																onChange={(e) => handleVariantChange(index, 'sameDay', e.target.checked)}
+																onChange={(e) =>
+																	handleVariantChange(
+																		index,
+																		'sameDay',
+																		e.target.checked
+																	)
+																}
 																size="small"
 															/>
 														</td>
@@ -4202,15 +4684,25 @@ function MultiKonnectListingCreation() {
 																			component="img"
 																			src={(() => {
 																				const imageUrl = (variant as any).image;
+
 																				// If it's a full URL or base64, use it directly
-																				if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://') || imageUrl.startsWith('data:image/')) {
+																				if (
+																					imageUrl.startsWith('http://') ||
+																					imageUrl.startsWith('https://') ||
+																					imageUrl.startsWith('data:image/')
+																				) {
 																					return imageUrl;
 																				}
+
 																				// If it's a relative path, prepend API URL
-																				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+																				const apiUrl =
+																					process.env.NEXT_PUBLIC_API_URL ||
+																					'http://127.0.0.1:8000';
+
 																				if (imageUrl.startsWith('storage/')) {
 																					return `${apiUrl}/${imageUrl}`;
 																				}
+
 																				return `${apiUrl}/storage/${imageUrl}`;
 																			})()}
 																			alt={`${variant.storage} ${variant.color}`}
@@ -4219,7 +4711,7 @@ function MultiKonnectListingCreation() {
 																				height: 40,
 																				objectFit: 'cover',
 																				borderRadius: '8px',
-																				border: '1px solid #e5e7eb',
+																				border: '1px solid #e5e7eb'
 																			}}
 																		/>
 																		<IconButton
@@ -4231,7 +4723,9 @@ function MultiKonnectListingCreation() {
 																			}}
 																			sx={{ color: '#ef4444', padding: '4px' }}
 																		>
-																			<FuseSvgIcon size={14}>heroicons-outline:x-mark</FuseSvgIcon>
+																			<FuseSvgIcon size={14}>
+																				heroicons-outline:x-mark
+																			</FuseSvgIcon>
 																		</IconButton>
 																	</React.Fragment>
 																) : (
@@ -4240,20 +4734,29 @@ function MultiKonnectListingCreation() {
 																			type="file"
 																			accept="image/*"
 																			style={{ display: 'none' }}
-																			onChange={(e) => handleVariantImageUpload(index, e.target.files)}
+																			onChange={(e) =>
+																				handleVariantImageUpload(
+																					index,
+																					e.target.files
+																				)
+																			}
 																		/>
 																		<Button
 																			size="small"
 																			variant="outlined"
 																			component="span"
-																			startIcon={<FuseSvgIcon size={14}>heroicons-outline:photo</FuseSvgIcon>}
+																			startIcon={
+																				<FuseSvgIcon size={14}>
+																					heroicons-outline:photo
+																				</FuseSvgIcon>
+																			}
 																			sx={{
 																				borderColor: '#e5e7eb',
 																				color: '#374151',
 																				textTransform: 'none',
 																				fontSize: '11px',
 																				padding: '4px 10px',
-																				borderRadius: '8px',
+																				borderRadius: '8px'
 																			}}
 																		>
 																			Upload
@@ -4269,7 +4772,9 @@ function MultiKonnectListingCreation() {
 																sx={{ color: '#ef4444', padding: '4px' }}
 																title="Delete variant"
 															>
-																<FuseSvgIcon size={14}>heroicons-outline:trash</FuseSvgIcon>
+																<FuseSvgIcon size={14}>
+																	heroicons-outline:trash
+																</FuseSvgIcon>
 															</IconButton>
 														</td>
 													</tr>
@@ -4290,10 +4795,14 @@ function MultiKonnectListingCreation() {
 									borderRadius: '16px',
 									border: '1px solid #e5e7eb',
 									boxShadow: 'none',
-									scrollMarginTop: '80px',
+									scrollMarginTop: '80px'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-2 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-2 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}
+								>
 									Pricing & intelligence
 								</Typography>
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -4303,23 +4812,45 @@ function MultiKonnectListingCreation() {
 											backgroundColor: '#ffffff',
 											border: '1px solid #e5e7eb',
 											borderRadius: '12px',
-											padding: '12px',
+											padding: '12px'
 										}}
 									>
 										<div className="flex justify-between items-start mb-1">
 											<div>
-												<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
+												<Typography
+													variant="subtitle2"
+													className="font-bold"
+													sx={{ fontSize: '14px', fontWeight: 800 }}
+												>
 													Suggested range ({pricingIntelligence.city})
 												</Typography>
-												<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
+												<Typography
+													variant="caption"
+													className="text-gray-600"
+													sx={{
+														fontSize: '12px',
+														color: '#6b7280',
+														display: 'block',
+														marginTop: '2px'
+													}}
+												>
 													25–75% band from recent listings
 												</Typography>
 											</div>
 											<div style={{ textAlign: 'right' }}>
-												<Typography variant="h6" className="font-bold" sx={{ fontSize: '20px', fontWeight: 900 }}>
-													{formatCurrency(pricingIntelligence.priceRange.min)} – {formatCurrency(pricingIntelligence.priceRange.max)}
+												<Typography
+													variant="h6"
+													className="font-bold"
+													sx={{ fontSize: '20px', fontWeight: 900 }}
+												>
+													{formatCurrency(pricingIntelligence.priceRange.min)} –{' '}
+													{formatCurrency(pricingIntelligence.priceRange.max)}
 												</Typography>
-												<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
+												<Typography
+													variant="caption"
+													className="text-gray-500"
+													sx={{ fontSize: '12px', color: '#6b7280' }}
+												>
 													Median {formatCurrency(pricingIntelligence.median)}
 												</Typography>
 											</div>
@@ -4331,13 +4862,17 @@ function MultiKonnectListingCreation() {
 											backgroundColor: '#ffffff',
 											border: '1px solid #e5e7eb',
 											borderRadius: '12px',
-											padding: '12px',
+											padding: '12px'
 										}}
 									>
 										<div className="flex justify-between items-start mb-1">
 											<div style={{ flex: 1 }}>
 												<div className="flex items-center justify-between mb-1">
-													<Typography variant="subtitle2" className="font-bold" sx={{ fontSize: '14px', fontWeight: 800 }}>
+													<Typography
+														variant="subtitle2"
+														className="font-bold"
+														sx={{ fontSize: '14px', fontWeight: 800 }}
+													>
 														Fee preview
 													</Typography>
 													<IconButton
@@ -4349,17 +4884,39 @@ function MultiKonnectListingCreation() {
 														sx={{ padding: '4px', marginLeft: '8px' }}
 														title="Configure fees"
 													>
-														<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:cog-6-tooth</FuseSvgIcon>
+														<FuseSvgIcon
+															size={16}
+															sx={{ color: '#6b7280' }}
+														>
+															heroicons-outline:cog-6-tooth
+														</FuseSvgIcon>
 													</IconButton>
 												</div>
-												<Typography variant="caption" className="text-gray-600" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '2px' }}>
+												<Typography
+													variant="caption"
+													className="text-gray-600"
+													sx={{
+														fontSize: '12px',
+														color: '#6b7280',
+														display: 'block',
+														marginTop: '2px'
+													}}
+												>
 													Commission + shipping + promos
 												</Typography>
 												{/* Fee Breakdown */}
-												<div className="mt-2 space-y-1" style={{ fontSize: '11px', color: '#6b7280' }}>
+												<div
+													className="mt-2 space-y-1"
+													style={{ fontSize: '11px', color: '#6b7280' }}
+												>
 													<div className="flex justify-between">
-														<span>Commission ({(feeSettings.commissionRate * 100).toFixed(1)}%):</span>
-														<span>{formatCurrency(pricingIntelligence.fees.commission)}</span>
+														<span>
+															Commission ({(feeSettings.commissionRate * 100).toFixed(1)}
+															%):
+														</span>
+														<span>
+															{formatCurrency(pricingIntelligence.fees.commission)}
+														</span>
 													</div>
 													<div className="flex justify-between">
 														<span>Shipping (vendor):</span>
@@ -4368,23 +4925,37 @@ function MultiKonnectListingCreation() {
 													{pricingIntelligence.fees.promos > 0 && (
 														<div className="flex justify-between">
 															<span>Promos:</span>
-															<span>{formatCurrency(pricingIntelligence.fees.promos)}</span>
+															<span>
+																{formatCurrency(pricingIntelligence.fees.promos)}
+															</span>
 														</div>
 													)}
 												</div>
 											</div>
 											<div style={{ textAlign: 'right', marginLeft: '16px' }}>
-												<Typography variant="body2" className="mb-1" sx={{ fontSize: '13px' }}>
+												<Typography
+													variant="body2"
+													className="mb-1"
+													sx={{ fontSize: '13px' }}
+												>
 													Fees: {formatCurrency(pricingIntelligence.fees.total)}
 												</Typography>
-												<Typography variant="h6" className="font-bold" sx={{ fontSize: '16px', fontWeight: 700 }}>
+												<Typography
+													variant="h6"
+													className="font-bold"
+													sx={{ fontSize: '16px', fontWeight: 700 }}
+												>
 													Net: {formatCurrency(pricingIntelligence.net)}
 												</Typography>
 											</div>
 										</div>
 									</Paper>
 								</div>
-								<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
+								<Typography
+									variant="caption"
+									className="text-gray-500"
+									sx={{ fontSize: '12px', color: '#6b7280' }}
+								>
 									{pricingIntelligence.basePrice > 0
 										? `Auto-refreshed range for ${pricingIntelligence.city} based on selected variant.`
 										: "We'll auto-refresh range by city and variant once you select stock."}
@@ -4401,10 +4972,14 @@ function MultiKonnectListingCreation() {
 									borderRadius: '16px',
 									border: '1px solid #e5e7eb',
 									boxShadow: 'none',
-									scrollMarginTop: '80px',
+									scrollMarginTop: '80px'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}
+								>
 									Same-day & stores
 								</Typography>
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -4424,8 +4999,8 @@ function MultiKonnectListingCreation() {
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
 														fontSize: '14px',
-														backgroundColor: '#f5f5f5',
-													},
+														backgroundColor: '#f5f5f5'
+													}
 												}}
 												helperText="Pre-filled from store settings"
 											/>
@@ -4447,8 +5022,8 @@ function MultiKonnectListingCreation() {
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
 														fontSize: '14px',
-														backgroundColor: '#f5f5f5',
-													},
+														backgroundColor: '#f5f5f5'
+													}
 												}}
 												helperText="Pre-filled from store settings"
 											/>
@@ -4459,10 +5034,13 @@ function MultiKonnectListingCreation() {
 										control={control}
 										render={({ field }) => {
 											// Use field value if it exists, otherwise fall back to store settings
-											const displayValue = field.value && field.value.trim().length > 0 
-												? field.value 
-												: (storeDeliverySlots.length > 0 ? storeDeliverySlots.join(', ') : '12-3pm, 3-6pm, 6-9pm');
-											
+											const displayValue =
+												field.value && field.value.trim().length > 0
+													? field.value
+													: storeDeliverySlots.length > 0
+														? storeDeliverySlots.join(', ')
+														: '12-3pm, 3-6pm, 6-9pm';
+
 											return (
 												<TextField
 													{...field}
@@ -4475,8 +5053,8 @@ function MultiKonnectListingCreation() {
 														'& .MuiOutlinedInput-root': {
 															borderRadius: '12px',
 															fontSize: '14px',
-															backgroundColor: '#f5f5f5',
-														},
+															backgroundColor: '#f5f5f5'
+														}
 													}}
 													helperText="Configured in store settings"
 												/>
@@ -4498,8 +5076,8 @@ function MultiKonnectListingCreation() {
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
-														fontSize: '14px',
-													},
+														fontSize: '14px'
+													}
 												}}
 												helperText="Time to prepare product for delivery"
 											/>
@@ -4508,11 +5086,18 @@ function MultiKonnectListingCreation() {
 								</div>
 
 								{/* Shipping Charges - Set by Vendor */}
-								<Typography variant="subtitle2" sx={{ fontSize: '14px', fontWeight: 600, marginTop: '16px', marginBottom: '8px' }}>
+								<Typography
+									variant="subtitle2"
+									sx={{ fontSize: '14px', fontWeight: 600, marginTop: '16px', marginBottom: '8px' }}
+								>
 									Shipping Charges
 								</Typography>
-								<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '12px' }}>
-									Set your shipping charges for this product. These will be added to the product price.
+								<Typography
+									variant="caption"
+									sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '12px' }}
+								>
+									Set your shipping charges for this product. These will be added to the product
+									price.
 								</Typography>
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 									<Controller
@@ -4527,13 +5112,13 @@ function MultiKonnectListingCreation() {
 												fullWidth
 												size="small"
 												InputProps={{
-													startAdornment: <InputAdornment position="start">£</InputAdornment>,
+													startAdornment: <InputAdornment position="start">£</InputAdornment>
 												}}
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
-														fontSize: '14px',
-													},
+														fontSize: '14px'
+													}
 												}}
 												helperText="Standard delivery"
 											/>
@@ -4551,13 +5136,13 @@ function MultiKonnectListingCreation() {
 												fullWidth
 												size="small"
 												InputProps={{
-													startAdornment: <InputAdornment position="start">£</InputAdornment>,
+													startAdornment: <InputAdornment position="start">£</InputAdornment>
 												}}
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
-														fontSize: '14px',
-													},
+														fontSize: '14px'
+													}
 												}}
 												helperText="Same-day delivery"
 											/>
@@ -4570,13 +5155,23 @@ function MultiKonnectListingCreation() {
 									control={control}
 									render={({ field }) => (
 										<FormControlLabel
-											control={<Checkbox {...field} checked={enablePickup} size="small" />}
+											control={
+												<Checkbox
+													{...field}
+													checked={enablePickup}
+													size="small"
+												/>
+											}
 											label="Enable pickup"
 											sx={{ marginTop: '16px' }}
 										/>
 									)}
 								/>
-								<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '8px' }}>
+								<Typography
+									variant="caption"
+									className="text-gray-500"
+									sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginTop: '8px' }}
+								>
 									Same-day badge appears only if stock &gt; 0 and slots are available.
 								</Typography>
 							</Paper>
@@ -4590,14 +5185,22 @@ function MultiKonnectListingCreation() {
 									border: '1px solid #e5e7eb',
 									boxShadow: 'none',
 									scrollMarginTop: '80px',
-									marginTop: '16px',
+									marginTop: '16px'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}
+								>
 									Subscription Options
 								</Typography>
-								<Typography variant="caption" sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '16px' }}>
-									Enable subscription for this product to allow customers to subscribe for regular deliveries.
+								<Typography
+									variant="caption"
+									sx={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '16px' }}
+								>
+									Enable subscription for this product to allow customers to subscribe for regular
+									deliveries.
 								</Typography>
 
 								<Controller
@@ -4605,7 +5208,13 @@ function MultiKonnectListingCreation() {
 									control={control}
 									render={({ field }) => (
 										<FormControlLabel
-											control={<Checkbox {...field} checked={subscriptionEnabled} size="small" />}
+											control={
+												<Checkbox
+													{...field}
+													checked={subscriptionEnabled}
+													size="small"
+												/>
+											}
 											label="Enable subscription"
 											sx={{ marginBottom: subscriptionEnabled ? '16px' : 0 }}
 										/>
@@ -4629,9 +5238,9 @@ function MultiKonnectListingCreation() {
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
-														fontSize: '14px',
+														fontSize: '14px'
 													},
-													marginTop: '12px',
+													marginTop: '12px'
 												}}
 												helperText="Enter available subscription frequencies (comma-separated or one per line)"
 											/>
@@ -4651,7 +5260,7 @@ function MultiKonnectListingCreation() {
 									scrollMarginTop: '80px',
 									border: '1px solid #e5e7eb',
 									backgroundColor: '#ffffff',
-									boxShadow: 'none',
+									boxShadow: 'none'
 								}}
 							>
 								<Typography
@@ -4688,12 +5297,12 @@ function MultiKonnectListingCreation() {
 											'&:hover': {
 												borderColor: '#9ca3af',
 												backgroundColor: '#f9fafb',
-												borderWidth: '1.5px',
+												borderWidth: '1.5px'
 											},
 											'&:disabled': {
 												opacity: 0.7,
-												cursor: 'not-allowed',
-											},
+												cursor: 'not-allowed'
+											}
 										}}
 									>
 										{isGeneratingTitle ? 'Generating...' : 'Suggest title'}
@@ -4717,12 +5326,12 @@ function MultiKonnectListingCreation() {
 											'&:hover': {
 												borderColor: '#9ca3af',
 												backgroundColor: '#f9fafb',
-												borderWidth: '1.5px',
+												borderWidth: '1.5px'
 											},
 											'&:disabled': {
 												opacity: 0.7,
-												cursor: 'not-allowed',
-											},
+												cursor: 'not-allowed'
+											}
 										}}
 									>
 										{isGeneratingBullets ? 'Generating...' : 'Generate 6 bullets'}
@@ -4746,12 +5355,12 @@ function MultiKonnectListingCreation() {
 											'&:hover': {
 												borderColor: '#9ca3af',
 												backgroundColor: '#f9fafb',
-												borderWidth: '1.5px',
+												borderWidth: '1.5px'
 											},
 											'&:disabled': {
 												opacity: 0.7,
-												cursor: 'not-allowed',
-											},
+												cursor: 'not-allowed'
+											}
 										}}
 									>
 										{isWritingDescription ? 'Writing...' : 'Write description'}
@@ -4760,8 +5369,16 @@ function MultiKonnectListingCreation() {
 
 								{/* Tone Dropdown */}
 								<div className="mb-6">
-									<FormControl fullWidth size="medium">
-										<InputLabel id="tone-select-label" sx={{ fontSize: '14px' }}>Tone</InputLabel>
+									<FormControl
+										fullWidth
+										size="medium"
+									>
+										<InputLabel
+											id="tone-select-label"
+											sx={{ fontSize: '14px' }}
+										>
+											Tone
+										</InputLabel>
 										<Select
 											labelId="tone-select-label"
 											label="Tone"
@@ -4771,18 +5388,43 @@ function MultiKonnectListingCreation() {
 												borderRadius: '8px',
 												fontSize: '14px',
 												'& .MuiOutlinedInput-notchedOutline': {
-													borderColor: '#d1d5db',
+													borderColor: '#d1d5db'
 												},
 												'&:hover .MuiOutlinedInput-notchedOutline': {
-													borderColor: '#9ca3af',
-												},
+													borderColor: '#9ca3af'
+												}
 											}}
 										>
-											<MenuItem value="Neutral" sx={{ fontSize: '14px' }}>Neutral</MenuItem>
-											<MenuItem value="Professional" sx={{ fontSize: '14px' }}>Professional</MenuItem>
-											<MenuItem value="Casual" sx={{ fontSize: '14px' }}>Casual</MenuItem>
-											<MenuItem value="Friendly" sx={{ fontSize: '14px' }}>Friendly</MenuItem>
-											<MenuItem value="Formal" sx={{ fontSize: '14px' }}>Formal</MenuItem>
+											<MenuItem
+												value="Neutral"
+												sx={{ fontSize: '14px' }}
+											>
+												Neutral
+											</MenuItem>
+											<MenuItem
+												value="Professional"
+												sx={{ fontSize: '14px' }}
+											>
+												Professional
+											</MenuItem>
+											<MenuItem
+												value="Casual"
+												sx={{ fontSize: '14px' }}
+											>
+												Casual
+											</MenuItem>
+											<MenuItem
+												value="Friendly"
+												sx={{ fontSize: '14px' }}
+											>
+												Friendly
+											</MenuItem>
+											<MenuItem
+												value="Formal"
+												sx={{ fontSize: '14px' }}
+											>
+												Formal
+											</MenuItem>
 										</Select>
 									</FormControl>
 								</div>
@@ -4808,28 +5450,28 @@ function MultiKonnectListingCreation() {
 															borderRadius: '8px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#d1d5db',
+																borderColor: '#d1d5db'
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#9ca3af',
+																borderColor: '#9ca3af'
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 																borderColor: '#3b82f6',
-																borderWidth: '2px',
-															},
+																borderWidth: '2px'
+															}
 														},
 														'& .MuiInputBase-input': {
 															padding: '12px 14px',
-															color: '#111827',
+															color: '#111827'
 														},
 														'& .MuiInputLabel-root': {
 															fontSize: '14px',
-															color: '#6b7280',
+															color: '#6b7280'
 														},
 														'& .MuiFormHelperText-root': {
 															fontSize: '12px',
-															marginTop: '4px',
-														},
+															marginTop: '4px'
+														}
 													}}
 												/>
 											);
@@ -4860,29 +5502,29 @@ function MultiKonnectListingCreation() {
 															borderRadius: '8px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#d1d5db',
+																borderColor: '#d1d5db'
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#9ca3af',
+																borderColor: '#9ca3af'
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 																borderColor: '#3b82f6',
-																borderWidth: '2px',
-															},
+																borderWidth: '2px'
+															}
 														},
 														'& .MuiInputBase-input': {
 															padding: '12px 14px',
 															color: '#111827',
-															lineHeight: '1.5',
+															lineHeight: '1.5'
 														},
 														'& .MuiInputLabel-root': {
 															fontSize: '14px',
-															color: '#6b7280',
+															color: '#6b7280'
 														},
 														'& .MuiFormHelperText-root': {
 															fontSize: '12px',
-															marginTop: '4px',
-														},
+															marginTop: '4px'
+														}
 													}}
 												/>
 											);
@@ -4912,35 +5554,35 @@ function MultiKonnectListingCreation() {
 														borderRadius: '8px',
 														fontSize: '14px',
 														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db',
+															borderColor: '#d1d5db'
 														},
 														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af',
+															borderColor: '#9ca3af'
 														},
 														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 															borderColor: '#3b82f6',
-															borderWidth: '2px',
+															borderWidth: '2px'
 														},
 														'& textarea': {
 															overflow: 'auto !important',
 															resize: 'vertical',
 															minHeight: '120px !important',
-															fontFamily: 'inherit',
-														},
+															fontFamily: 'inherit'
+														}
 													},
 													'& .MuiInputBase-input': {
 														padding: '12px 14px',
 														color: '#111827',
-														lineHeight: '1.5',
+														lineHeight: '1.5'
 													},
 													'& .MuiInputLabel-root': {
 														fontSize: '14px',
-														color: '#6b7280',
+														color: '#6b7280'
 													},
 													'& .MuiFormHelperText-root': {
 														fontSize: '12px',
-														marginTop: '4px',
-													},
+														marginTop: '4px'
+													}
 												}}
 											/>
 										)}
@@ -4973,7 +5615,7 @@ function MultiKonnectListingCreation() {
 									scrollMarginTop: '80px',
 									border: '1px solid #e5e7eb',
 									boxShadow: 'none',
-									backgroundColor: '#ffffff',
+									backgroundColor: '#ffffff'
 								}}
 							>
 								<Typography
@@ -4998,7 +5640,8 @@ function MultiKonnectListingCreation() {
 										lineHeight: '1.5'
 									}}
 								>
-									Set product condition, warranty, returns policy, and quality control details to build buyer trust.
+									Set product condition, warranty, returns policy, and quality control details to
+									build buyer trust.
 								</Typography>
 
 								{/* Quality Control Section */}
@@ -5023,9 +5666,15 @@ function MultiKonnectListingCreation() {
 											name="condition"
 											control={control}
 											render={({ field }) => {
-												const hasError = condition === 'New' && (!galleryImages || galleryImages.length === 0);
+												const hasError =
+													condition === 'New' &&
+													(!galleryImages || galleryImages.length === 0);
 												return (
-													<FormControl fullWidth size="small" error={hasError}>
+													<FormControl
+														fullWidth
+														size="small"
+														error={hasError}
+													>
 														<InputLabel>Condition *</InputLabel>
 														<Select
 															{...field}
@@ -5034,35 +5683,50 @@ function MultiKonnectListingCreation() {
 															onChange={(e) => {
 																const newCondition = e.target.value;
 																field.onChange(e);
+
 																// Validate if "New" is selected and no images
-																if (newCondition === 'New' && (!galleryImages || galleryImages.length === 0)) {
-																	setValue('condition', newCondition, { shouldValidate: true });
+																if (
+																	newCondition === 'New' &&
+																	(!galleryImages || galleryImages.length === 0)
+																) {
+																	setValue('condition', newCondition, {
+																		shouldValidate: true
+																	});
 																}
 															}}
 															sx={{
 																borderRadius: '12px',
 																fontSize: '14px',
 																'& .MuiOutlinedInput-notchedOutline': {
-																	borderColor: hasError ? '#ef4444' : '#d1d5db',
+																	borderColor: hasError ? '#ef4444' : '#d1d5db'
 																},
 																'&:hover .MuiOutlinedInput-notchedOutline': {
-																	borderColor: hasError ? '#ef4444' : '#9ca3af',
+																	borderColor: hasError ? '#ef4444' : '#9ca3af'
 																},
 																'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 																	borderColor: hasError ? '#ef4444' : '#3b82f6',
-																	borderWidth: '2px',
-																},
+																	borderWidth: '2px'
+																}
 															}}
 														>
 															<MenuItem value="New">New</MenuItem>
 															<MenuItem value="Like New">Like New</MenuItem>
 															<MenuItem value="Refurbished">Refurbished</MenuItem>
-															<MenuItem value="Used - Excellent">Used - Excellent</MenuItem>
+															<MenuItem value="Used - Excellent">
+																Used - Excellent
+															</MenuItem>
 															<MenuItem value="Used - Good">Used - Good</MenuItem>
 															<MenuItem value="Used - Fair">Used - Fair</MenuItem>
 														</Select>
 														{hasError && (
-															<Typography variant="caption" sx={{ color: '#ef4444', marginTop: '4px', fontSize: '12px' }}>
+															<Typography
+																variant="caption"
+																sx={{
+																	color: '#ef4444',
+																	marginTop: '4px',
+																	fontSize: '12px'
+																}}
+															>
 																New condition requires at least one picture
 															</Typography>
 														)}
@@ -5083,30 +5747,33 @@ function MultiKonnectListingCreation() {
 													placeholder="Enter IMEI or serial number"
 													size="small"
 													error={!!errors.imei}
-													helperText={errors?.imei?.message as string || "Optional: Add for verification"}
+													helperText={
+														(errors?.imei?.message as string) ||
+														'Optional: Add for verification'
+													}
 													sx={{
 														'& .MuiOutlinedInput-root': {
 															borderRadius: '12px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#d1d5db',
+																borderColor: '#d1d5db'
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#9ca3af',
+																borderColor: '#9ca3af'
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 																borderColor: '#3b82f6',
-																borderWidth: '2px',
-															},
+																borderWidth: '2px'
+															}
 														},
 														'& .MuiInputBase-input': {
 															padding: '12px 14px',
-															color: '#111827',
+															color: '#111827'
 														},
 														'& .MuiFormHelperText-root': {
 															fontSize: '11px',
-															marginTop: '4px',
-														},
+															marginTop: '4px'
+														}
 													}}
 												/>
 											)}
@@ -5129,37 +5796,40 @@ function MultiKonnectListingCreation() {
 												maxRows={5}
 												size="medium"
 												error={!!errors.condition_notes}
-												helperText={errors?.condition_notes?.message as string || "Optional: Detailed notes help buyers make informed decisions"}
+												helperText={
+													(errors?.condition_notes?.message as string) ||
+													'Optional: Detailed notes help buyers make informed decisions'
+												}
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
 														fontSize: '14px',
 														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db',
+															borderColor: '#d1d5db'
 														},
 														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af',
+															borderColor: '#9ca3af'
 														},
 														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 															borderColor: '#3b82f6',
-															borderWidth: '2px',
+															borderWidth: '2px'
 														},
 														'& textarea': {
 															overflow: 'auto !important',
 															resize: 'vertical',
 															minHeight: '90px !important',
-															fontFamily: 'inherit',
-														},
+															fontFamily: 'inherit'
+														}
 													},
 													'& .MuiInputBase-input': {
 														padding: '12px 14px',
 														color: '#111827',
-														lineHeight: '1.5',
+														lineHeight: '1.5'
 													},
 													'& .MuiFormHelperText-root': {
 														fontSize: '11px',
-														marginTop: '4px',
-													},
+														marginTop: '4px'
+													}
 												}}
 											/>
 										)}
@@ -5190,7 +5860,10 @@ function MultiKonnectListingCreation() {
 											name="returns"
 											control={control}
 											render={({ field }) => (
-												<FormControl fullWidth size="small">
+												<FormControl
+													fullWidth
+													size="small"
+												>
 													<InputLabel>Returns Policy *</InputLabel>
 													<Select
 														{...field}
@@ -5200,15 +5873,15 @@ function MultiKonnectListingCreation() {
 															borderRadius: '12px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#d1d5db',
+																borderColor: '#d1d5db'
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#9ca3af',
+																borderColor: '#9ca3af'
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 																borderColor: '#3b82f6',
-																borderWidth: '2px',
-															},
+																borderWidth: '2px'
+															}
 														}}
 													>
 														<MenuItem value="7-day returns">7-day returns</MenuItem>
@@ -5233,30 +5906,33 @@ function MultiKonnectListingCreation() {
 													value={warranty}
 													size="small"
 													error={!!errors.warranty}
-													helperText={errors?.warranty?.message as string || "Optional: Warranty details"}
+													helperText={
+														(errors?.warranty?.message as string) ||
+														'Optional: Warranty details'
+													}
 													sx={{
 														'& .MuiOutlinedInput-root': {
 															borderRadius: '12px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#d1d5db',
+																borderColor: '#d1d5db'
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#9ca3af',
+																borderColor: '#9ca3af'
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 																borderColor: '#3b82f6',
-																borderWidth: '2px',
-															},
+																borderWidth: '2px'
+															}
 														},
 														'& .MuiInputBase-input': {
 															padding: '12px 14px',
-															color: '#111827',
+															color: '#111827'
 														},
 														'& .MuiFormHelperText-root': {
 															fontSize: '11px',
-															marginTop: '4px',
-														},
+															marginTop: '4px'
+														}
 													}}
 												/>
 											)}
@@ -5297,37 +5973,40 @@ function MultiKonnectListingCreation() {
 												maxRows={5}
 												size="medium"
 												error={!!errors.box_contents}
-												helperText={errors?.box_contents?.message as string || "Be specific about what's included to set accurate buyer expectations"}
+												helperText={
+													(errors?.box_contents?.message as string) ||
+													"Be specific about what's included to set accurate buyer expectations"
+												}
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
 														fontSize: '14px',
 														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db',
+															borderColor: '#d1d5db'
 														},
 														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af',
+															borderColor: '#9ca3af'
 														},
 														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
 															borderColor: '#3b82f6',
-															borderWidth: '2px',
+															borderWidth: '2px'
 														},
 														'& textarea': {
 															overflow: 'auto !important',
 															resize: 'vertical',
 															minHeight: '90px !important',
-															fontFamily: 'inherit',
-														},
+															fontFamily: 'inherit'
+														}
 													},
 													'& .MuiInputBase-input': {
 														padding: '12px 14px',
 														color: '#111827',
-														lineHeight: '1.5',
+														lineHeight: '1.5'
 													},
 													'& .MuiFormHelperText-root': {
 														fontSize: '11px',
-														marginTop: '4px',
-													},
+														marginTop: '4px'
+													}
 												}}
 											/>
 										)}
@@ -5352,7 +6031,9 @@ function MultiKonnectListingCreation() {
 											display: 'block'
 										}}
 									>
-										<strong>💡 Tip:</strong> QC-verified products with detailed condition notes and complete box contents build buyer trust and reduce returns. Be accurate and transparent.
+										<strong>💡 Tip:</strong> QC-verified products with detailed condition notes and
+										complete box contents build buyer trust and reduce returns. Be accurate and
+										transparent.
 									</Typography>
 								</Box>
 							</Paper>
@@ -5367,10 +6048,14 @@ function MultiKonnectListingCreation() {
 									borderRadius: '16px',
 									scrollMarginTop: '80px',
 									border: '1px solid #e5e7eb',
-									boxShadow: 'none',
+									boxShadow: 'none'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}
+								>
 									Offers
 								</Typography>
 								<div className="space-y-2">
@@ -5378,7 +6063,9 @@ function MultiKonnectListingCreation() {
 										control={
 											<Checkbox
 												checked={offers.accessoryShield}
-												onChange={(e) => setOffers({ ...offers, accessoryShield: e.target.checked })}
+												onChange={(e) =>
+													setOffers({ ...offers, accessoryShield: e.target.checked })
+												}
 												size="small"
 											/>
 										}
@@ -5389,7 +6076,9 @@ function MultiKonnectListingCreation() {
 										control={
 											<Checkbox
 												checked={offers.setupAtDoorstep}
-												onChange={(e) => setOffers({ ...offers, setupAtDoorstep: e.target.checked })}
+												onChange={(e) =>
+													setOffers({ ...offers, setupAtDoorstep: e.target.checked })
+												}
 												size="small"
 											/>
 										}
@@ -5400,7 +6089,9 @@ function MultiKonnectListingCreation() {
 										control={
 											<Checkbox
 												checked={offers.priceDropProtection}
-												onChange={(e) => setOffers({ ...offers, priceDropProtection: e.target.checked })}
+												onChange={(e) =>
+													setOffers({ ...offers, priceDropProtection: e.target.checked })
+												}
 												size="small"
 											/>
 										}
@@ -5411,7 +6102,9 @@ function MultiKonnectListingCreation() {
 										control={
 											<Checkbox
 												checked={offers.tradeInAssist}
-												onChange={(e) => setOffers({ ...offers, tradeInAssist: e.target.checked })}
+												onChange={(e) =>
+													setOffers({ ...offers, tradeInAssist: e.target.checked })
+												}
 												size="small"
 											/>
 										}
@@ -5431,13 +6124,21 @@ function MultiKonnectListingCreation() {
 									borderRadius: '16px',
 									scrollMarginTop: '80px',
 									border: '1px solid #e5e7eb',
-									boxShadow: 'none',
+									boxShadow: 'none'
 								}}
 							>
-								<Typography variant="h6" className="font-semibold mb-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}>
+								<Typography
+									variant="h6"
+									className="font-semibold mb-1 text-gray-900"
+									sx={{ fontSize: '16px', fontWeight: 600, marginBottom: '6px' }}
+								>
 									Trust & Compliance
 								</Typography>
-								<Typography variant="body2" className="text-gray-600 mb-3" sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}>
+								<Typography
+									variant="body2"
+									className="text-gray-600 mb-3"
+									sx={{ fontSize: '13px', color: '#6b7280', marginBottom: '10px' }}
+								>
 									Exclusive MultiKonnect safeguards to reduce fraud and elevate buyer confidence.
 								</Typography>
 								<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
@@ -5445,20 +6146,31 @@ function MultiKonnectListingCreation() {
 										name="kyc_tier"
 										control={control}
 										render={({ field }) => (
-											<FormControl fullWidth size="small">
+											<FormControl
+												fullWidth
+												size="small"
+											>
 												<InputLabel>KYC tier</InputLabel>
 												<Select
 													{...field}
 													value={kycTier}
 													sx={{
 														borderRadius: '12px',
-														fontSize: '14px',
+														fontSize: '14px'
 													}}
 												>
-													<MenuItem value="Tier 0 - Email verified">Tier 0 — Email verified</MenuItem>
-													<MenuItem value="Tier 1 - ID + Selfie">Tier 1 — ID + Selfie</MenuItem>
-													<MenuItem value="Tier 2 - ID + Bank match">Tier 2 — ID + Bank match</MenuItem>
-													<MenuItem value="Tier 3 - Business KYB">Tier 3 — Business KYB</MenuItem>
+													<MenuItem value="Tier 0 - Email verified">
+														Tier 0 — Email verified
+													</MenuItem>
+													<MenuItem value="Tier 1 - ID + Selfie">
+														Tier 1 — ID + Selfie
+													</MenuItem>
+													<MenuItem value="Tier 2 - ID + Bank match">
+														Tier 2 — ID + Bank match
+													</MenuItem>
+													<MenuItem value="Tier 3 - Business KYB">
+														Tier 3 — Business KYB
+													</MenuItem>
 												</Select>
 											</FormControl>
 										)}
@@ -5476,8 +6188,8 @@ function MultiKonnectListingCreation() {
 												sx={{
 													'& .MuiOutlinedInput-root': {
 														borderRadius: '12px',
-														fontSize: '14px',
-													},
+														fontSize: '14px'
+													}
 												}}
 											/>
 										)}
@@ -5491,22 +6203,25 @@ function MultiKonnectListingCreation() {
 										sx={{
 											'& .MuiOutlinedInput-root': {
 												borderRadius: '12px',
-												fontSize: '14px',
-											},
+												fontSize: '14px'
+											}
 										}}
 									/>
 									<Controller
 										name="payout_lock"
 										control={control}
 										render={({ field }) => (
-											<FormControl fullWidth size="small">
+											<FormControl
+												fullWidth
+												size="small"
+											>
 												<InputLabel>Payout lock</InputLabel>
 												<Select
 													{...field}
 													value={payoutLock}
 													sx={{
 														borderRadius: '12px',
-														fontSize: '14px',
+														fontSize: '14px'
 													}}
 												>
 													<MenuItem value="Instant">Instant</MenuItem>
@@ -5517,8 +6232,13 @@ function MultiKonnectListingCreation() {
 										)}
 									/>
 								</div>
-								<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
-									We cross‑check ID ↔ bank name, geolocation, IP risk, and order velocity to keep the marketplace safe.
+								<Typography
+									variant="caption"
+									className="text-gray-500"
+									sx={{ fontSize: '12px', color: '#6b7280' }}
+								>
+									We cross‑check ID ↔ bank name, geolocation, IP risk, and order velocity to keep the
+									marketplace safe.
 								</Typography>
 							</Paper>
 
@@ -5533,11 +6253,15 @@ function MultiKonnectListingCreation() {
 									scrollMarginTop: '80px',
 									border: '1px solid #e5e7eb',
 									boxShadow: 'none',
-									overflow: 'hidden',
+									overflow: 'hidden'
 								}}
 							>
 								<div className="flex gap-2 items-center p-3 border-b border-gray-200">
-									<Typography variant="h6" className="font-semibold flex-1 text-gray-900" sx={{ fontSize: '16px', fontWeight: 600 }}>
+									<Typography
+										variant="h6"
+										className="font-semibold flex-1 text-gray-900"
+										sx={{ fontSize: '16px', fontWeight: 600 }}
+									>
 										Preview
 									</Typography>
 									<Button
@@ -5554,8 +6278,8 @@ function MultiKonnectListingCreation() {
 											borderRadius: '8px',
 											minHeight: '36px',
 											'&:hover': {
-												backgroundColor: previewMode === 'desktop' ? '#e55a2b' : '#f9fafb',
-											},
+												backgroundColor: previewMode === 'desktop' ? '#e55a2b' : '#f9fafb'
+											}
 										}}
 									>
 										Desktop
@@ -5574,20 +6298,23 @@ function MultiKonnectListingCreation() {
 											borderRadius: '8px',
 											minHeight: '36px',
 											'&:hover': {
-												backgroundColor: previewMode === 'mobile' ? '#e55a2b' : '#f9fafb',
-											},
+												backgroundColor: previewMode === 'mobile' ? '#e55a2b' : '#f9fafb'
+											}
 										}}
 									>
 										Mobile
 									</Button>
 								</div>
 								<div className="p-3 sm:p-4">
-									<div className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]'}`}>
+									<div
+										className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]'}`}
+									>
 										<div
-											className={`rounded-xl overflow-hidden relative bg-gray-100 ${previewMode === 'mobile' ? 'h-[300px] sm:h-[360px]' : 'h-[360px]'
-												}`}
+											className={`rounded-xl overflow-hidden relative bg-gray-100 ${
+												previewMode === 'mobile' ? 'h-[300px] sm:h-[360px]' : 'h-[360px]'
+											}`}
 											style={{
-												borderRadius: '14px',
+												borderRadius: '14px'
 											}}
 										>
 											{Array.isArray(galleryImages) && galleryImages.length > 0 ? (
@@ -5596,21 +6323,28 @@ function MultiKonnectListingCreation() {
 													<img
 														src={(() => {
 															// Double-check that galleryImages is an array
-															const images = Array.isArray(galleryImages) ? galleryImages : [];
+															const images = Array.isArray(galleryImages)
+																? galleryImages
+																: [];
+
 															if (images.length === 0) return '';
-															const featured = images.find((img: any) => img && img.is_featured);
+
+															const featured = images.find(
+																(img: any) => img && img.is_featured
+															);
 															const first = images.find((img: any) => img && img.url);
 															return (featured || first)?.url || '';
 														})()}
 														alt={productTitle || 'Product'}
 														className="w-full h-full object-contain"
 														style={{
-															objectFit: 'contain',
+															objectFit: 'contain'
 														}}
 														onError={(e: any) => {
 															console.error('Image load error:', e);
 															// Try to fallback to a placeholder or remove broken image
 															const target = e.target as HTMLImageElement;
+
 															if (target) {
 																target.style.display = 'none';
 															}
@@ -5625,40 +6359,61 @@ function MultiKonnectListingCreation() {
 													{/* Thumbnail Navigation */}
 													{Array.isArray(galleryImages) && galleryImages.length > 1 && (
 														<div className="absolute bottom-2 left-2 right-2 flex gap-2 overflow-x-auto pb-1">
-															{galleryImages.filter((img: any) => img && img.url).slice(0, 5).map((img: any, idx: number) => {
-																// Double-check that galleryImages is an array before using .some()
-																const images = Array.isArray(galleryImages) ? galleryImages : [];
-																const isFeatured = img.is_featured || (idx === 0 && !images.some((i: any) => i && i.is_featured));
-																return (
-																	<div
-																		key={idx}
-																		className="flex-shrink-0 w-12 h-12 rounded border-2 border-white overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
-																		style={{
-																			borderColor: isFeatured ? '#ff6536' : 'white',
-																		}}
-																		onClick={() => {
-																			// Switch featured image
-																			if (!Array.isArray(galleryImages)) return;
-																			const updated = galleryImages.map((img, i) => ({
-																				...img,
-																				is_featured: i === idx,
-																			}));
-																			setValue('gallery_images', updated, { shouldDirty: true });
-																		}}
-																	>
-																		{img && img.url && (
-																			<img
-																				src={img.url}
-																				alt={`Thumbnail ${idx + 1}`}
-																				className="w-full h-full object-cover"
-																				onError={(e) => {
-																					console.error('Thumbnail load error:', e);
-																				}}
-																			/>
-																		)}
-																	</div>
-																);
-															})}
+															{galleryImages
+																.filter((img: any) => img && img.url)
+																.slice(0, 5)
+																.map((img: any, idx: number) => {
+																	// Double-check that galleryImages is an array before using .some()
+																	const images = Array.isArray(galleryImages)
+																		? galleryImages
+																		: [];
+																	const isFeatured =
+																		img.is_featured ||
+																		(idx === 0 &&
+																			!images.some(
+																				(i: any) => i && i.is_featured
+																			));
+																	return (
+																		<div
+																			key={idx}
+																			className="flex-shrink-0 w-12 h-12 rounded border-2 border-white overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+																			style={{
+																				borderColor: isFeatured
+																					? '#ff6536'
+																					: 'white'
+																			}}
+																			onClick={() => {
+																				// Switch featured image
+																				if (!Array.isArray(galleryImages))
+																					return;
+
+																				const updated = galleryImages.map(
+																					(img, i) => ({
+																						...img,
+																						is_featured: i === idx
+																					})
+																				);
+																				setValue('gallery_images', updated, {
+																					shouldDirty: true
+																				});
+																			}}
+																		>
+																			{img && img.url && (
+																				<img
+																					src={img.url}
+																					alt={`Thumbnail ${idx + 1}`}
+																					className="w-full h-full object-cover"
+																					onError={(e) => {
+																						console.error(
+																							'Thumbnail load error:',
+																							e
+																						);
+																					}}
+																				/>
+																			)}
+																		</div>
+																	);
+																})}
 															{galleryImages.length > 5 && (
 																<div className="flex-shrink-0 w-12 h-12 rounded border-2 border-white bg-black bg-opacity-60 flex items-center justify-center text-white text-xs font-semibold">
 																	+{galleryImages.length - 5}
@@ -5671,22 +6426,33 @@ function MultiKonnectListingCreation() {
 												<div
 													className="h-full w-full flex items-center justify-center text-gray-400"
 													style={{
-														background: 'linear-gradient(135deg, #ff7a52, #ff4f1e)',
+														background: 'linear-gradient(135deg, #ff7a52, #ff4f1e)'
 													}}
 												>
-													<Typography variant="h6" sx={{ fontSize: '18px', fontWeight: 900, color: 'white' }}>
+													<Typography
+														variant="h6"
+														sx={{ fontSize: '18px', fontWeight: 900, color: 'white' }}
+													>
 														PRODUCT IMAGES
 													</Typography>
 												</div>
 											)}
 										</div>
 										<div className="w-full">
-											<Typography variant="h5" className="font-bold mb-2" sx={{ fontSize: { xs: '18px', sm: '20px' }, fontWeight: 700, marginBottom: '6px' }}>
+											<Typography
+												variant="h5"
+												className="font-bold mb-2"
+												sx={{
+													fontSize: { xs: '18px', sm: '20px' },
+													fontWeight: 700,
+													marginBottom: '6px'
+												}}
+											>
 												{productTitle || 'Product Name'}
 											</Typography>
 											<div className="flex flex-wrap gap-2 items-center mb-2">
 												{/* QC-Verified badge - show if condition is set */}
-												{(condition && condition !== 'New') && (
+												{condition && condition !== 'New' && (
 													<Chip
 														label="QC‑Verified"
 														size="small"
@@ -5695,7 +6461,7 @@ function MultiKonnectListingCreation() {
 															border: '1px solid #e5e7eb',
 															fontSize: '11px',
 															height: '24px',
-															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
 														}}
 													/>
 												)}
@@ -5709,24 +6475,26 @@ function MultiKonnectListingCreation() {
 															border: '1px solid #e5e7eb',
 															fontSize: '11px',
 															height: '24px',
-															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
 														}}
 													/>
 												)}
 												{/* Same-day delivery badge - show if stock > 0 and delivery slots set */}
-												{(stock > 0 || variants.some(v => parseInt(v.stock) > 0)) && deliverySlots && (
-													<Chip
-														label={`Ready ~${readyInMinutes}m`}
-														size="small"
-														sx={{
-															backgroundColor: '#f3f4f6',
-															border: '1px solid #e5e7eb',
-															fontSize: '11px',
-															height: '24px',
-															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
-														}}
-													/>
-												)}
+												{(stock > 0 || variants.some((v) => parseInt(v.stock) > 0)) &&
+													deliverySlots && (
+														<Chip
+															label={`Ready ~${readyInMinutes}m`}
+															size="small"
+															sx={{
+																backgroundColor: '#f3f4f6',
+																border: '1px solid #e5e7eb',
+																fontSize: '11px',
+																height: '24px',
+																fontFamily:
+																	'ui-monospace, SFMono-Regular, Menlo, monospace'
+															}}
+														/>
+													)}
 												{/* Setup at Doorstep badge */}
 												{offers.setupAtDoorstep && (
 													<Chip
@@ -5737,7 +6505,7 @@ function MultiKonnectListingCreation() {
 															border: '1px solid #e5e7eb',
 															fontSize: '11px',
 															height: '24px',
-															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
 														}}
 													/>
 												)}
@@ -5751,19 +6519,29 @@ function MultiKonnectListingCreation() {
 															border: '1px solid #e5e7eb',
 															fontSize: '11px',
 															height: '24px',
-															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+															fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
 														}}
 													/>
 												)}
 											</div>
 											<div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center mb-2">
-												<div className="flex items-center border border-gray-300 rounded-xl px-3 py-2 flex-1 sm:flex-initial sm:max-w-[220px]" style={{ borderRadius: '12px' }}>
-													<span className="mr-1" style={{ fontSize: '16px', fontWeight: 700 }}>£</span>
+												<div
+													className="flex items-center border border-gray-300 rounded-xl px-3 py-2 flex-1 sm:flex-initial sm:max-w-[220px]"
+													style={{ borderRadius: '12px' }}
+												>
+													<span
+														className="mr-1"
+														style={{ fontSize: '16px', fontWeight: 700 }}
+													>
+														£
+													</span>
 													<input
 														type="text"
-														value={variants.length > 0 && variants[0].price
-															? variants[0].price
-															: priceTaxExcl || '0'}
+														value={
+															variants.length > 0 && variants[0].price
+																? variants[0].price
+																: priceTaxExcl || '0'
+														}
 														readOnly
 														style={{
 															border: 'none',
@@ -5771,32 +6549,38 @@ function MultiKonnectListingCreation() {
 															width: '100%',
 															fontSize: '16px',
 															fontWeight: 700,
-															color: '#111827',
+															color: '#111827'
 														}}
 													/>
 												</div>
 												<Button
 													variant="contained"
 													fullWidth={previewMode === 'mobile'}
-													disabled={(stock === 0 && variants.length === 0) || (variants.length > 0 && !variants.some(v => parseInt(v.stock) > 0))}
+													disabled={
+														(stock === 0 && variants.length === 0) ||
+														(variants.length > 0 &&
+															!variants.some((v) => parseInt(v.stock) > 0))
+													}
 													sx={{
 														backgroundColor: '#ff6536',
 														'&:hover': { backgroundColor: '#e55a2b' },
 														'&:disabled': {
 															backgroundColor: '#d1d5db',
-															color: '#9ca3af',
+															color: '#9ca3af'
 														},
 														textTransform: 'none',
 														borderRadius: '10px',
 														fontSize: { xs: '14px', sm: '13px' },
 														padding: { xs: '10px 16px', sm: '8px 16px' },
 														minHeight: { xs: '44px', sm: '36px' },
-														whiteSpace: previewMode === 'mobile' ? 'normal' : 'nowrap',
+														whiteSpace: previewMode === 'mobile' ? 'normal' : 'nowrap'
 													}}
 												>
 													{previewMode === 'mobile' ? (
 														<span>
-															Add<br />to cart
+															Add
+															<br />
+															to cart
 														</span>
 													) : (
 														'Add to cart'
@@ -5806,7 +6590,15 @@ function MultiKonnectListingCreation() {
 											{/* Show variant selection if variants exist */}
 											{variants.length > 0 && (
 												<div className="mb-2">
-													<Typography variant="caption" sx={{ fontSize: '11px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>
+													<Typography
+														variant="caption"
+														sx={{
+															fontSize: '11px',
+															color: '#6b7280',
+															display: 'block',
+															marginBottom: '4px'
+														}}
+													>
 														Variants:
 													</Typography>
 													<div className="flex flex-wrap gap-1">
@@ -5819,7 +6611,7 @@ function MultiKonnectListingCreation() {
 																	backgroundColor: '#f3f4f6',
 																	border: '1px solid #e5e7eb',
 																	fontSize: '10px',
-																	height: '20px',
+																	height: '20px'
 																}}
 															/>
 														))}
@@ -5831,14 +6623,18 @@ function MultiKonnectListingCreation() {
 																	backgroundColor: '#f3f4f6',
 																	border: '1px solid #e5e7eb',
 																	fontSize: '10px',
-																	height: '20px',
+																	height: '20px'
 																}}
 															/>
 														)}
 													</div>
 												</div>
 											)}
-											<Typography variant="caption" className="text-gray-500" sx={{ fontSize: '12px', color: '#6b7280' }}>
+											<Typography
+												variant="caption"
+												className="text-gray-500"
+												sx={{ fontSize: '12px', color: '#6b7280' }}
+											>
 												Preview is read‑only on live; fields here mirror your inputs.
 											</Typography>
 										</div>
@@ -5859,8 +6655,9 @@ function MultiKonnectListingCreation() {
 
 					{/* Right Sidebar - Listing Score & Actions */}
 					<aside
-						className={`fixed lg:static w-[320px] max-w-[85vw] lg:max-w-none bg-white border-l overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-							}`}
+						className={`fixed lg:static w-[320px] max-w-[85vw] lg:max-w-none bg-white border-l overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
+							rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+						}`}
 						style={{
 							borderLeftColor: '#e5e7eb',
 							borderLeftWidth: '1px',
@@ -5884,19 +6681,28 @@ function MultiKonnectListingCreation() {
 							{/* Listing Score */}
 							<div>
 								<div className="flex items-center justify-between mb-3">
-									<Typography variant="h6" className="font-semibold text-gray-900" sx={{ fontSize: '16px', fontWeight: 600 }}>
+									<Typography
+										variant="h6"
+										className="font-semibold text-gray-900"
+										sx={{ fontSize: '16px', fontWeight: 600 }}
+									>
 										Listing Score
 									</Typography>
 									<Chip
 										label={listingScore}
 										sx={{
-											backgroundColor: listingScore >= 80 ? '#10b981' : listingScore >= 60 ? '#f59e0b' : '#ef4444',
+											backgroundColor:
+												listingScore >= 80
+													? '#10b981'
+													: listingScore >= 60
+														? '#f59e0b'
+														: '#ef4444',
 											color: '#fff',
 											fontSize: '14px',
 											fontWeight: 700,
 											height: '28px',
 											borderRadius: '999px',
-											padding: '0 12px',
+											padding: '0 12px'
 										}}
 									/>
 								</div>
@@ -5908,13 +6714,14 @@ function MultiKonnectListingCreation() {
 										borderRadius: '999px',
 										backgroundColor: '#e5e7eb',
 										'& .MuiLinearProgress-bar': {
-											background: listingScore >= 80
-												? 'linear-gradient(90deg, #22c55e, #10b981)'
-												: listingScore >= 60
-													? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-													: 'linear-gradient(90deg, #ef4444, #dc2626)',
-											borderRadius: '999px',
-										},
+											background:
+												listingScore >= 80
+													? 'linear-gradient(90deg, #22c55e, #10b981)'
+													: listingScore >= 60
+														? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+														: 'linear-gradient(90deg, #ef4444, #dc2626)',
+											borderRadius: '999px'
+										}
 									}}
 								/>
 							</div>
@@ -5922,7 +6729,11 @@ function MultiKonnectListingCreation() {
 							{/* Missing Fields Alert */}
 							{missingFields.length > 0 && (
 								<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-									<Typography variant="subtitle2" className="font-semibold mb-2 text-red-900" sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+									<Typography
+										variant="subtitle2"
+										className="font-semibold mb-2 text-red-900"
+										sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}
+									>
 										⚠️ Missing Required Fields ({missingFields.length})
 									</Typography>
 									<div className="space-y-1 max-h-[200px] overflow-y-auto">
@@ -5945,7 +6756,11 @@ function MultiKonnectListingCreation() {
 
 							{/* Checklist */}
 							<div>
-								<Typography variant="subtitle2" className="font-semibold mb-3 text-gray-900" sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px' }}>
+								<Typography
+									variant="subtitle2"
+									className="font-semibold mb-3 text-gray-900"
+									sx={{ fontSize: '14px', fontWeight: 600, marginBottom: '10px' }}
+								>
 									Checklist
 								</Typography>
 								<div className="space-y-2">
@@ -5959,13 +6774,27 @@ function MultiKonnectListingCreation() {
 												border: '1px solid #e5e7eb',
 												borderRadius: '12px',
 												padding: '10px',
-												backgroundColor: item.completed ? '#ecfdf5' : '#fef2f2',
+												backgroundColor: item.completed ? '#ecfdf5' : '#fef2f2'
 											}}
 										>
 											{item.completed ? (
-												<CheckCircleIcon sx={{ color: '#10b981', fontSize: '20px', marginTop: '2px', flexShrink: 0 }} />
+												<CheckCircleIcon
+													sx={{
+														color: '#10b981',
+														fontSize: '20px',
+														marginTop: '2px',
+														flexShrink: 0
+													}}
+												/>
 											) : (
-												<CancelIcon sx={{ color: '#ef4444', fontSize: '20px', marginTop: '2px', flexShrink: 0 }} />
+												<CancelIcon
+													sx={{
+														color: '#ef4444',
+														fontSize: '20px',
+														marginTop: '2px',
+														flexShrink: 0
+													}}
+												/>
 											)}
 											<Typography
 												variant="body2"
@@ -5973,7 +6802,7 @@ function MultiKonnectListingCreation() {
 													fontSize: '13px',
 													color: item.completed ? '#374151' : '#991b1b',
 													flex: 1,
-													lineHeight: 1.5,
+													lineHeight: 1.5
 												}}
 											>
 												{item.text}
@@ -5990,7 +6819,14 @@ function MultiKonnectListingCreation() {
 									fullWidth
 									disabled={isValidating}
 									onClick={handleRunValidation}
-									startIcon={isValidating ? <CircularProgress size={16} color="inherit" /> : null}
+									startIcon={
+										isValidating ? (
+											<CircularProgress
+												size={16}
+												color="inherit"
+											/>
+										) : null
+									}
 									sx={{
 										backgroundColor: '#ff6536',
 										color: '#fff',
@@ -6003,8 +6839,8 @@ function MultiKonnectListingCreation() {
 										'&:hover': { backgroundColor: '#e55a2b' },
 										'&:disabled': {
 											opacity: 0.7,
-											cursor: 'not-allowed',
-										},
+											cursor: 'not-allowed'
+										}
 									}}
 								>
 									{isValidating ? 'Validating...' : 'Run validation'}
@@ -6025,12 +6861,12 @@ function MultiKonnectListingCreation() {
 										minHeight: '44px',
 										'&:hover': {
 											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
+											backgroundColor: '#f9fafb'
 										},
 										'&:disabled': {
 											opacity: 0.7,
-											cursor: 'not-allowed',
-										},
+											cursor: 'not-allowed'
+										}
 									}}
 								>
 									{isSavingDraft ? 'Saving...' : 'Save draft'}
@@ -6049,8 +6885,8 @@ function MultiKonnectListingCreation() {
 										minHeight: '44px',
 										'&:hover': {
 											borderColor: '#d1d5db',
-											backgroundColor: '#f9fafb',
-										},
+											backgroundColor: '#f9fafb'
+										}
 									}}
 								>
 									Preview
@@ -6060,7 +6896,14 @@ function MultiKonnectListingCreation() {
 									fullWidth
 									disabled={isPublishing}
 									onClick={handlePublishClick}
-									startIcon={isPublishing ? <CircularProgress size={16} color="inherit" /> : null}
+									startIcon={
+										isPublishing ? (
+											<CircularProgress
+												size={16}
+												color="inherit"
+											/>
+										) : null
+									}
 									sx={{
 										backgroundColor: '#ff6536',
 										color: '#fff',
@@ -6073,8 +6916,8 @@ function MultiKonnectListingCreation() {
 										'&:hover': { backgroundColor: '#e55a2b' },
 										'&:disabled': {
 											opacity: 0.7,
-											cursor: 'not-allowed',
-										},
+											cursor: 'not-allowed'
+										}
 									}}
 								>
 									{isPublishing ? 'Publishing...' : 'Publish'}
@@ -6108,7 +6951,7 @@ function MultiKonnectListingCreation() {
 								color: '#374151',
 								padding: '4px 12px',
 								borderRadius: '16px',
-								fontWeight: 500,
+								fontWeight: 500
 							}}
 						/>
 					)}
@@ -6125,7 +6968,7 @@ function MultiKonnectListingCreation() {
 								color: '#374151',
 								padding: '4px 12px',
 								borderRadius: '16px',
-								fontWeight: 500,
+								fontWeight: 500
 							}}
 						/>
 					)}
@@ -6142,7 +6985,7 @@ function MultiKonnectListingCreation() {
 								color: '#374151',
 								padding: '4px 12px',
 								borderRadius: '16px',
-								fontWeight: 500,
+								fontWeight: 500
 							}}
 						/>
 					)}
@@ -6163,8 +7006,8 @@ function MultiKonnectListingCreation() {
 							fontWeight: 500,
 							backgroundColor: 'transparent',
 							'&:hover': {
-								backgroundColor: 'rgba(0, 0, 0, 0.04)',
-							},
+								backgroundColor: 'rgba(0, 0, 0, 0.04)'
+							}
 						}}
 					>
 						Save draft
@@ -6184,8 +7027,8 @@ function MultiKonnectListingCreation() {
 							fontWeight: 500,
 							backgroundColor: 'transparent',
 							'&:hover': {
-								backgroundColor: 'rgba(0, 0, 0, 0.04)',
-							},
+								backgroundColor: 'rgba(0, 0, 0, 0.04)'
+							}
 						}}
 					>
 						Preview
@@ -6205,8 +7048,8 @@ function MultiKonnectListingCreation() {
 							boxShadow: 'none',
 							'&:hover': {
 								backgroundColor: '#e55a2b',
-								boxShadow: 'none',
-							},
+								boxShadow: 'none'
+							}
 						}}
 						onClick={handlePublishClick}
 					>
@@ -6216,7 +7059,12 @@ function MultiKonnectListingCreation() {
 			</div>
 
 			{/* Barcode Scanner Dialog */}
-			<Dialog open={barcodeDialogOpen} onClose={() => setBarcodeDialogOpen(false)} maxWidth="sm" fullWidth>
+			<Dialog
+				open={barcodeDialogOpen}
+				onClose={() => setBarcodeDialogOpen(false)}
+				maxWidth="sm"
+				fullWidth
+			>
 				<DialogTitle>Scan Barcode</DialogTitle>
 				<DialogContent>
 					<TextField
@@ -6233,20 +7081,32 @@ function MultiKonnectListingCreation() {
 						}}
 						sx={{ marginTop: 2 }}
 					/>
-					<Typography variant="caption" sx={{ display: 'block', marginTop: 2, color: '#6b7280' }}>
+					<Typography
+						variant="caption"
+						sx={{ display: 'block', marginTop: 2, color: '#6b7280' }}
+					>
 						Enter the barcode manually or use your device camera to scan
 					</Typography>
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setBarcodeDialogOpen(false)}>Cancel</Button>
-					<Button onClick={handleBarcodeSubmit} variant="contained" disabled={!barcodeInput.trim()}>
+					<Button
+						onClick={handleBarcodeSubmit}
+						variant="contained"
+						disabled={!barcodeInput.trim()}
+					>
 						Search
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Master Template Dialog */}
-			<Dialog open={masterTemplateDialogOpen} onClose={() => setMasterTemplateDialogOpen(false)} maxWidth="md" fullWidth>
+			<Dialog
+				open={masterTemplateDialogOpen}
+				onClose={() => setMasterTemplateDialogOpen(false)}
+				maxWidth="md"
+				fullWidth
+			>
 				<DialogTitle>Select Master Template</DialogTitle>
 				<DialogContent>
 					<TextField
@@ -6258,16 +7118,26 @@ function MultiKonnectListingCreation() {
 						sx={{ marginBottom: 2 }}
 					/>
 					{loadingPastProducts ? (
-						<Box display="flex" justifyContent="center" p={3}>
+						<Box
+							display="flex"
+							justifyContent="center"
+							p={3}
+						>
 							<CircularProgress />
 						</Box>
 					) : (
 						<List>
 							{pastProducts
-								.filter((p: any) => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()))
+								.filter(
+									(p: any) =>
+										!searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase())
+								)
 								.slice(0, 10)
 								.map((product: any) => (
-									<ListItem key={product.id} disablePadding>
+									<ListItem
+										key={product.id}
+										disablePadding
+									>
 										<ListItemButton onClick={() => handleSelectMasterTemplate(product)}>
 											<ListItemText
 												primary={product.name}
@@ -6277,7 +7147,10 @@ function MultiKonnectListingCreation() {
 									</ListItem>
 								))}
 							{pastProducts.length === 0 && (
-								<Typography variant="body2" sx={{ padding: 2, color: '#6b7280', textAlign: 'center' }}>
+								<Typography
+									variant="body2"
+									sx={{ padding: 2, color: '#6b7280', textAlign: 'center' }}
+								>
 									No master templates available
 								</Typography>
 							)}
@@ -6290,7 +7163,12 @@ function MultiKonnectListingCreation() {
 			</Dialog>
 
 			{/* Past Listings Dialog */}
-			<Dialog open={pastListingsDialogOpen} onClose={() => setPastListingsDialogOpen(false)} maxWidth="md" fullWidth>
+			<Dialog
+				open={pastListingsDialogOpen}
+				onClose={() => setPastListingsDialogOpen(false)}
+				maxWidth="md"
+				fullWidth
+			>
 				<DialogTitle>Select from Your Past Listings</DialogTitle>
 				<DialogContent>
 					<TextField
@@ -6302,7 +7180,11 @@ function MultiKonnectListingCreation() {
 						sx={{ marginBottom: 2 }}
 					/>
 					{loadingPastProducts ? (
-						<Box display="flex" justifyContent="center" p={3}>
+						<Box
+							display="flex"
+							justifyContent="center"
+							p={3}
+						>
 							<CircularProgress />
 						</Box>
 					) : (
@@ -6312,6 +7194,7 @@ function MultiKonnectListingCreation() {
 									{pastProducts
 										.filter((p: any) => {
 											if (!searchQuery) return true;
+
 											const query = searchQuery.toLowerCase();
 											return (
 												p.name?.toLowerCase().includes(query) ||
@@ -6321,17 +7204,34 @@ function MultiKonnectListingCreation() {
 										})
 										.slice(0, 50)
 										.map((product: any) => (
-											<ListItem key={product.id} disablePadding>
+											<ListItem
+												key={product.id}
+												disablePadding
+											>
 												<ListItemButton onClick={() => handleSelectPastListing(product)}>
 													<ListItemText
 														primary={product.name || 'Unnamed Product'}
 														secondary={
 															<>
 																{product.sku && `SKU: ${product.sku} | `}
-																Price: £{parseFloat((product.price_tax_excl || product.price || 0).toString()).toFixed(2)}
-																{product.categories && product.categories.length > 0 && (
-																	<> | {product.categories.map((c: any) => c.name).join(', ')}</>
-																)}
+																Price: £
+																{parseFloat(
+																	(
+																		product.price_tax_excl ||
+																		product.price ||
+																		0
+																	).toString()
+																).toFixed(2)}
+																{product.categories &&
+																	product.categories.length > 0 && (
+																		<>
+																			{' '}
+																			|{' '}
+																			{product.categories
+																				.map((c: any) => c.name)
+																				.join(', ')}
+																		</>
+																	)}
 															</>
 														}
 													/>
@@ -6344,13 +7244,20 @@ function MultiKonnectListingCreation() {
 									<FuseSvgIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }}>
 										heroicons-outline:inbox
 									</FuseSvgIcon>
-									<Typography variant="h6" color="text.secondary" gutterBottom>
+									<Typography
+										variant="h6"
+										color="text.secondary"
+										gutterBottom
+									>
 										No past listings found
 									</Typography>
-									<Typography variant="body2" color="text.secondary">
+									<Typography
+										variant="body2"
+										color="text.secondary"
+									>
 										{searchQuery
 											? 'No listings match your search. Try a different search term.'
-											: 'You haven\'t created any products yet. Create your first product to see it here.'}
+											: "You haven't created any products yet. Create your first product to see it here."}
 									</Typography>
 								</Box>
 							)}
@@ -6373,7 +7280,16 @@ function MultiKonnectListingCreation() {
 			)}
 
 			{/* Add Storage Dialog - Dynamic */}
-			<Dialog open={addStorageDialogOpen} onClose={() => { setAddStorageDialogOpen(false); setNewStorageInput(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>
+			<Dialog
+				open={addStorageDialogOpen}
+				onClose={() => {
+					setAddStorageDialogOpen(false);
+					setNewStorageInput('');
+				}}
+				PaperProps={{ sx: { borderRadius: '16px' } }}
+				maxWidth="sm"
+				fullWidth
+			>
 				<DialogTitle>
 					<div className="flex items-center justify-between">
 						<span>Add {attribute1Name} Option</span>
@@ -6386,7 +7302,12 @@ function MultiKonnectListingCreation() {
 							}}
 							sx={{ padding: '4px' }}
 						>
-							<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:pencil</FuseSvgIcon>
+							<FuseSvgIcon
+								size={16}
+								sx={{ color: '#6b7280' }}
+							>
+								heroicons-outline:pencil
+							</FuseSvgIcon>
 						</IconButton>
 					</div>
 				</DialogTitle>
@@ -6407,27 +7328,55 @@ function MultiKonnectListingCreation() {
 					/>
 					{storageOptions.length > 0 && (
 						<Box sx={{ marginTop: 2 }}>
-							<Typography variant="caption" sx={{ color: '#6b7280', display: 'block', marginBottom: 1 }}>
+							<Typography
+								variant="caption"
+								sx={{ color: '#6b7280', display: 'block', marginBottom: 1 }}
+							>
 								Current options:
 							</Typography>
 							<div className="flex flex-wrap gap-1">
 								{storageOptions.map((storage, idx) => (
-									<Chip key={idx} label={storage} size="small" sx={{ fontSize: '11px' }} />
+									<Chip
+										key={idx}
+										label={storage}
+										size="small"
+										sx={{ fontSize: '11px' }}
+									/>
 								))}
 							</div>
 						</Box>
 					)}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => { setAddStorageDialogOpen(false); setNewStorageInput(''); }}>Cancel</Button>
-					<Button onClick={handleConfirmAddStorage} variant="contained" disabled={!newStorageInput.trim() || storageOptions.includes(newStorageInput.trim())}>
+					<Button
+						onClick={() => {
+							setAddStorageDialogOpen(false);
+							setNewStorageInput('');
+						}}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmAddStorage}
+						variant="contained"
+						disabled={!newStorageInput.trim() || storageOptions.includes(newStorageInput.trim())}
+					>
 						Add
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Add Color Dialog - Dynamic */}
-			<Dialog open={addColorDialogOpen} onClose={() => { setAddColorDialogOpen(false); setNewColorInput(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>
+			<Dialog
+				open={addColorDialogOpen}
+				onClose={() => {
+					setAddColorDialogOpen(false);
+					setNewColorInput('');
+				}}
+				PaperProps={{ sx: { borderRadius: '16px' } }}
+				maxWidth="sm"
+				fullWidth
+			>
 				<DialogTitle>
 					<div className="flex items-center justify-between">
 						<span>Add {attribute2Name} Option</span>
@@ -6440,7 +7389,12 @@ function MultiKonnectListingCreation() {
 							}}
 							sx={{ padding: '4px' }}
 						>
-							<FuseSvgIcon size={16} sx={{ color: '#6b7280' }}>heroicons-outline:pencil</FuseSvgIcon>
+							<FuseSvgIcon
+								size={16}
+								sx={{ color: '#6b7280' }}
+							>
+								heroicons-outline:pencil
+							</FuseSvgIcon>
 						</IconButton>
 					</div>
 				</DialogTitle>
@@ -6461,27 +7415,55 @@ function MultiKonnectListingCreation() {
 					/>
 					{colorOptions.length > 0 && (
 						<Box sx={{ marginTop: 2 }}>
-							<Typography variant="caption" sx={{ color: '#6b7280', display: 'block', marginBottom: 1 }}>
+							<Typography
+								variant="caption"
+								sx={{ color: '#6b7280', display: 'block', marginBottom: 1 }}
+							>
 								Current options:
 							</Typography>
 							<div className="flex flex-wrap gap-1">
 								{colorOptions.map((color, idx) => (
-									<Chip key={idx} label={color} size="small" sx={{ fontSize: '11px' }} />
+									<Chip
+										key={idx}
+										label={color}
+										size="small"
+										sx={{ fontSize: '11px' }}
+									/>
 								))}
 							</div>
 						</Box>
 					)}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => { setAddColorDialogOpen(false); setNewColorInput(''); }}>Cancel</Button>
-					<Button onClick={handleConfirmAddColor} variant="contained" disabled={!newColorInput.trim() || colorOptions.includes(newColorInput.trim())}>
+					<Button
+						onClick={() => {
+							setAddColorDialogOpen(false);
+							setNewColorInput('');
+						}}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmAddColor}
+						variant="contained"
+						disabled={!newColorInput.trim() || colorOptions.includes(newColorInput.trim())}
+					>
 						Add
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Apply Price to All Dialog */}
-			<Dialog open={applyPriceDialogOpen} onClose={() => { setApplyPriceDialogOpen(false); setPriceToApply(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>
+			<Dialog
+				open={applyPriceDialogOpen}
+				onClose={() => {
+					setApplyPriceDialogOpen(false);
+					setPriceToApply('');
+				}}
+				PaperProps={{ sx: { borderRadius: '16px' } }}
+				maxWidth="sm"
+				fullWidth
+			>
 				<DialogTitle>Apply Price to All Variants</DialogTitle>
 				<DialogContent>
 					<TextField
@@ -6498,24 +7480,48 @@ function MultiKonnectListingCreation() {
 							}
 						}}
 						InputProps={{
-							startAdornment: <InputAdornment position="start">£</InputAdornment>,
+							startAdornment: <InputAdornment position="start">£</InputAdornment>
 						}}
 						sx={{ marginTop: 2 }}
 					/>
-					<Typography variant="caption" sx={{ display: 'block', marginTop: 2, color: '#6b7280' }}>
-						This will apply the same price to all {variants.length} variant{variants.length !== 1 ? 's' : ''}.
+					<Typography
+						variant="caption"
+						sx={{ display: 'block', marginTop: 2, color: '#6b7280' }}
+					>
+						This will apply the same price to all {variants.length} variant
+						{variants.length !== 1 ? 's' : ''}.
 					</Typography>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => { setApplyPriceDialogOpen(false); setPriceToApply(''); }}>Cancel</Button>
-					<Button onClick={handleConfirmApplyPrice} variant="contained" disabled={!priceToApply || isNaN(parseFloat(priceToApply))}>
+					<Button
+						onClick={() => {
+							setApplyPriceDialogOpen(false);
+							setPriceToApply('');
+						}}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmApplyPrice}
+						variant="contained"
+						disabled={!priceToApply || isNaN(parseFloat(priceToApply))}
+					>
 						Apply
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Apply Stock to All Dialog */}
-			<Dialog open={applyStockDialogOpen} onClose={() => { setApplyStockDialogOpen(false); setStockToApply(''); }} PaperProps={{ sx: { borderRadius: '16px' } }} maxWidth="sm" fullWidth>
+			<Dialog
+				open={applyStockDialogOpen}
+				onClose={() => {
+					setApplyStockDialogOpen(false);
+					setStockToApply('');
+				}}
+				PaperProps={{ sx: { borderRadius: '16px' } }}
+				maxWidth="sm"
+				fullWidth
+			>
 				<DialogTitle>Apply Stock to All Variants</DialogTitle>
 				<DialogContent>
 					<TextField
@@ -6533,13 +7539,28 @@ function MultiKonnectListingCreation() {
 						}}
 						sx={{ marginTop: 2 }}
 					/>
-					<Typography variant="caption" sx={{ display: 'block', marginTop: 2, color: '#6b7280' }}>
-						This will apply the same stock quantity to all {variants.length} variant{variants.length !== 1 ? 's' : ''}.
+					<Typography
+						variant="caption"
+						sx={{ display: 'block', marginTop: 2, color: '#6b7280' }}
+					>
+						This will apply the same stock quantity to all {variants.length} variant
+						{variants.length !== 1 ? 's' : ''}.
 					</Typography>
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => { setApplyStockDialogOpen(false); setStockToApply(''); }}>Cancel</Button>
-					<Button onClick={handleConfirmApplyStock} variant="contained" disabled={!stockToApply || isNaN(parseInt(stockToApply))}>
+					<Button
+						onClick={() => {
+							setApplyStockDialogOpen(false);
+							setStockToApply('');
+						}}
+					>
+						Cancel
+					</Button>
+					<Button
+						onClick={handleConfirmApplyStock}
+						variant="contained"
+						disabled={!stockToApply || isNaN(parseInt(stockToApply))}
+					>
 						Apply
 					</Button>
 				</DialogActions>
@@ -6548,7 +7569,7 @@ function MultiKonnectListingCreation() {
 			{/* Image Processing Dialog */}
 			<Dialog
 				open={imageProcessingDialogOpen}
-				onClose={() => { }}
+				onClose={() => {}}
 				PaperProps={{ sx: { borderRadius: '16px' } }}
 				maxWidth="sm"
 				fullWidth
@@ -6557,7 +7578,10 @@ function MultiKonnectListingCreation() {
 					{processingImageIndex !== null && (
 						<React.Fragment>
 							<CircularProgress sx={{ marginBottom: 2 }} />
-							<Typography variant="body1" sx={{ fontSize: '14px', color: '#374151' }}>
+							<Typography
+								variant="body1"
+								sx={{ fontSize: '14px', color: '#374151' }}
+							>
 								{imageProcessingMessage}
 							</Typography>
 						</React.Fragment>
@@ -6577,17 +7601,35 @@ function MultiKonnectListingCreation() {
 				<DialogContent>
 					{isAdmin ? (
 						<React.Fragment>
-							<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
-								Set the fee rates for this specific product. These settings are saved with the product and will be used for fee calculations.
+							<Typography
+								variant="body2"
+								sx={{ color: '#6b7280', marginBottom: 3 }}
+							>
+								Set the fee rates for this specific product. These settings are saved with the product
+								and will be used for fee calculations.
 							</Typography>
-							<Typography variant="caption" sx={{ color: '#9ca3af', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
+							<Typography
+								variant="caption"
+								sx={{ color: '#9ca3af', display: 'block', marginBottom: 2, fontStyle: 'italic' }}
+							>
 								Note: Shipping charges are set by vendors/vendors in the delivery section, not here.
 							</Typography>
-							{adminFeesData?.data && adminFeesData.data.standard_product_fee_type === 'percentage' && adminFeesData.data.standard_product_fee > 0 && (
-								<Typography variant="caption" sx={{ color: '#10b981', display: 'block', marginBottom: 2, fontStyle: 'italic' }}>
-									Default commission rate from admin settings: {adminFeesData.data.standard_product_fee}%
-								</Typography>
-							)}
+							{adminFeesData?.data &&
+								adminFeesData.data.standard_product_fee_type === 'percentage' &&
+								adminFeesData.data.standard_product_fee > 0 && (
+									<Typography
+										variant="caption"
+										sx={{
+											color: '#10b981',
+											display: 'block',
+											marginBottom: 2,
+											fontStyle: 'italic'
+										}}
+									>
+										Default commission rate from admin settings:{' '}
+										{adminFeesData.data.standard_product_fee}%
+									</Typography>
+								)}
 
 							<TextField
 								fullWidth
@@ -6602,12 +7644,11 @@ function MultiKonnectListingCreation() {
 									});
 								}}
 								InputProps={{
-									endAdornment: <InputAdornment position="end">%</InputAdornment>,
+									endAdornment: <InputAdornment position="end">%</InputAdornment>
 								}}
 								sx={{ marginBottom: 2 }}
 								helperText="Percentage of sale price (e.g., 2.5 for 2.5%)"
 							/>
-
 
 							<TextField
 								fullWidth
@@ -6621,7 +7662,7 @@ function MultiKonnectListingCreation() {
 									});
 								}}
 								InputProps={{
-									startAdornment: <InputAdornment position="start">£</InputAdornment>,
+									startAdornment: <InputAdornment position="start">£</InputAdornment>
 								}}
 								sx={{ marginBottom: 2 }}
 								helperText="Additional fee for promotional listings (optional)"
@@ -6629,8 +7670,12 @@ function MultiKonnectListingCreation() {
 						</React.Fragment>
 					) : (
 						<React.Fragment>
-							<Typography variant="body2" sx={{ color: '#6b7280', marginBottom: 3 }}>
-								The commission rate for this product is set by the administrator. You cannot modify these settings.
+							<Typography
+								variant="body2"
+								sx={{ color: '#6b7280', marginBottom: 3 }}
+							>
+								The commission rate for this product is set by the administrator. You cannot modify
+								these settings.
 							</Typography>
 							{(() => {
 								// Determine the commission rate to display - prioritize direct data sources
@@ -6640,8 +7685,12 @@ function MultiKonnectListingCreation() {
 
 								if (isProductSpecific) {
 									// Product has specific commission rate
-									displayCommissionRate = (extraFields.commissionRate * 100);
-								} else if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+									displayCommissionRate = extraFields.commissionRate * 100;
+								} else if (
+									adminFees &&
+									adminFees.standard_product_fee_type === 'percentage' &&
+									adminFees.standard_product_fee > 0
+								) {
 									// Use admin default percentage directly
 									displayCommissionRate = adminFees.standard_product_fee;
 								} else if (feeSettings.commissionRate > 0) {
@@ -6650,9 +7699,14 @@ function MultiKonnectListingCreation() {
 								}
 
 								let helperText = 'Commission rate for this product';
+
 								if (isProductSpecific) {
 									helperText = 'This product has a custom commission rate set by an administrator';
-								} else if (adminFees && adminFees.standard_product_fee_type === 'percentage' && adminFees.standard_product_fee > 0) {
+								} else if (
+									adminFees &&
+									adminFees.standard_product_fee_type === 'percentage' &&
+									adminFees.standard_product_fee > 0
+								) {
 									helperText = `This is the standard commission rate (${adminFees.standard_product_fee}%) set by the administrator`;
 								} else if (isLoadingAdminFees) {
 									helperText = 'Loading commission rate...';
@@ -6668,7 +7722,7 @@ function MultiKonnectListingCreation() {
 										value={displayCommissionRate.toFixed(2)}
 										disabled
 										InputProps={{
-											endAdornment: <InputAdornment position="end">%</InputAdornment>,
+											endAdornment: <InputAdornment position="end">%</InputAdornment>
 										}}
 										sx={{ marginBottom: 2 }}
 										helperText={helperText}
@@ -6682,7 +7736,7 @@ function MultiKonnectListingCreation() {
 								value={feeSettings.promoFee ?? 0}
 								disabled
 								InputProps={{
-									startAdornment: <InputAdornment position="start">£</InputAdornment>,
+									startAdornment: <InputAdornment position="start">£</InputAdornment>
 								}}
 								sx={{ marginBottom: 2 }}
 								helperText="Additional fee for promotional listings (if set)"
@@ -6691,18 +7745,20 @@ function MultiKonnectListingCreation() {
 					)}
 				</DialogContent>
 				<DialogActions>
-					<Button onClick={() => setFeeSettingsDialogOpen(false)}>
-						{isAdmin ? 'Cancel' : 'Close'}
-					</Button>
+					<Button onClick={() => setFeeSettingsDialogOpen(false)}>{isAdmin ? 'Cancel' : 'Close'}</Button>
 					{isAdmin && (
 						<Button
 							onClick={() => {
 								// Save fees to extraFields (product-specific)
-								setValue('extraFields', {
-									...extraFields,
-									commissionRate: tempFeeSettings.commissionRate,
-									promoFee: tempFeeSettings.promoFee,
-								}, { shouldDirty: true });
+								setValue(
+									'extraFields',
+									{
+										...extraFields,
+										commissionRate: tempFeeSettings.commissionRate,
+										promoFee: tempFeeSettings.promoFee
+									},
+									{ shouldDirty: true }
+								);
 								setFeeSettings(tempFeeSettings);
 								setFeeSettingsDialogOpen(false);
 							}}
@@ -6718,4 +7774,3 @@ function MultiKonnectListingCreation() {
 }
 
 export default MultiKonnectListingCreation;
-

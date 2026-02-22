@@ -6,7 +6,6 @@ import { Divider } from '@mui/material';
 import UserMenu from 'src/components/theme-layouts/components/UserMenu';
 import Navigation from '../../components/navigation/Navigation';
 import Logo from '../../components/Logo';
-import GoToDocBox from '../../components/GoToDocBox';
 
 const Root = styled('div')(({ theme }) => ({
 	backgroundColor: theme.vars.palette.background.default,

@@ -19,7 +19,7 @@ const schema = z.object({
 	store_id: z
 		.number({
 			required_error: 'Store is required',
-			invalid_type_error: 'Store must be a number',
+			invalid_type_error: 'Store must be a number'
 		})
 		.int()
 		.positive('Invalid store selected')
@@ -35,9 +35,9 @@ const schema = z.object({
 	main_category: z
 		.object({
 			id: z.union([z.string(), z.number()]).refine((val) => val !== '' && val !== null && val !== undefined, {
-				message: 'Main category ID is required',
+				message: 'Main category ID is required'
 			}),
-			name: z.string().optional(),
+			name: z.string().optional()
 		})
 		.nullable()
 		.refine((val) => val !== null, { message: 'You must select a main category' }),
@@ -45,9 +45,9 @@ const schema = z.object({
 		.array(
 			z.object({
 				id: z.union([z.string(), z.number()]).refine((val) => val !== '' && val !== null && val !== undefined, {
-					message: 'Subcategory ID is required',
+					message: 'Subcategory ID is required'
 				}),
-				name: z.string().optional(),
+				name: z.string().optional()
 			})
 		)
 		.nonempty('You must select at least one subcategory'),
@@ -55,10 +55,10 @@ const schema = z.object({
 		.array(
 			z.object({
 				url: z.string().nonempty('Image URL is required'),
-				is_featured: z.boolean().optional(),
+				is_featured: z.boolean().optional()
 			})
 		)
-		.min(1, 'At least one image is required'),
+		.min(1, 'At least one image is required')
 });
 
 /**
@@ -73,7 +73,7 @@ function StandaloneListingPage() {
 		mode: 'onBlur',
 		defaultValues: ProductModel({}),
 		resolver: zodResolver(schema),
-		criteriaMode: 'all',
+		criteriaMode: 'all'
 	});
 
 	const { reset, setValue, watch } = methods;
@@ -81,17 +81,21 @@ function StandaloneListingPage() {
 	// Initialize form with store_id from session
 	useEffect(() => {
 		const defaultValues = ProductModel({});
+
 		if (sessionStoreId) {
 			defaultValues.store_id = Number(sessionStoreId);
 		}
+
 		// Ensure product_variants is always initialized (backend requires this field)
 		if (!defaultValues.product_variants) {
 			defaultValues.product_variants = [];
 		}
+
 		// Ensure delivery_slots is initialized (for same-day delivery validation)
 		if (!defaultValues.delivery_slots) {
 			defaultValues.delivery_slots = '12-3pm';
 		}
+
 		reset(defaultValues);
 	}, [reset, sessionStoreId]);
 
@@ -99,6 +103,7 @@ function StandaloneListingPage() {
 	useEffect(() => {
 		if (sessionStoreId && !watch('store_id')) {
 			const numericStoreId = Number(sessionStoreId);
+
 			if (!isNaN(numericStoreId) && numericStoreId > 0) {
 				setValue('store_id', numericStoreId, { shouldValidate: true });
 			}
@@ -106,7 +111,10 @@ function StandaloneListingPage() {
 	}, [sessionStoreId, watch, setValue]);
 
 	return (
-		<AuthGuard from="addProduct" auth={[...authRoles.vendor, ...authRoles.supplier]}>
+		<AuthGuard
+			from="addProduct"
+			auth={[...authRoles.vendor, ...authRoles.supplier]}
+		>
 			<FormProvider {...methods}>
 				<MultiKonnectListingCreation />
 			</FormProvider>
@@ -115,4 +123,3 @@ function StandaloneListingPage() {
 }
 
 export default StandaloneListingPage;
-

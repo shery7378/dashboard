@@ -11,7 +11,7 @@ import {
 	EcommerceCategory,
 	useGetECommerceCategoriesQuery,
 	useDeleteECommerceCategoryMutation,
-	useDeleteECommerceCategoriesMutation,
+	useDeleteECommerceCategoriesMutation
 } from '../apis/CategoriesLaravelApi';
 import { useIsMounted } from 'src/hooks/useIsMounted';
 import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
@@ -29,18 +29,16 @@ function CategoriesTable() {
 		clearSuccessMessage,
 		requestAction,
 		confirmAction,
-		cancelAction,
+		cancelAction
 	} = useEntityManager();
 
-	const [tableInstance, setTableInstance] = useState<MRT_TableInstance<EcommerceCategory> | null>(
-		null
-	);
+	const [tableInstance, setTableInstance] = useState<MRT_TableInstance<EcommerceCategory> | null>(null);
 	const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
 
 	// 🔹 Pagination state
 	const [pagination, setPagination] = useState({
 		pageIndex: 0, // MRT uses 0-based indexing
-		pageSize: 10,
+		pageSize: 10
 	});
 
 	const [deleteCategory] = useDeleteECommerceCategoryMutation();
@@ -50,10 +48,10 @@ function CategoriesTable() {
 	const {
 		data: categoriesRes,
 		isLoading,
-		error,
+		error
 	} = useGetECommerceCategoriesQuery({
 		page: pagination.pageIndex + 1, // Convert to 1-based indexing for API
-		perPage: pagination.pageSize,
+		perPage: pagination.pageSize
 	});
 
 	// Categories list (already parent→child structured from API)
@@ -80,7 +78,7 @@ function CategoriesTable() {
 							sx={{ width: 40, height: 40 }}
 						/>
 					);
-				},
+				}
 			},
 			{
 				accessorKey: 'name',
@@ -93,23 +91,21 @@ function CategoriesTable() {
 					>
 						<u>{row.original.name}</u>
 					</Typography>
-				),
+				)
 			},
 			{ accessorKey: 'slug', header: 'Slug' },
 			{ accessorKey: 'description', header: 'Description' },
 			{
 				accessorKey: 'parent_id',
 				header: 'Parent ID',
-				Cell: ({ row }) => row.original.parent_id ?? '—',
+				Cell: ({ row }) => row.original.parent_id ?? '—'
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Created At',
 				Cell: ({ row }) =>
-					row.original.created_at
-						? new Date(row.original.created_at).toLocaleDateString()
-						: '—',
-			},
+					row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : '—'
+			}
 		],
 		[]
 	);
@@ -121,6 +117,7 @@ function CategoriesTable() {
 			// Clear row selection when data changes (e.g., after refetch)
 			setRowSelection({});
 		}
+
 		if (error) {
 			console.error('Failed to load categories:', error);
 		}
@@ -132,6 +129,7 @@ function CategoriesTable() {
 		const ids = rows.map((r) => r.id);
 		console.log(ids, 'slected ids');
 		let confirmTitle = '';
+
 		if (ids.length > 1) {
 			// ✅ Agar sab child hain
 			if (rows.every((r) => r.parent_id)) {
@@ -147,9 +145,7 @@ function CategoriesTable() {
 			}
 		} else {
 			const row = rows[0];
-			confirmTitle = row?.parent_id
-				? 'Delete Child Category'
-				: 'Delete Parent Category';
+			confirmTitle = row?.parent_id ? 'Delete Child Category' : 'Delete Parent Category';
 		}
 
 		requestAction({
@@ -159,8 +155,9 @@ function CategoriesTable() {
 			entityLabel: 'category',
 			actionLabel: 'deleted',
 			confirmTitle,
-			confirmMessage: `Are you sure you want to delete ${ids.length > 1 ? ids.length + ' categories' : 'this category'
-				}?`,
+			confirmMessage: `Are you sure you want to delete ${
+				ids.length > 1 ? ids.length + ' categories' : 'this category'
+			}?`,
 			onSuccess: () => {
 				if (isMountedRef.current) {
 					setRowSelection({});
@@ -173,11 +170,12 @@ function CategoriesTable() {
 				setTableInstance(null);
 				setRowSelection({});
 			},
-			snackbarOptions: { autoHideDuration: 5000 },
+			snackbarOptions: { autoHideDuration: 5000 }
 		});
 	};
 
 	if (isLoading) return <FuseLoading />;
+
 	if (error) return <Typography color="error">Failed to load categories</Typography>;
 
 	return (
@@ -201,8 +199,8 @@ function CategoriesTable() {
 									handleDelete([row.original]);
 								}}
 							/>
-						),
-					},
+						)
+					}
 				]}
 				manualPagination
 				rowCount={categoriesRes?.pagination.total ?? 0}
@@ -212,7 +210,7 @@ function CategoriesTable() {
 				enableExpanding
 				getSubRows={(row) => row.children ?? []}
 				getRowId={(row) => row.id.toString()}
-				enableRowSelection={(row) => true}   // ✅ allow selection for parent + child rows
+				enableRowSelection={(row) => true} // ✅ allow selection for parent + child rows
 				enableMultiRowSelection
 				renderRowActionMenuItems={({ closeMenu, row, table }) => [
 					<MenuItem
@@ -227,10 +225,11 @@ function CategoriesTable() {
 							<FuseSvgIcon>heroicons-outline:trash</FuseSvgIcon>
 						</ListItemIcon>
 						Delete
-					</MenuItem>,
+					</MenuItem>
 				]}
 				renderTopToolbarCustomActions={({ table }) => {
 					const { rowSelection } = table.getState();
+
 					if (Object.keys(rowSelection).length === 0) return null;
 
 					// ✅ child rows bhi include ho jayengi
@@ -256,7 +255,11 @@ function CategoriesTable() {
 			/>
 
 			{/* 🔹 SuccessDialog */}
-			<SuccessDialog open={!!successMessage} onClose={clearSuccessMessage} message={successMessage} />
+			<SuccessDialog
+				open={!!successMessage}
+				onClose={clearSuccessMessage}
+				message={successMessage}
+			/>
 
 			{/* 🔹 ConfirmDialog */}
 			<ConfirmDialog

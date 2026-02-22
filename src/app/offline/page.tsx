@@ -1,18 +1,22 @@
 export default function OfflinePage() {
 	return (
-		<div style={{
-			minHeight: '100vh',
-			display: 'flex',
-			alignItems: 'center',
-			justifyContent: 'center',
-			backgroundColor: '#f5f5f5',
-			padding: '16px'
-		}}>
-			<div style={{
-				maxWidth: '512px',
-				width: '100%',
-				textAlign: 'center'
-			}}>
+		<div
+			style={{
+				minHeight: '100vh',
+				display: 'flex',
+				alignItems: 'center',
+				justifyContent: 'center',
+				backgroundColor: '#f5f5f5',
+				padding: '16px'
+			}}
+		>
+			<div
+				style={{
+					maxWidth: '512px',
+					width: '100%',
+					textAlign: 'center'
+				}}
+			>
 				<div style={{ marginBottom: '32px' }}>
 					<svg
 						style={{ margin: '0 auto', height: '96px', width: '96px', color: '#999' }}
@@ -28,11 +32,20 @@ export default function OfflinePage() {
 						/>
 					</svg>
 				</div>
-				<h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#000', marginBottom: '16px', margin: '0 0 16px 0' }}>
+				<h1
+					style={{
+						fontSize: '32px',
+						fontWeight: 'bold',
+						color: '#000',
+						marginBottom: '16px',
+						margin: '0 0 16px 0'
+					}}
+				>
 					You're Offline
 				</h1>
 				<p style={{ color: '#666', marginBottom: '32px', margin: '0 0 32px 0' }}>
-					It looks like you've lost your internet connection. Please check your network settings and try again.
+					It looks like you've lost your internet connection. Please check your network settings and try
+					again.
 				</p>
 				<button
 					onClick={() => window.location.reload()}
@@ -53,4 +66,3 @@ export default function OfflinePage() {
 		</div>
 	);
 }
-

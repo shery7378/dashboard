@@ -23,16 +23,16 @@ const schema = z
 			.min(8, 'Password is too short - should be 8 chars minimum.')
 			.regex(/[0-9]/, 'Password must contain at least one digit.')
 			.regex(/[^0-9]/, 'Password must contain at least one non-digit.'),
-		passwordConfirm: z.string().nonempty('Password confirmation is required'),
+		passwordConfirm: z.string().nonempty('Password confirmation is required')
 	})
 	.refine((data) => data.password === data.passwordConfirm, {
 		message: 'Passwords must match',
-		path: ['passwordConfirm'],
+		path: ['passwordConfirm']
 	});
 
 const defaultValues = {
 	password: '',
-	passwordConfirm: '',
+	passwordConfirm: ''
 };
 
 /**
@@ -42,7 +42,7 @@ function ClassicResetPasswordPage() {
 	const { control, formState, handleSubmit, reset, setError } = useForm({
 		mode: 'onChange',
 		defaultValues,
-		resolver: zodResolver(schema),
+		resolver: zodResolver(schema)
 	});
 
 	const { isValid, dirtyFields, errors } = formState;
@@ -58,22 +58,22 @@ function ClassicResetPasswordPage() {
 		try {
 			// Fetch CSRF cookie
 			await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sanctum/csrf-cookie`, {
-				credentials: 'include',
+				credentials: 'include'
 			});
 
 			// Send password reset request to the backend
 			const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reset-password`, {
 				method: 'PUT',
 				headers: {
-					'Content-Type': 'application/json',
+					'Content-Type': 'application/json'
 				},
 				credentials: 'include',
 				body: JSON.stringify({
 					email,
 					token,
 					new_password: formData.password,
-					new_password_confirmation: formData.passwordConfirm,
-				}),
+					new_password_confirmation: formData.passwordConfirm
+				})
 			});
 
 			const data = await res.json();
@@ -105,13 +105,19 @@ function ClassicResetPasswordPage() {
             src="/assets/images/logo/logo.svg"
             alt="logo"
           /> */}
-					<Typography color="primary" className="text-4xl font-extrabold leading-[1.25] tracking-tight text-center">
+					<Typography
+						color="primary"
+						className="text-4xl font-extrabold leading-[1.25] tracking-tight text-center"
+					>
 						MultiKonnect
 					</Typography>
 					<Typography className="text-3xl font-bold tracking-tight text-center">
 						Reset your password
 					</Typography>
-					<Typography color="textSecondary" className="mt-2 text-sm text-center">
+					<Typography
+						color="textSecondary"
+						className="mt-2 text-sm text-center"
+					>
 						Create a new password for your account
 					</Typography>
 
@@ -129,7 +135,7 @@ function ClassicResetPasswordPage() {
 									backgroundColor: successMessage
 										? theme.palette.success.light
 										: theme.palette.error.light,
-									color: successMessage ? theme.palette.success.dark : theme.palette.error.dark,
+									color: successMessage ? theme.palette.success.dark : theme.palette.error.dark
 								})}
 							>
 								{successMessage || serverError}
@@ -185,10 +191,16 @@ function ClassicResetPasswordPage() {
 						</Button>
 
 						<div className="mt-6 flex items-center justify-center gap-1 font-medium">
-							<Typography className="text-gray-600" variant="body2">
+							<Typography
+								className="text-gray-600"
+								variant="body2"
+							>
 								Return to
 							</Typography>
-							<Link className="font-semibold" to="/sign-in">
+							<Link
+								className="font-semibold"
+								to="/sign-in"
+							>
 								Sign in
 							</Link>
 						</div>

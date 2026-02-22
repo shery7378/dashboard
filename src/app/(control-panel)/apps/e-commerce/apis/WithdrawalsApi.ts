@@ -2,57 +2,51 @@ import { apiServiceLaravel as api } from '@/store/apiServiceLaravel';
 
 export const addTagTypes = ['withdrawals'] as const;
 
-const WithdrawalsApi = api
-	.enhanceEndpoints({ addTagTypes })
-	.injectEndpoints({
-		endpoints: (build) => ({
-			// Get all withdrawal requests
-			getWithdrawals: build.query<GetWithdrawalsApiResponse, GetWithdrawalsApiArg>({
-				query: (params) => ({
-					url: `/api/admin/withdrawals`,
-					params
-				}),
-				transformResponse: (response: any) => {
-					// Ensure admin_wallet is preserved in the response
-					return {
-						...response,
-						admin_wallet: response.admin_wallet || null,
-					};
-				},
-				providesTags: ['withdrawals']
+const WithdrawalsApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
+	endpoints: (build) => ({
+		// Get all withdrawal requests
+		getWithdrawals: build.query<GetWithdrawalsApiResponse, GetWithdrawalsApiArg>({
+			query: (params) => ({
+				url: `/api/admin/withdrawals`,
+				params
 			}),
-
-			// Approve withdrawal
-			approveWithdrawal: build.mutation<ApproveWithdrawalApiResponse, ApproveWithdrawalApiArg>({
-				query: (body) => ({
-					url: `/api/admin/withdrawals/${body.id}/approve`,
-					method: 'POST'
-				}),
-				invalidatesTags: ['withdrawals']
-			}),
-
-			// Reject withdrawal
-			rejectWithdrawal: build.mutation<RejectWithdrawalApiResponse, RejectWithdrawalApiArg>({
-				query: (body) => ({
-					url: `/api/admin/withdrawals/${body.id}/reject`,
-					method: 'POST',
-					body: {
-						rejection_reason: body.rejection_reason
-					}
-				}),
-				invalidatesTags: ['withdrawals']
-			}),
+			transformResponse: (response: any) => {
+				// Ensure admin_wallet is preserved in the response
+				return {
+					...response,
+					admin_wallet: response.admin_wallet || null
+				};
+			},
+			providesTags: ['withdrawals']
 		}),
-		overrideExisting: false
-	});
+
+		// Approve withdrawal
+		approveWithdrawal: build.mutation<ApproveWithdrawalApiResponse, ApproveWithdrawalApiArg>({
+			query: (body) => ({
+				url: `/api/admin/withdrawals/${body.id}/approve`,
+				method: 'POST'
+			}),
+			invalidatesTags: ['withdrawals']
+		}),
+
+		// Reject withdrawal
+		rejectWithdrawal: build.mutation<RejectWithdrawalApiResponse, RejectWithdrawalApiArg>({
+			query: (body) => ({
+				url: `/api/admin/withdrawals/${body.id}/reject`,
+				method: 'POST',
+				body: {
+					rejection_reason: body.rejection_reason
+				}
+			}),
+			invalidatesTags: ['withdrawals']
+		})
+	}),
+	overrideExisting: false
+});
 
 export default WithdrawalsApi;
 
-export const {
-	useGetWithdrawalsQuery,
-	useApproveWithdrawalMutation,
-	useRejectWithdrawalMutation,
-} = WithdrawalsApi;
+export const { useGetWithdrawalsQuery, useApproveWithdrawalMutation, useRejectWithdrawalMutation } = WithdrawalsApi;
 
 /** -----------------------------------------------------------------
  * WITHDRAWAL TYPES
@@ -123,4 +117,3 @@ export type RejectWithdrawalApiArg = {
 	id: number;
 	rejection_reason: string;
 };
-

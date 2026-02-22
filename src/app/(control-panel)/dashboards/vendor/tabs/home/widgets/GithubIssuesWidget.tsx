@@ -6,14 +6,17 @@ import Box from '@mui/material/Box';
 import Skeleton from '@mui/material/Skeleton';
 import { ApexOptions } from 'apexcharts';
 import _ from 'lodash';
-import FuseTabs from 'src/components/tabs/FuseTabs';
-import FuseTab from 'src/components/tabs/FuseTab';
 import GithubIssuesDataType from './types/GithubIssuesDataType';
 import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
 import dynamic from 'next/dynamic';
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
 	ssr: false,
-	loading: () => <Skeleton variant="rounded" height={320} />
+	loading: () => (
+		<Skeleton
+			variant="rounded"
+			height={320}
+		/>
+	)
 });
 
 /**
@@ -50,7 +53,7 @@ function GithubIssuesWidget() {
 			'#6366F1', // Fixed
 			'#F59E42', // Won't Fix
 			'#E11D48', // Re-opened
-			'#0EA5E9', // Needs Triage
+			'#0EA5E9' // Needs Triage
 		],
 		labels,
 		dataLabels: {
@@ -65,7 +68,7 @@ function GithubIssuesWidget() {
 		},
 		legend: {
 			show: true,
-			fontWeight: 600,
+			fontWeight: 600
 		},
 		plotOptions: {
 			bar: {
@@ -122,18 +125,36 @@ function GithubIssuesWidget() {
 		return (
 			<Paper className="flex flex-col flex-auto p-6 shadow-sm overflow-hidden">
 				<div className="flex flex-col sm:flex-row items-start justify-between">
-					<Skeleton variant="text" width={280} height={32} />
+					<Skeleton
+						variant="text"
+						width={280}
+						height={32}
+					/>
 				</div>
 				<div className="grid grid-cols-1 lg:grid-cols-2 grid-flow-row gap-6 w-full mt-8 sm:mt-4">
 					<div className="flex flex-col flex-auto">
-						<Skeleton variant="text" width={160} />
-						<Skeleton variant="rounded" height={320} />
+						<Skeleton
+							variant="text"
+							width={160}
+						/>
+						<Skeleton
+							variant="rounded"
+							height={320}
+						/>
 					</div>
 					<div className="flex flex-col">
-						<Skeleton variant="text" width={120} />
+						<Skeleton
+							variant="text"
+							width={120}
+						/>
 						<div className="flex-auto grid grid-cols-4 gap-4 mt-6">
 							{Array.from({ length: 6 }).map((_, idx) => (
-								<Skeleton key={idx} variant="rounded" height={110} className={idx < 2 ? 'col-span-2' : 'col-span-2 sm:col-span-1'} />
+								<Skeleton
+									key={idx}
+									variant="rounded"
+									height={110}
+									className={idx < 2 ? 'col-span-2' : 'col-span-2 sm:col-span-1'}
+								/>
 							))}
 						</div>
 					</div>
@@ -205,11 +226,11 @@ function GithubIssuesWidget() {
 								(_theme) =>
 									_theme.palette.mode === 'light'
 										? {
-											backgroundColor: lighten(_theme.palette.background.default, 0.4)
-										}
+												backgroundColor: lighten(_theme.palette.background.default, 0.4)
+											}
 										: {
-											backgroundColor: lighten(_theme.palette.background.default, 0.02)
-										}
+												backgroundColor: lighten(_theme.palette.background.default, 0.02)
+											}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
@@ -223,11 +244,11 @@ function GithubIssuesWidget() {
 								(theme) =>
 									theme.palette.mode === 'light'
 										? {
-											backgroundColor: lighten(theme.palette.background.default, 0.4)
-										}
+												backgroundColor: lighten(theme.palette.background.default, 0.4)
+											}
 										: {
-											backgroundColor: lighten(theme.palette.background.default, 0.02)
-										}
+												backgroundColor: lighten(theme.palette.background.default, 0.02)
+											}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
@@ -241,11 +262,11 @@ function GithubIssuesWidget() {
 								(_theme) =>
 									_theme.palette.mode === 'light'
 										? {
-											backgroundColor: lighten(_theme.palette.background.default, 0.4)
-										}
+												backgroundColor: lighten(_theme.palette.background.default, 0.4)
+											}
 										: {
-											backgroundColor: lighten(_theme.palette.background.default, 0.02)
-										}
+												backgroundColor: lighten(_theme.palette.background.default, 0.02)
+											}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
@@ -259,11 +280,11 @@ function GithubIssuesWidget() {
 								(_theme) =>
 									_theme.palette.mode === 'light'
 										? {
-											backgroundColor: lighten(_theme.palette.background.default, 0.4)
-										}
+												backgroundColor: lighten(_theme.palette.background.default, 0.4)
+											}
 										: {
-											backgroundColor: lighten(_theme.palette.background.default, 0.02)
-										}
+												backgroundColor: lighten(_theme.palette.background.default, 0.02)
+											}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>

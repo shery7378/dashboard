@@ -40,9 +40,9 @@ export default function HideToolbar() {
 				'[class*="FuseLeftSidePanel"]'
 			];
 
-			selectors.forEach(selector => {
+			selectors.forEach((selector) => {
 				const elements = document.querySelectorAll(selector);
-				elements.forEach(el => {
+				elements.forEach((el) => {
 					(el as HTMLElement).style.display = 'none';
 				});
 			});
@@ -69,5 +69,3 @@ export default function HideToolbar() {
 
 	return null;
 }
-
-

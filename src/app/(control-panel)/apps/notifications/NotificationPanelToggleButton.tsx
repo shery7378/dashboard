@@ -6,7 +6,7 @@ import { ReactNode, useEffect, useRef, useState } from 'react';
 import { motion, useAnimation } from 'motion/react';
 import { useTheme } from '@mui/material';
 import clsx from 'clsx';
-import { toggleNotificationPanel, openNotificationPanel, closeNotificationPanel, selectNotificationPanelState } from './notificationPanelSlice';
+import { openNotificationPanel, closeNotificationPanel, selectNotificationPanelState } from './notificationPanelSlice';
 import { useGetAllNotificationsQuery } from './NotificationApi';
 import { useUnreadMessagesCount } from '../messages/useUnreadMessagesCount';
 
@@ -39,7 +39,7 @@ function NotificationPanelToggleButton(props: NotificationPanelToggleButtonProps
 	const { data: notifications } = useGetAllNotificationsQuery();
 	const { unreadCount: unreadMessagesCount = 0 } = useUnreadMessagesCount();
 	const panelState = useAppSelector(selectNotificationPanelState);
-	
+
 	const [animate, setAnimate] = useState(false);
 	const prevNotificationCount = useRef(notifications?.length || 0);
 	const prevUnreadMessagesCount = useRef(unreadMessagesCount);
@@ -72,6 +72,7 @@ function NotificationPanelToggleButton(props: NotificationPanelToggleButtonProps
 	useEffect(() => {
 		// Animate when notifications or unread messages increase
 		const currentNotificationCount = notifications?.length || 0;
+
 		if (
 			currentNotificationCount > prevNotificationCount.current ||
 			unreadMessagesCount > prevUnreadMessagesCount.current
@@ -93,15 +94,17 @@ function NotificationPanelToggleButton(props: NotificationPanelToggleButtonProps
 	const handleClick = (e: React.MouseEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		
+
 		// Debounce rapid clicks
 		const now = Date.now();
+
 		if (now - lastClickTimeRef.current < CLICK_DEBOUNCE_MS) {
 			return;
 		}
+
 		lastClickTimeRef.current = now;
-		
-		// If panel is already supposed to be open but isn't showing, 
+
+		// If panel is already supposed to be open but isn't showing,
 		// force it open instead of toggling
 		if (panelState) {
 			// State says open but popup isn't showing - force close then reopen
@@ -123,7 +126,7 @@ function NotificationPanelToggleButton(props: NotificationPanelToggleButtonProps
 			className={clsx('border border-divider', className)}
 			aria-label="Notifications"
 			disabled={false}
-			sx={{ 
+			sx={{
 				position: 'relative',
 				zIndex: 1000,
 				pointerEvents: 'auto !important',
@@ -149,9 +152,9 @@ function NotificationPanelToggleButton(props: NotificationPanelToggleButtonProps
 					}
 				}}
 			>
-				<motion.div 
+				<motion.div
 					animate={controls}
-					style={{ 
+					style={{
 						pointerEvents: 'none',
 						display: 'flex',
 						alignItems: 'center',

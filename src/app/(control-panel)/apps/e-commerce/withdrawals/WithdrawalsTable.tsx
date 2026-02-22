@@ -3,7 +3,20 @@
 import { useMemo, useState } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import { ListItemIcon, MenuItem, Paper, Typography, Chip, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Alert } from '@mui/material';
+import {
+	ListItemIcon,
+	MenuItem,
+	Paper,
+	Typography,
+	Chip,
+	Button,
+	Dialog,
+	DialogTitle,
+	DialogContent,
+	DialogActions,
+	TextField,
+	Alert
+} from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import FuseLoading from '@fuse/core/FuseLoading';
 import {
@@ -20,16 +33,16 @@ const formatAmount = (amount: number | string | undefined | null): string => {
 	if (amount === null || amount === undefined) {
 		return '0.00';
 	}
-	
+
 	// If it's already a number, use toFixed directly
 	if (typeof amount === 'number' && !isNaN(amount)) {
 		return amount.toFixed(2);
 	}
-	
+
 	// Convert to string and parse
 	const amountStr = String(amount);
 	const parsed = parseFloat(amountStr);
-	
+
 	// Return formatted or default
 	return isNaN(parsed) ? '0.00' : parsed.toFixed(2);
 };
@@ -47,7 +60,7 @@ function WithdrawalsTable() {
 
 	const handleApprove = async () => {
 		if (!selectedWithdrawal) return;
-		
+
 		try {
 			await approveWithdrawal({ id: selectedWithdrawal.id }).unwrap();
 			setApproveDialogOpen(false);
@@ -59,7 +72,7 @@ function WithdrawalsTable() {
 
 	const handleReject = async () => {
 		if (!selectedWithdrawal || !rejectionReason.trim()) return;
-		
+
 		try {
 			await rejectWithdrawal({
 				id: selectedWithdrawal.id,
@@ -93,21 +106,27 @@ function WithdrawalsTable() {
 			{
 				accessorKey: 'request_number',
 				header: 'Request #',
-				size: 120,
+				size: 120
 			},
 			{
 				accessorKey: 'user.name',
 				header: 'vendor',
 				Cell: ({ row }) => (
 					<div>
-						<Typography variant="body2" fontWeight="medium">
+						<Typography
+							variant="body2"
+							fontWeight="medium"
+						>
 							{row.original.user?.name ?? '—'}
 						</Typography>
-						<Typography variant="caption" color="text.secondary">
+						<Typography
+							variant="caption"
+							color="text.secondary"
+						>
 							{row.original.user?.email ?? '—'}
 						</Typography>
 					</div>
-				),
+				)
 			},
 			{
 				accessorKey: 'amount',
@@ -117,7 +136,7 @@ function WithdrawalsTable() {
 					<Typography fontWeight="medium">
 						{row.original.currency} {formatAmount(row.original.amount)}
 					</Typography>
-				),
+				)
 			},
 			{
 				accessorKey: 'status',
@@ -129,23 +148,21 @@ function WithdrawalsTable() {
 						color={getStatusColor(row.original.status) as any}
 						size="small"
 					/>
-				),
+				)
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Requested',
 				size: 120,
-				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString(),
+				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString()
 			},
 			{
 				accessorKey: 'processed_at',
 				header: 'Processed',
 				size: 120,
-				Cell: ({ row }) => 
-					row.original.processed_at 
-						? new Date(row.original.processed_at).toLocaleDateString()
-						: '—',
-			},
+				Cell: ({ row }) =>
+					row.original.processed_at ? new Date(row.original.processed_at).toLocaleDateString() : '—'
+			}
 		],
 		[]
 	);
@@ -180,7 +197,7 @@ function WithdrawalsTable() {
 					columns={columns}
 					renderRowActionMenuItems={({ closeMenu, row }) => {
 						const withdrawal = row.original;
-						
+
 						return [
 							withdrawal.status === 'pending' && (
 								<MenuItem
@@ -211,14 +228,17 @@ function WithdrawalsTable() {
 									</ListItemIcon>
 									Reject
 								</MenuItem>
-							),
+							)
 						].filter(Boolean);
 					}}
 				/>
 			</Paper>
 
 			{/* Approve Dialog */}
-			<Dialog open={approveDialogOpen} onClose={() => setApproveDialogOpen(false)}>
+			<Dialog
+				open={approveDialogOpen}
+				onClose={() => setApproveDialogOpen(false)}
+			>
 				<DialogTitle>Approve Withdrawal</DialogTitle>
 				<DialogContent>
 					{selectedWithdrawal && (
@@ -227,12 +247,16 @@ function WithdrawalsTable() {
 								<strong>vendor:</strong> {selectedWithdrawal.user?.name}
 							</Typography>
 							<Typography>
-								<strong>Amount:</strong> {selectedWithdrawal.currency} {formatAmount(selectedWithdrawal.amount)}
+								<strong>Amount:</strong> {selectedWithdrawal.currency}{' '}
+								{formatAmount(selectedWithdrawal.amount)}
 							</Typography>
 							<Typography>
 								<strong>Request #:</strong> {selectedWithdrawal.request_number}
 							</Typography>
-							<Alert severity="info" className="mt-4">
+							<Alert
+								severity="info"
+								className="mt-4"
+							>
 								Payment will be transferred to vendor's Stripe Connect account automatically.
 							</Alert>
 						</div>
@@ -240,14 +264,21 @@ function WithdrawalsTable() {
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setApproveDialogOpen(false)}>Cancel</Button>
-					<Button onClick={handleApprove} variant="contained" color="primary">
+					<Button
+						onClick={handleApprove}
+						variant="contained"
+						color="primary"
+					>
 						Approve & Transfer
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Reject Dialog */}
-			<Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)}>
+			<Dialog
+				open={rejectDialogOpen}
+				onClose={() => setRejectDialogOpen(false)}
+			>
 				<DialogTitle>Reject Withdrawal</DialogTitle>
 				<DialogContent>
 					{selectedWithdrawal && (
@@ -256,7 +287,8 @@ function WithdrawalsTable() {
 								<strong>vendor:</strong> {selectedWithdrawal.user?.name}
 							</Typography>
 							<Typography>
-								<strong>Amount:</strong> {selectedWithdrawal.currency} {formatAmount(selectedWithdrawal.amount)}
+								<strong>Amount:</strong> {selectedWithdrawal.currency}{' '}
+								{formatAmount(selectedWithdrawal.amount)}
 							</Typography>
 							<TextField
 								fullWidth
@@ -273,9 +305,9 @@ function WithdrawalsTable() {
 				</DialogContent>
 				<DialogActions>
 					<Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
-					<Button 
-						onClick={handleReject} 
-						variant="contained" 
+					<Button
+						onClick={handleReject}
+						variant="contained"
 						color="error"
 						disabled={!rejectionReason.trim()}
 					>
@@ -288,4 +320,3 @@ function WithdrawalsTable() {
 }
 
 export default WithdrawalsTable;
-

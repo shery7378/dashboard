@@ -1,8 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 import { useSession } from 'next-auth/react';
-import { motion } from 'framer-motion';
 import { Button, Typography } from '@mui/material';
-import PageBreadcrumb from 'src/components/PageBreadcrumb';
 import _ from 'lodash';
 
 type ProfileHeaderProps = {
@@ -33,7 +31,10 @@ function ProfileHeader({ onSubmit }: ProfileHeaderProps) {
 						<Typography className="text-lg sm:text-2xl truncate font-semibold">
 							{name || user?.name || 'User Profile'}
 						</Typography>
-						<Typography variant="caption" className="font-medium">
+						<Typography
+							variant="caption"
+							className="font-medium"
+						>
 							Account Settings
 						</Typography>
 					</div>

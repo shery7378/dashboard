@@ -32,4 +32,3 @@ function WithdrawalsHeader() {
 }
 
 export default WithdrawalsHeader;
-

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useFormContext, useFormState } from 'react-hook-form';
 import { useParams } from 'next/navigation';
 import { motion } from 'motion/react';
@@ -13,10 +13,9 @@ import { enqueueSnackbar } from 'notistack';
 import {
 	EcommerceOrder,
 	useUpdateECommerceShippingStatusMutation,
-	useDeleteECommerceOrderMutation,
+	useDeleteECommerceOrderMutation
 } from '../../apis/ECommerceOrdersApi';
 import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
-import _ from 'lodash';
 
 type OrdersHeaderProps = {
 	order: EcommerceOrder;
@@ -107,7 +106,10 @@ export default function OrdersHeader({ order }: OrdersHeaderProps) {
 						Order: {order?.order_number || 'Order'}
 					</Typography>
 					{order?.user?.name && (
-						<Typography variant="caption" className="font-medium text-gray-600">
+						<Typography
+							variant="caption"
+							className="font-medium text-gray-600"
+						>
 							From: {order.user.name}
 						</Typography>
 					)}
@@ -136,7 +138,7 @@ export default function OrdersHeader({ order }: OrdersHeaderProps) {
 					variant="contained"
 					color="secondary"
 					onClick={handleSave}
-					disabled={isSaveDisabled} 
+					disabled={isSaveDisabled}
 					startIcon={<FuseSvgIcon>heroicons-outline:check</FuseSvgIcon>}
 				>
 					{isUpdating ? 'Saving...' : 'Save'}
