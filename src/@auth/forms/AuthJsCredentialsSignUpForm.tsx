@@ -487,6 +487,7 @@ function AuthJsCredentialsSignUpForm() {
 					handleBackStep={handleBackStep}
 					isValid={isValid}
 					dirtyFields={dirtyFields}
+					setValue={setValue}
 				/>
 			)}
 		</form>

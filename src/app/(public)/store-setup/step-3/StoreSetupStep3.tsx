@@ -24,6 +24,8 @@ export default function StoreSetupStep3() {
 	const [city, setCity] = useState('');
 	const [zipCode, setZipCode] = useState('');
 	const [address, setAddress] = useState('');
+	const [latitude, setLatitude] = useState<number | null>(null);
+	const [longitude, setLongitude] = useState<number | null>(null);
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [mapsLoaded, setMapsLoaded] = useState(false);
 	const [apiKey, setApiKey] = useState<string>('');
@@ -34,6 +36,27 @@ export default function StoreSetupStep3() {
 		searchParams.get('userType') ||
 		(typeof window !== 'undefined' ? localStorage.getItem('signupUserType') : 'seller') ||
 		'seller';
+
+	// Load saved values from localStorage (e.g. when user navigates back)
+	useEffect(() => {
+		if (typeof window === 'undefined') return;
+		const saved = localStorage.getItem('address');
+		const savedCity = localStorage.getItem('city');
+		const savedZip = localStorage.getItem('zipCode');
+		const savedLat = localStorage.getItem('storeLatitude');
+		const savedLng = localStorage.getItem('storeLongitude');
+		if (saved) setAddress(saved);
+		if (savedCity) setCity(savedCity);
+		if (savedZip) setZipCode(savedZip);
+		if (savedLat && savedLng) {
+			const lat = parseFloat(savedLat);
+			const lng = parseFloat(savedLng);
+			if (!isNaN(lat) && !isNaN(lng)) {
+				setLatitude(lat);
+				setLongitude(lng);
+			}
+		}
+	}, []);
 
 	useEffect(() => {
 		const fetchApiKey = async () => {
@@ -148,18 +171,63 @@ export default function StoreSetupStep3() {
 			setAddress(addressLine);
 			setCity(foundCity);
 			setZipCode(foundZip);
+
+			// Save latitude/longitude from place geometry for database
+			if (place?.geometry?.location) {
+				const lat = place.geometry.location.lat();
+				const lng = place.geometry.location.lng();
+				setLatitude(lat);
+				setLongitude(lng);
+				console.error('📍 Coordinates extracted from place:', { lat, lng });
+			} else {
+				setLatitude(null);
+				setLongitude(null);
+				console.error('📍 No geometry location found in place');
+			}
 		});
 	}, [mapsLoaded]);
 
-	const handleContinue = () => {
+	const handleContinue = async () => {
 		if (!phone.trim() || !city.trim() || !address.trim()) return;
 
 		setIsSubmitting(true);
+
+		let latToSave = latitude;
+		let lngToSave = longitude;
+
+		// If no coords from place selection, try to geocode the address
+		if ((latToSave == null || lngToSave == null) && window.google?.maps?.Geocoder) {
+			const geocoder = new window.google.maps.Geocoder();
+			const query = [address.trim(), city.trim(), zipCode.trim()].filter(Boolean).join(', ');
+			try {
+				await new Promise<void>((resolve) => {
+					geocoder.geocode({ address: query }, (results: google.maps.GeocoderResult[] | null, status: google.maps.GeocoderStatus) => {
+						if (status === window.google.maps.GeocoderStatus.OK && results?.[0]?.geometry?.location) {
+							latToSave = results[0].geometry!.location!.lat();
+							lngToSave = results[0].geometry!.location!.lng();
+						}
+						resolve();
+					});
+				});
+			} catch {
+				// Geocode failed, proceed without coords
+			}
+		}
 
 		localStorage.setItem('phone', phone.trim());
 		localStorage.setItem('city', city.trim());
 		localStorage.setItem('zipCode', zipCode.trim());
 		localStorage.setItem('address', address.trim());
+
+		if (latToSave != null && lngToSave != null) {
+			localStorage.setItem('storeLatitude', String(latToSave));
+			localStorage.setItem('storeLongitude', String(lngToSave));
+			console.error('📍 Coordinates saved to localStorage:', { latToSave, lngToSave });
+		} else {
+			localStorage.removeItem('storeLatitude');
+			localStorage.removeItem('storeLongitude');
+			console.error('📍 No coordinates to save, removing from localStorage');
+		}
 
 		setTimeout(() => {
 			const targetUrl = `/store-setup/step-4?email=${encodeURIComponent(email)}&userType=${encodeURIComponent(userType)}`;

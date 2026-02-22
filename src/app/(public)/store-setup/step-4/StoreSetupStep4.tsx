@@ -42,6 +42,10 @@ export default function StoreSetupStep4() {
 			const city = localStorage.getItem('city');
 			const zipCode = localStorage.getItem('zipCode');
 			const address = localStorage.getItem('address');
+			const storeLatitude = localStorage.getItem('storeLatitude');
+			const storeLongitude = localStorage.getItem('storeLongitude');
+
+			console.error('📍 Retrieved from localStorage:', { storeLatitude, storeLongitude });
 
 			console.log('📦 LocalStorage data check:', {
 				storeName,
@@ -50,6 +54,8 @@ export default function StoreSetupStep4() {
 				city,
 				zipCode,
 				address,
+				storeLatitude,
+				storeLongitude,
 				email,
 				userType
 			});
@@ -67,8 +73,20 @@ export default function StoreSetupStep4() {
 				role = 'vendor';
 			}
 
+			const latNum = storeLatitude ? parseFloat(storeLatitude) : null;
+			const lngNum = storeLongitude ? parseFloat(storeLongitude) : null;
+			const hasValidCoords = latNum != null && !isNaN(latNum) && lngNum != null && !isNaN(lngNum);
+
+			console.error('📍 Coordinate check:', {
+				storeLatitude,
+				storeLongitude,
+				latNum,
+				lngNum,
+				hasValidCoords
+			});
+
 			// Collect all form data
-			const formData = {
+			const formData: Record<string, unknown> = {
 				name: ownerName,
 				email: email,
 				password: password,
@@ -78,8 +96,16 @@ export default function StoreSetupStep4() {
 				phone: phone,
 				city: city || '',
 				address: address || '',
-				zip_code: zipCode || '',
+				zip_code: zipCode || ''
 			};
+
+			if (hasValidCoords) {
+				formData.latitude = latNum;
+				formData.longitude = lngNum;
+				console.error('📍 Adding coordinates to form data:', { latitude: latNum, longitude: lngNum });
+			} else {
+				console.error('📍 No valid coordinates to add to form data');
+			}
 
 			const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 			console.log('🌐 API URL:', apiUrl);
@@ -154,6 +180,8 @@ export default function StoreSetupStep4() {
 			localStorage.removeItem('city');
 			localStorage.removeItem('zipCode');
 			localStorage.removeItem('address');
+			localStorage.removeItem('storeLatitude');
+			localStorage.removeItem('storeLongitude');
 			localStorage.removeItem('signupEmail');
 			localStorage.removeItem('signupUserType');
 			localStorage.removeItem('deliveryAddress');

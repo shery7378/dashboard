@@ -10,9 +10,10 @@ interface Step5Props {
 	handleBackStep: () => void;
 	isValid: boolean;
 	dirtyFields: Partial<Readonly<FormType>>;
+	setValue: (name: keyof FormType, value: any) => void;
 }
 
-export default function Step5({ control, errors, handleBackStep, isValid, dirtyFields }: Step5Props) {
+export default function Step5({ control, errors, handleBackStep, isValid, dirtyFields, setValue }: Step5Props) {
 	const kycDocumentRef = useRef<HTMLInputElement>(null);
 	const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
@@ -20,12 +21,10 @@ export default function Step5({ control, errors, handleBackStep, isValid, dirtyF
 		kycDocumentRef.current?.click();
 	};
 
-	const handleFileChange = (
-		event: React.ChangeEvent<HTMLInputElement>,
-		onChange: (files: FileList | null) => void
-	) => {
+	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
 		const files = event.target.files;
-		onChange(files);
+		// Use setValue to update the form field
+		setValue('kycDocument', files);
 		setSelectedFileName(files && files.length > 0 ? files[0].name : null);
 	};
 
@@ -117,19 +116,21 @@ export default function Step5({ control, errors, handleBackStep, isValid, dirtyF
 				/>
 			</div>
 
-			{/* Hidden KYC Input */}
-			<Controller
-				name="kycDocument"
-				control={control}
-				render={({ field: { onChange } }) => (
-					<input
-						type="file"
-						accept=".pdf,.jpg,.jpeg,.png"
-						ref={kycDocumentRef}
-						onChange={(e) => handleFileChange(e, onChange)}
-						style={{ display: 'none' }}
-					/>
-				)}
+			{/* Hidden KYC Input - Not controlled by React Hook Form */}
+			<input
+				type="file"
+				accept=".pdf,.jpg,.jpeg,.png"
+				ref={kycDocumentRef}
+				onChange={(e) => {
+					const files = e.target.files;
+					// Manually set the form value
+					const kycField = control._fields.kycDocument;
+					if (kycField) {
+						kycField._f.value = files;
+					}
+					setSelectedFileName(files && files.length > 0 ? files[0].name : null);
+				}}
+				style={{ display: 'none' }}
 			/>
 			{selectedFileName && <p className="text-center text-sm text-gray-600 mb-4">Selected: {selectedFileName}</p>}
 			{errors.kycDocument && (

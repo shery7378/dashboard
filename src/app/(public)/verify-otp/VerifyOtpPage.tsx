@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { getStorageUrl } from '@/utils/urlHelpers';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowBack } from '@mui/icons-material';
 import { AuthButton, AuthTitle } from '@/components/auth';
 import StepBar from '@/components/StepBar';
 
@@ -309,7 +309,7 @@ export default function VerifyOtpPage() {
 						onClick={() => router.back()}
 						className="absolute top-8 left-8 p-2 z-30 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
 					>
-						<ArrowBackIcon className="h-5 w-5 text-black" />
+						<ArrowBack className="h-5 w-5 text-black" />
 					</button>
 
 					{/* Brand Name - Centered */}
