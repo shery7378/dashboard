@@ -73,7 +73,9 @@ function Store() {
 			reset(createDefaultStore());
 			setOriginalValues({});
 		} else if (store) {
-			const sanitized = sanitizeStore(store.data);
+			// Handle both wrapped {data: {...}} and unwrapped {...} responses
+			const storeData = store.data || store;
+			const sanitized = sanitizeStore(storeData);
 			reset(sanitized);
 			setOriginalValues(sanitized);
 		}

@@ -323,6 +323,15 @@ const navigationConfig: FuseNavItemType[] = [
 			},
 			divider(),
 			{
+				id: 'seller.store-settings',
+				title: 'Store Settings',
+				type: 'item',
+				icon: 'heroicons-outline:cog-6-tooth',
+				url: '/apps/e-commerce/my-store',
+				end: true
+			},
+			divider(),
+			{
 				id: 'seller.orders',
 				title: 'Orders',
 				type: 'item',

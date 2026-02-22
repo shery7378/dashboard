@@ -23,6 +23,7 @@ import PricingTab from './tabs/PricingTab';
 import ProductImagesTab from './tabs/ProductImagesTab';
 import ShippingTab from './tabs/ShippingTab';
 import { useGetECommerceProductQuery } from '../../../apis/ProductsLaravelApi';
+import { useGetCurrentUserStoreQuery } from '../../../apis/StoresLaravelApi';
 import ProductModel from '../../models/ProductModel';
 import ProductSeoTab from './tabs/ProductSeoTab';
 import { sanitizeProduct } from '../../models/sanitizeProduct';
@@ -84,13 +85,13 @@ const schema = z.object({
 		)
 		.min(1, 'At least one image is required'),
 	// SEO fields with character limits
-	meta_title: z.string().max(70, 'SEO title must not exceed 70 characters').optional(),
-	meta_description: z.string().max(160, 'Meta description must not exceed 160 characters').optional(),
+	meta_title: z.string().min(10, 'SEO title must be at least 10 characters').max(70, 'SEO title must not exceed 70 characters').optional(),
+	meta_description: z.string().min(20, 'Meta description must be at least 20 characters').max(160, 'Meta description must not exceed 160 characters').optional(),
 	meta_keywords: z.string().max(255, 'Meta keywords must not exceed 255 characters').optional(),
-	// Additional fields with limits
-	condition_notes: z.string().max(500, 'Condition notes must not exceed 500 characters').optional(),
-	box_contents: z.string().max(1000, 'Box contents must not exceed 1000 characters').optional(),
-	warranty: z.string().max(200, 'Warranty information must not exceed 200 characters').optional(),
+	// Additional fields with limits - allow null for truly optional fields
+	condition_notes: z.string().max(500, 'Condition notes must not exceed 500 characters').nullable().optional(),
+	box_contents: z.union([z.string().max(1000, 'Box contents must not exceed 1000 characters'), z.null()]).optional(),
+	warranty: z.union([z.string().max(200, 'Warranty information must not exceed 200 characters'), z.null()]).optional(),
 	slug: z.string().max(100, 'Slug must not exceed 100 characters').optional(),
 	// Delivery and store fields
 	store_postcode: z.string().max(20, 'Store postcode must not exceed 20 characters').optional(),
@@ -159,6 +160,13 @@ function Product() {
 	const { data: session } = useSession();
 	const sessionStoreId = session?.db?.store_id;
 
+	// Fallback to API for store_id if current product is new and session is incomplete
+	const { data: currentUserStoreData } = useGetCurrentUserStoreQuery(undefined, {
+		skip: productId !== 'new' || !!sessionStoreId
+	});
+	const apiStoreId = currentUserStoreData?.data?.id;
+	const effectiveStoreId = sessionStoreId || apiStoreId;
+
 	// Check if user is vendor, supplier, or admin
 	const user = session?.user || session?.db;
 	const userRoles = user?.role || session?.db?.role || [];
@@ -173,9 +181,9 @@ function Product() {
 		if (productId === 'new') {
 			const defaultValues = ProductModel({});
 
-			// Set store_id from session if available
-			if (sessionStoreId) {
-				defaultValues.store_id = Number(sessionStoreId);
+			// Set store_id from session or API if available
+			if (effectiveStoreId) {
+				defaultValues.store_id = Number(effectiveStoreId);
 			}
 
 			reset(defaultValues);
@@ -186,18 +194,18 @@ function Product() {
 			// Force a re-render by updating a state that triggers image refresh
 			// This ensures images are reloaded even if URLs haven't changed
 		}
-	}, [product, productId, reset, sessionStoreId]);
+	}, [product, productId, reset, effectiveStoreId]);
 
-	// Also set store_id immediately if session has it and form doesn't
+	// Also set store_id immediately if available and form doesn't have it
 	useEffect(() => {
-		if (productId === 'new' && sessionStoreId && !watch('store_id')) {
-			const numericStoreId = Number(sessionStoreId);
+		if (productId === 'new' && effectiveStoreId && !watch('store_id')) {
+			const numericStoreId = Number(effectiveStoreId);
 
 			if (!isNaN(numericStoreId) && numericStoreId > 0) {
 				setValue('store_id', numericStoreId, { shouldValidate: true });
 			}
 		}
-	}, [productId, sessionStoreId, watch, setValue]);
+	}, [productId, effectiveStoreId, watch, setValue]);
 
 	// useEffect(() => {
 	// 	if (product) {

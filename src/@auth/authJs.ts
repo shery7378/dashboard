@@ -1,4 +1,4 @@
-// src/@auth/authJsProviderMap.ts
+// src/@auth/authJs.ts - v2.0.2 - 2026-02-22T20:25:00
 import NextAuth from 'next-auth';
 import { User } from '@auth/user';
 import { createStorage } from 'unstorage';
@@ -8,9 +8,6 @@ import { UnstorageAdapter } from '@auth/unstorage-adapter';
 import type { NextAuthConfig } from 'next-auth';
 import type { Provider } from 'next-auth/providers';
 import Credentials from 'next-auth/providers/credentials';
-import Facebook from 'next-auth/providers/facebook';
-import Google from 'next-auth/providers/google';
-import Apple from 'next-auth/providers/apple';
 
 const storage = createStorage({
 	driver: (process.env.VERCEL && process.env.AUTH_KV_REST_API_URL)

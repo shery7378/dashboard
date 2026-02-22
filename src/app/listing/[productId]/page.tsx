@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import { useParams } from 'next/navigation';
 import MultiKonnectListingCreation from '../../(control-panel)/apps/e-commerce/products/[productId]/[[...handle]]/MultiKonnectListingCreation';
 import ProductModel from '../../(control-panel)/apps/e-commerce/products/models/ProductModel';
+import { useGetCurrentUserStoreQuery } from '../../(control-panel)/apps/e-commerce/apis/StoresLaravelApi';
 import AuthGuard from '@auth/AuthGuard';
 import authRoles from '@auth/authRoles';
 
@@ -69,6 +70,13 @@ function StandaloneListingPage() {
 	const { data: session } = useSession();
 	const sessionStoreId = session?.db?.store_id;
 
+	// Fallback to API for store_id if session is incomplete
+	const { data: currentUserStoreData } = useGetCurrentUserStoreQuery(undefined, {
+		skip: !!sessionStoreId
+	});
+	const apiStoreId = currentUserStoreData?.data?.id;
+	const effectiveStoreId = sessionStoreId || apiStoreId;
+
 	const methods = useForm({
 		mode: 'onBlur',
 		defaultValues: ProductModel({}),
@@ -78,12 +86,12 @@ function StandaloneListingPage() {
 
 	const { reset, setValue, watch } = methods;
 
-	// Initialize form with store_id from session
+	// Initialize form with store_id from session or API fallback
 	useEffect(() => {
 		const defaultValues = ProductModel({});
 
-		if (sessionStoreId) {
-			defaultValues.store_id = Number(sessionStoreId);
+		if (effectiveStoreId) {
+			defaultValues.store_id = Number(effectiveStoreId);
 		}
 
 		// Ensure product_variants is always initialized (backend requires this field)
@@ -97,18 +105,18 @@ function StandaloneListingPage() {
 		}
 
 		reset(defaultValues);
-	}, [reset, sessionStoreId]);
+	}, [reset, effectiveStoreId]);
 
-	// Also set store_id immediately if session has it and form doesn't
+	// Also set store_id immediately if available and form doesn't have it
 	useEffect(() => {
-		if (sessionStoreId && !watch('store_id')) {
-			const numericStoreId = Number(sessionStoreId);
+		if (effectiveStoreId && !watch('store_id')) {
+			const numericStoreId = Number(effectiveStoreId);
 
 			if (!isNaN(numericStoreId) && numericStoreId > 0) {
 				setValue('store_id', numericStoreId, { shouldValidate: true });
 			}
 		}
-	}, [sessionStoreId, watch, setValue]);
+	}, [effectiveStoreId, watch, setValue]);
 
 	return (
 		<AuthGuard

@@ -29,7 +29,7 @@ import {
 	useGetECommerceAllCategoriesQuery
 } from '../../../apis/CategoriesLaravelApi';
 import { useGetECommerceProductsQuery, useGetOtherSellersProductsQuery } from '../../../apis/ProductsLaravelApi';
-import { useGetECommerceStoreQuery } from '../../../apis/StoresLaravelApi';
+import { useGetECommerceStoreQuery, useGetCurrentUserStoreQuery } from '../../../apis/StoresLaravelApi';
 import { useGetAdminProductFeesSettingsQuery } from '../../../../../pages/settings/product-fees/ProductFeesAdminApi';
 import { slugify } from '../../models/ProductModel';
 import { sanitizeProduct } from '../../models/sanitizeProduct';
@@ -338,12 +338,23 @@ function MultiKonnectListingCreation() {
 	const parentCategoriesWithChildren = allCategoriesData?.data || [];
 
 	// Get user's store_id from session
-	const userStoreId = user?.store_id || session?.db?.store_id || null;
+	const sessionStoreId = user?.store_id || session?.db?.store_id || null;
 
-	// Fetch store data to get postcode (skip query if no store_id)
-	const { data: storeData } = useGetECommerceStoreQuery(userStoreId || '', {
-		skip: !userStoreId // Skip query if no store_id
+	// Fallback to API for store data if not in session
+	const { data: currentUserStoreData, isLoading: isStoreLoading } = useGetCurrentUserStoreQuery(undefined, {
+		skip: !!sessionStoreId
 	});
+
+	// Use store data from session-based query OR fallback current user query
+	const effectiveStoreId = sessionStoreId || currentUserStoreData?.data?.id;
+
+	// Fetch store details by ID (if we have an ID from session)
+	const { data: sessionStoreData } = useGetECommerceStoreQuery(sessionStoreId || '', {
+		skip: !sessionStoreId
+	});
+
+	// Final store data source
+	const storeData = sessionStoreData || currentUserStoreData;
 
 	// Normalize delivery slots from store (backend may return string[] or a comma-separated string)
 	const storeDeliverySlots: string[] = useMemo(() => {
@@ -973,15 +984,15 @@ function MultiKonnectListingCreation() {
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isInitialized]); // Only run when isInitialized becomes true
 
-	// Auto-generate slug from title - fixed infinite loop by removing setValue from dependencies
+	// Auto-generate slug from title - always update when title changes
 	useEffect(() => {
-		if (productTitle && !slug && productTitle !== prevProductTitleRef.current) {
+		if (productTitle && productTitle !== prevProductTitleRef.current) {
 			prevProductTitleRef.current = productTitle;
 			const autoSlug = slugify(productTitle);
 			setValue('slug', autoSlug, { shouldDirty: false });
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [productTitle, slug]); // Removed setValue to prevent infinite loop
+	}, [productTitle]); // Only depend on productTitle
 
 	// MPID search handler - save to extraFields
 	const handleMpidSearch = (value: string) => {
@@ -5434,29 +5445,38 @@ function MultiKonnectListingCreation() {
 									<Controller
 										name="meta_title"
 										control={control}
+										rules={{
+											validate: {
+												minLength: (value) => !value || value.length >= 10 || 'SEO title must be at least 10 characters',
+												maxLength: (value) => !value || value.length <= 70 || 'SEO title must not exceed 70 characters'
+											}
+										}}
 										render={({ field }) => {
 											const currentValue = field.value || '';
+											const charCount = currentValue.length;
+											const isWarning = charCount > 0 && charCount < 10;
+											const isError = charCount > 70;
 											return (
 												<TextField
 													{...field}
 													fullWidth
-													label="SEO title (≤ 70 chars)"
+													label="SEO title (10-70 chars)"
 													placeholder="iPhone 16 Pro Max 256GB — QC-Verified, Same-Day Delivery"
 													size="medium"
-													error={!!errors.meta_title}
-													helperText={`${currentValue.length}/70 ${errors?.meta_title?.message ? ' - ' + errors.meta_title.message : ''}`}
+													error={!!errors.meta_title || isError}
+													helperText={`${charCount}/70 ${errors?.meta_title?.message ? ' - ' + errors.meta_title.message : isWarning ? ' - Recommended minimum 10 characters for better SEO' : ''}`}
 													sx={{
 														'& .MuiOutlinedInput-root': {
 															borderRadius: '8px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#d1d5db'
+																borderColor: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#d1d5db'
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#9ca3af'
+																borderColor: isError ? '#dc2626' : isWarning && charCount > 0 ? '#d97706' : '#9ca3af'
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#3b82f6',
+																borderColor: isError ? '#dc2626' : '#3b82f6',
 																borderWidth: '2px'
 															}
 														},
@@ -5470,7 +5490,8 @@ function MultiKonnectListingCreation() {
 														},
 														'& .MuiFormHelperText-root': {
 															fontSize: '12px',
-															marginTop: '4px'
+															marginTop: '4px',
+															color: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#6b7280'
 														}
 													}}
 												/>
@@ -5484,31 +5505,40 @@ function MultiKonnectListingCreation() {
 									<Controller
 										name="meta_description"
 										control={control}
+										rules={{
+											validate: {
+												minLength: (value) => !value || value.length >= 20 || 'Meta description must be at least 20 characters',
+												maxLength: (value) => !value || value.length <= 160 || 'Meta description must not exceed 160 characters'
+											}
+										}}
 										render={({ field }) => {
 											const currentValue = field.value || '';
+											const charCount = currentValue.length;
+											const isWarning = charCount > 0 && charCount < 20;
+											const isError = charCount > 160;
 											return (
 												<TextField
 													{...field}
 													fullWidth
-													label="Meta description (≤ 160 chars)"
+													label="Meta description (20-160 chars)"
 													placeholder="Fast same-day delivery, 1-year AccessoryShield, verified device with invoice."
 													multiline
 													rows={2}
 													size="medium"
-													error={!!errors.meta_description}
-													helperText={`${currentValue.length}/160 ${errors?.meta_description?.message ? ' - ' + errors.meta_description.message : ''}`}
+													error={!!errors.meta_description || isError}
+													helperText={`${charCount}/160 ${errors?.meta_description?.message ? ' - ' + errors.meta_description.message : isWarning && charCount > 0 ? ' - Recommended minimum 20 characters for better SEO' : ''}`}
 													sx={{
 														'& .MuiOutlinedInput-root': {
 															borderRadius: '8px',
 															fontSize: '14px',
 															'& .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#d1d5db'
+																borderColor: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#d1d5db'
 															},
 															'&:hover .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#9ca3af'
+																borderColor: isError ? '#dc2626' : isWarning && charCount > 0 ? '#d97706' : '#9ca3af'
 															},
 															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-																borderColor: '#3b82f6',
+																borderColor: isError ? '#dc2626' : '#3b82f6',
 																borderWidth: '2px'
 															}
 														},
@@ -5523,7 +5553,8 @@ function MultiKonnectListingCreation() {
 														},
 														'& .MuiFormHelperText-root': {
 															fontSize: '12px',
-															marginTop: '4px'
+															marginTop: '4px',
+															color: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#6b7280'
 														}
 													}}
 												/>
@@ -5537,55 +5568,68 @@ function MultiKonnectListingCreation() {
 									<Controller
 										name="description"
 										control={control}
-										render={({ field }) => (
-											<TextField
-												{...field}
-												fullWidth
-												label="Description"
-												placeholder="Add what's in the box, condition notes, and warranty details..."
-												multiline
-												minRows={5}
-												maxRows={12}
-												size="medium"
-												error={!!errors.description}
-												helperText={errors?.description?.message as string}
-												sx={{
-													'& .MuiOutlinedInput-root': {
-														borderRadius: '8px',
-														fontSize: '14px',
-														'& .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#d1d5db'
+										rules={{
+											validate: {
+												minLength: (value) => !value || value.length >= 10 || 'Description must be at least 10 characters',
+												maxLength: (value) => !value || value.length <= 2000 || 'Description must not exceed 2000 characters'
+											}
+										}}
+										render={({ field }) => {
+											const currentValue = field.value || '';
+											const charCount = currentValue.length;
+											const isWarning = charCount > 0 && charCount < 10;
+											const isError = charCount > 2000;
+											return (
+												<TextField
+													{...field}
+													fullWidth
+													label="Description (10-2000 chars)"
+													placeholder="Add what's in the box, condition notes, and warranty details..."
+													multiline
+													minRows={5}
+													maxRows={12}
+													size="medium"
+													error={!!errors.description || isError}
+													helperText={`${charCount}/2000 ${errors?.description?.message ? ' - ' + errors.description.message : isWarning && charCount > 0 ? ' - Recommended minimum 10 characters' : ''}`}
+													sx={{
+														'& .MuiOutlinedInput-root': {
+															borderRadius: '8px',
+															fontSize: '14px',
+															'& .MuiOutlinedInput-notchedOutline': {
+																borderColor: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#d1d5db'
+															},
+															'&:hover .MuiOutlinedInput-notchedOutline': {
+																borderColor: isError ? '#dc2626' : isWarning && charCount > 0 ? '#d97706' : '#9ca3af'
+															},
+															'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+																borderColor: isError ? '#dc2626' : '#3b82f6',
+																borderWidth: '2px'
+															},
+															'& textarea': {
+																overflow: 'auto !important',
+																resize: 'vertical',
+																minHeight: '120px !important',
+																fontFamily: 'inherit'
+															}
 														},
-														'&:hover .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#9ca3af'
+														'& .MuiInputBase-input': {
+															padding: '12px 14px',
+															color: '#111827',
+															lineHeight: '1.5'
 														},
-														'&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-															borderColor: '#3b82f6',
-															borderWidth: '2px'
-														},
-														'& textarea': {
-															overflow: 'auto !important',
-															resize: 'vertical',
-															minHeight: '120px !important',
-															fontFamily: 'inherit'
-														}
-													},
-													'& .MuiInputBase-input': {
-														padding: '12px 14px',
-														color: '#111827',
-														lineHeight: '1.5'
-													},
-													'& .MuiInputLabel-root': {
+														'& .MuiInputLabel-root': {
 														fontSize: '14px',
 														color: '#6b7280'
 													},
 													'& .MuiFormHelperText-root': {
 														fontSize: '12px',
-														marginTop: '4px'
+														marginTop: '4px',
+														color: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#6b7280'
 													}
 												}}
 											/>
-										)}
+											);
+										}}
 									/>
 								</div>
 
@@ -5903,7 +5947,7 @@ function MultiKonnectListingCreation() {
 													fullWidth
 													label="Manufacturer Warranty"
 													placeholder="e.g., 1-year manufacturer warranty"
-													value={warranty}
+													value={warranty || ''}
 													size="small"
 													error={!!errors.warranty}
 													helperText={
@@ -5967,7 +6011,7 @@ function MultiKonnectListingCreation() {
 												fullWidth
 												label="What's Included"
 												placeholder="List all items included in the box (e.g., Device, Charger, USB-C cable, SIM tool, Documentation, Original box, Warranty card)"
-												value={boxContents}
+												value={boxContents || ''}
 												multiline
 												minRows={3}
 												maxRows={5}
@@ -5975,7 +6019,7 @@ function MultiKonnectListingCreation() {
 												error={!!errors.box_contents}
 												helperText={
 													(errors?.box_contents?.message as string) ||
-													"Be specific about what's included to set accurate buyer expectations"
+													"Optional: Be specific about what's included"
 												}
 												sx={{
 													'& .MuiOutlinedInput-root': {

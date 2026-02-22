@@ -28,7 +28,7 @@ export default function LandingPageHeader() {
 
 	return (
 		<>
-			<header className="bg-red-600 border-b border-gray-200">
+			<header className="bg-[#f44322] border-b border-gray-200">
 				<nav className="container mx-auto flex justify-between items-center h-16 px-4">
 					{/* Logo */}
 					<Link href="/">
@@ -46,11 +46,12 @@ export default function LandingPageHeader() {
 						{/* Login Button */}
 						<Link href={`/sign-in`}>
 							<Button
-								variant="transparent"
-								className="border border-white/90 text-white rounded-full !h-10 !px-4"
-							>
-								Log in
-							</Button>
+  className=" border border-white text-white rounded-full px-6 py-2 text-sm font-semibold whitespace-nowrap hover:bg-[#FF3B1F] focus:outline-none focus:ring-0"
+style="
+    border-radius: 16PX;
+    BORDER-COLOR: WHITE;">
+  Log in
+</Button>
 						</Link>
 					</div>
 				</nav>
