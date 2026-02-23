@@ -42,16 +42,14 @@ export default function LandingPageHeader() {
 					{/* Right Side Buttons */}
 					<div className="md:flex items-center gap-3 hidden">
 						{/* Address Button */}
-
+		
 						{/* Login Button */}
-						<Link href={`/sign-in`}>
+						<Link href="/sign-in">
 							<Button
-  className=" border border-white text-white rounded-full px-6 py-2 text-sm font-semibold whitespace-nowrap hover:bg-[#FF3B1F] focus:outline-none focus:ring-0"
-style="
-    border-radius: 16PX;
-    BORDER-COLOR: WHITE;">
-  Log in
-</Button>
+								className="border border-white text-white rounded-full px-6 py-2 text-sm font-semibold whitespace-nowrap focus:outline-none focus:ring-0"
+								style={{ borderRadius: "16px", borderColor: "white" }} >
+								Log in
+							</Button>
 						</Link>
 					</div>
 				</nav>
