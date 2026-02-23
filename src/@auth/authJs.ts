@@ -87,7 +87,7 @@ const config = {
 	basePath: '/auth',
 	trustHost: true,
 	// Ensure a stable secret for JWT sessions (Auth.js prefers AUTH_SECRET env)
-	secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+	secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || '2a4e3cd9db2de91ac40c06ed72b3c365d18acad4859da173a61d514bfc0b03b2',
 	callbacks: {
 		authorized() {
 			/** Checkout information to how to use middleware for authorization
