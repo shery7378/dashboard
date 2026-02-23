@@ -17,7 +17,7 @@ export default function StepBar({ currentStep, totalSteps = 4 }: StepBarProps) {
 					{/* Step Circle */}
 					<div
 						className={`h-10 w-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 shrink-0
-						${step <= currentStep ? 'bg-red-600 text-white' : 'border-2 border-red-600 bg-white'}`}
+						${step <= currentStep ? 'bg-[#f44322] text-white' : 'border-2 border-[#f44322] bg-white'}`}
 					>
 						{step <= currentStep ? step : <div className="h-3 w-3 rounded-full bg-gray-300" />}
 					</div>
