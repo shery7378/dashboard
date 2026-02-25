@@ -56,7 +56,7 @@ const navigationConfig: FuseNavItemType[] = [
 			divider(),
 			{
 				id: 'admin.sellers',
-				title: 'Sellers',
+				title: 'Vendors',
 				type: 'item',
 				icon: 'feather:user-check',
 				url: '/sellers',

@@ -14,28 +14,40 @@ import Cookies from 'js-cookie';
  * 2. NextAuth session (may have timing issues)
  * 3. Cookies (for Sanctum cookie-based auth)
  */
+// In-memory token cache to avoid redundant localStorage/cookie lookups
+let cachedToken: string | null = null;
+let lastTokenCheck = 0;
+const TOKEN_CACHE_TTL = 30000; // 30 seconds
+
 export async function getAuthToken(): Promise<string | null> {
 	// Only run on client side
 	if (typeof window === 'undefined') {
 		return null;
 	}
 
+	const now = Date.now();
+
+	// Return cached token if it's fresh enough (less than 30s old)
+	if (cachedToken && now - lastTokenCheck < TOKEN_CACHE_TTL) {
+		return cachedToken;
+	}
+
 	// First, check localStorage (most reliable - set immediately after login)
-	// This is prioritized because it's set synchronously during login
 	let token =
 		localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token');
 
 	if (token && typeof token === 'string' && token.trim() !== '') {
-		return token.trim();
+		cachedToken = token.trim();
+		lastTokenCheck = now;
+		return cachedToken;
 	}
 
-	// Then try to get session token (may have timing issues, but good for consistency)
+	// Then try to get session token
 	let session = null;
 	try {
 		session = await getSession();
 
 		if (session) {
-			// Access token properties with proper type handling
 			const sessionAny = session as any;
 			token =
 				sessionAny?.accessAuthToken ||
@@ -44,35 +56,32 @@ export async function getAuthToken(): Promise<string | null> {
 				sessionAny?.token?.accessToken ||
 				null;
 
-			// If we found a token in session, validate and return it
 			if (token && typeof token === 'string' && token.trim() !== '') {
-				// Also store it in localStorage for future use
-				localStorage.setItem('auth_token', token.trim());
-				localStorage.setItem('token', token.trim());
-				return token.trim();
+				const cleanToken = token.trim();
+				localStorage.setItem('auth_token', cleanToken);
+				localStorage.setItem('token', cleanToken);
+				cachedToken = cleanToken;
+				lastTokenCheck = now;
+				return cleanToken;
 			}
 		}
-	} catch (error) {
-		// Silently fail - we'll try cookies as fallback
-		if (process.env.NODE_ENV === 'development') {
-			const shouldDebug = window.localStorage.getItem('DEBUG_API') === 'true';
-
-			if (shouldDebug) {
-				console.warn('Failed to get session token:', error);
-			}
-		}
+	} catch (_error) {
+		// Silently fail
 	}
 
-	// Fallback to cookies (for Sanctum cookie-based auth)
+	// Fallback to cookies
 	const cookieToken = Cookies.get('auth_token') || Cookies.get('sanctum_token');
 
 	if (cookieToken && typeof cookieToken === 'string' && cookieToken.trim() !== '') {
-		// Store in localStorage for future use
-		localStorage.setItem('auth_token', cookieToken.trim());
-		localStorage.setItem('token', cookieToken.trim());
-		return cookieToken.trim();
+		const cleanToken = cookieToken.trim();
+		localStorage.setItem('auth_token', cleanToken);
+		localStorage.setItem('token', cleanToken);
+		cachedToken = cleanToken;
+		lastTokenCheck = now;
+		return cleanToken;
 	}
 
+	cachedToken = null;
 	return null;
 }
 
@@ -86,10 +95,7 @@ export async function getAuthToken(): Promise<string | null> {
 // export const API_BASE_URL = BASEURLAPI;
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-// Log API base URL in development to help debug connection issues
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-	console.log('🔗 API Base URL:', API_BASE_URL);
-}
+// API base URL is available at: process.env.NEXT_PUBLIC_API_URL
 
 // export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://api.multikonnect.test:8000';
 export const globalHeaders = {
@@ -153,14 +159,6 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
 
 	// Get token using the helper function
 	const token = await getAuthToken();
-
-	// Also get session for debugging purposes
-	let session = null;
-	try {
-		session = await getSession();
-	} catch (sessionError) {
-		// Silently handle session errors
-	}
 
 	// Fetch Sanctum CSRF cookie (for cookie-based auth, but only if we don't have a Bearer token)
 	// This helps with cookie-based Sanctum authentication
@@ -237,19 +235,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
 			}
 		}
 
-		// Log request details for 422 debugging (especially for KYC submit)
-		if (method === 'POST' && url && String(url).includes('/kyc/submit') && process.env.NODE_ENV === 'development') {
-			console.log('📤 KYC Submit Request Details:', {
-				url,
-				method,
-				hasBody: 'body' in modifiedArgs && modifiedArgs.body !== undefined,
-				bodyType: modifiedArgs.body ? typeof modifiedArgs.body : 'none',
-				bodyContent: modifiedArgs.body,
-				bodyStringified: modifiedArgs.body ? JSON.stringify(modifiedArgs.body) : 'no body',
-				isFormData: isFormData,
-				fullArgs: JSON.stringify(modifiedArgs, null, 2)
-			});
-		}
+		// KYC submit debug logging removed for performance
 	}
 
 	const result = await fetchBaseQuery({
@@ -321,15 +307,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
 							});
 						}
 
-						// Always log for orders endpoint to help debug
-						if (requestUrl && String(requestUrl).includes('/orders')) {
-							console.log('🔐 Auth header set for orders request:', {
-								url: requestUrl,
-								tokenLength: cleanToken.length,
-								tokenPrefix: `${cleanToken.substring(0, 15)}...`,
-								headerSet: headers.has('Authorization')
-							});
-						}
+
 					}
 				} else {
 					// Token exists but is empty after trimming - treat as missing
@@ -337,32 +315,14 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
 						console.warn('⚠️ Token is empty after trimming, treating as missing');
 					}
 				}
-			} else {
-				// Always log when token is missing in development (this is important!)
+				// No token available
 				if (process.env.NODE_ENV === 'development') {
-					const sessionAny = session as any;
-					const requestUrl = typeof args === 'string' ? args : (args as FetchArgs).url;
-					console.error('❌ No token available for API request!', {
-						url: requestUrl,
-						hasSession: !!session,
-						sessionKeys: session ? Object.keys(session) : [],
-						accessAuthToken: sessionAny?.accessAuthToken ? 'exists' : 'missing',
-						accessToken: sessionAny?.accessToken ? 'exists' : 'missing',
-						localStorageToken:
-							typeof window !== 'undefined'
-								? localStorage.getItem('token') ||
-									localStorage.getItem('auth_token') ||
-									localStorage.getItem('access_token')
-									? 'exists'
-									: 'missing'
-								: 'N/A',
-						cookieToken:
-							typeof window !== 'undefined'
-								? Cookies.get('auth_token') || Cookies.get('sanctum_token')
-									? 'exists'
-									: 'missing'
-								: 'N/A'
-					});
+					const shouldDebug =
+						typeof window !== 'undefined' && window.localStorage.getItem('DEBUG_API') === 'true';
+					if (shouldDebug) {
+						const requestUrl = typeof args === 'string' ? args : (args as FetchArgs).url;
+						console.warn('⚠️ No token available for API request:', requestUrl);
+					}
 				}
 			}
 
@@ -379,7 +339,7 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
 			error: result.error,
 			data: result.error?.data,
 			originalStatus: (result.error as any)?.originalStatus,
-			message: result.error?.data?.message || (result.error?.data as any)?.error,
+			message: (result.error?.data as Record<string, unknown>)?.['message'] || (result.error?.data as Record<string, unknown>)?.['error'],
 			errors: (result.error?.data as any)?.errors,
 			fullResponse: JSON.stringify(result.error, null, 2)
 		});
@@ -496,7 +456,9 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
 export const apiServiceLaravel = createApi({
 	baseQuery,
 	endpoints: () => ({}),
-	reducerPath: 'apiServiceLaravel'
+	reducerPath: 'apiServiceLaravel',
+	keepUnusedDataFor: 600, // Keep data in Redux cache for 10 minutes
+	refetchOnMountOrArgChange: 300 // Only refetch if data is older than 5 min
 });
 
 export default apiServiceLaravel;

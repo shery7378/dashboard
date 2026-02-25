@@ -149,11 +149,11 @@ function SellersTable() {
 		if (!isMountedRef.current) return;
 
 		if (profilesRes) {
-			console.log('Fetched Seller Profiles:', profilesRes);
+			console.log('Fetched Vendor Profiles:', profilesRes);
 		}
 
 		if (error) {
-			console.error('Failed to load Seller Profiles:', error);
+			console.error('Failed to load Vendor Profiles:', error);
 		}
 	}, [profilesRes, error, isMountedRef]);
 
@@ -168,7 +168,7 @@ function SellersTable() {
 
 			if (succeeded > 0) {
 				const message =
-					succeeded === 1 ? 'Seller deleted successfully' : `${succeeded} sellers deleted successfully`;
+					succeeded === 1 ? 'Vendor deleted successfully' : `${succeeded} vendors deleted successfully`;
 				enqueueSnackbar(message, { variant: 'success' });
 				setSuccessMessage(message);
 				setSuccessDialogOpen(true);
@@ -211,7 +211,7 @@ function SellersTable() {
 
 	if (isLoading) return <FuseLoading />;
 
-	if (error) return <Typography color="error">Failed to load Sellers</Typography>;
+	if (error) return <Typography color="error">Failed to load Vendors</Typography>;
 
 	return (
 		<Paper

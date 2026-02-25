@@ -17,7 +17,8 @@ const StoresLaravelApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
 				url: `/api/stores`,
 				params: { page, per_page: perPage }
 			}),
-			providesTags: ['eCommerce_stores']
+			providesTags: ['eCommerce_stores'],
+			keepUnusedDataFor: 300
 		}),
 
 		// Get single store by ID
@@ -25,7 +26,8 @@ const StoresLaravelApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
 			query: (storeId) => ({
 				url: `/api/stores/${storeId}`
 			}),
-			providesTags: ['eCommerce_store', 'eCommerce_stores']
+			providesTags: ['eCommerce_store', 'eCommerce_stores'],
+			keepUnusedDataFor: 300
 		}),
 
 		// Create a new store
@@ -53,7 +55,8 @@ const StoresLaravelApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
 			query: () => ({
 				url: `/api/store/current`
 			}),
-			providesTags: ['eCommerce_store']
+			providesTags: ['eCommerce_store'],
+			keepUnusedDataFor: 600 // 10 minutes - user's own store rarely changes
 		}),
 
 		// Delete store by ID

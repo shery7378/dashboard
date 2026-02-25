@@ -12,6 +12,14 @@ import VisitorsOverviewWidgetType from './widgets/types/VisitorsOverviewWidgetTy
 import VisitsWidgetType from './widgets/types/VisitsWidgetType';
 import ConversionsWidgetType from './widgets/types/ConversionsWidgetType';
 
+// ── Stable selectors – defined once outside the component ────────────────────
+// Each call to selectWidget() creates a new memoized selector; creating them
+// inside the component would make a NEW selector every render, defeating memoization.
+const selectVisitors = selectWidget<VisitorsOverviewWidgetType>('visitors');
+const selectVisits = selectWidget<VisitsWidgetType>('visits');
+const selectImpressions = selectWidget<VisitsWidgetType>('impressions');
+const selectConversions = selectWidget<ConversionsWidgetType>('conversions');
+
 function formatNumber(n: number) {
 	return new Intl.NumberFormat('en-US').format(Math.max(0, Math.floor(n || 0)));
 }
@@ -25,10 +33,10 @@ function calcVisitorsTotal(widget?: VisitorsOverviewWidgetType) {
 }
 
 export default function KpiSummary() {
-	const visitors = useAppSelector(selectWidget<VisitorsOverviewWidgetType>('visitors'));
-	const visits = useAppSelector(selectWidget<VisitsWidgetType>('visits'));
-	const impressions = useAppSelector(selectWidget<VisitsWidgetType>('impressions'));
-	const conversions = useAppSelector(selectWidget<ConversionsWidgetType>('conversions'));
+	const visitors = useAppSelector(selectVisitors);
+	const visits = useAppSelector(selectVisits);
+	const impressions = useAppSelector(selectImpressions);
+	const conversions = useAppSelector(selectConversions);
 
 	const totalVisitors = calcVisitorsTotal(visitors);
 	const totalSessions = visits?.amount ?? 0;

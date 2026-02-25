@@ -1,12 +1,11 @@
 //src/app/(control-panel)/apps/e-commerce/orders/OrdersTable.tsx
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import { ListItemIcon, MenuItem, Paper, Typography } from '@mui/material';
+import { ListItemIcon, MenuItem, Paper, Typography, Button } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import Button from '@mui/material/Button';
 import Link from '@fuse/core/Link';
-import FuseLoading from '@fuse/core/FuseLoading';
+// import FuseLoading from '@fuse/core/FuseLoading';
 import {
 	EcommerceOrder,
 	useDeleteECommerceOrderMutation,
@@ -15,13 +14,23 @@ import {
 import OrdersStatus from './OrdersStatus';
 
 function OrdersTable() {
+	// 🔹 Pagination state
+	const [pagination, setPagination] = useState({
+		pageIndex: 0, // MRT uses 0-based indexing
+		pageSize: 20
+	});
+
 	const {
 		data: orders,
 		isLoading,
 		error
-	} = useGetECommerceOrdersQuery(undefined, {
+	} = useGetECommerceOrdersQuery({
+		page: pagination.pageIndex + 1,
+		perPage: pagination.pageSize
+	}, {
 		refetchOnFocus: false,
-		refetchOnReconnect: false
+		refetchOnReconnect: false,
+		refetchOnMountOrArgChange: 300 // Cache for 5 minutes
 	});
 	const [removeOrders] = useDeleteECommerceOrderMutation();
 
@@ -48,7 +57,7 @@ function OrdersTable() {
 			},
 			{
 				accessorKey: 'vendor.name',
-				header: 'Vendor',
+				header: 'Seller',
 				Cell: ({ row }) => row.original.vendor?.name ?? row.original.store?.name ?? '—'
 			},
 			{
@@ -121,9 +130,10 @@ function OrdersTable() {
 		[]
 	);
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
+	// No full screen loading; let DataTable handle it for a smoother experience
+	// if (isLoading) {
+	// 	return <FuseLoading />;
+	// }
 
 	if (error) {
 		return <Typography color="error">Failed to load orders</Typography>;
@@ -135,21 +145,10 @@ function OrdersTable() {
 			elevation={0}
 		>
 			<DataTable
-				initialState={{
-					density: 'spacious',
-					showColumnFilters: false,
-					showGlobalFilter: true,
-					columnPinning: {
-						left: ['mrt-row-expand', 'mrt-row-select'],
-						right: ['mrt-row-actions']
-					},
-					pagination: {
-						pageIndex: 0,
-						pageSize: 20
-					}
-				}}
-				enableRowSelection={false}
-				enableRowActions={false}
+				manualPagination
+				rowCount={orders?.pagination?.total ?? 0}
+				state={{ pagination, isLoading }}
+				onPaginationChange={setPagination}
 				data={orders?.data ?? []}
 				columns={columns}
 				renderRowActionMenuItems={({ closeMenu, row, table }) => [

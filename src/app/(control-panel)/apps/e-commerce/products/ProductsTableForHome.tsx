@@ -1,5 +1,5 @@
 //src/app/(control-panel)/apps/e-commerce/products/ProductsTableForHome.tsx
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
 import FuseLoading from '@fuse/core/FuseLoading';
@@ -8,45 +8,21 @@ import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
 import Typography from '@mui/material/Typography';
 import clsx from 'clsx';
-import { useSnackbar } from 'notistack';
 import {
 	EcommerceProduct,
-	useDeleteECommerceProductMutation,
 	useGetECommerceProductsQuery
 } from '../apis/ProductsLaravelApi';
 import ProductModel from './models/ProductModel';
 import { getContrastColor } from '@/utils/colorUtils';
 
 function ProductsTableForHome() {
-	const { data: products, isLoading } = useGetECommerceProductsQuery();
-	const [removeProduct] = useDeleteECommerceProductMutation();
-	const { enqueueSnackbar } = useSnackbar();
-
-	const [isDialogOpen, setIsDialogOpen] = useState(false);
-	const [selectedIds, setSelectedIds] = useState<number[]>([]);
-	const [selectedTable, setSelectedTable] = useState<any>(null);
-	const [singleDeleteId, setSingleDeleteId] = useState<number | null>(null);
+	const { data: products, isLoading } = useGetECommerceProductsQuery(undefined, {
+		refetchOnMountOrArgChange: 300, // Cache for 5 minutes
+		refetchOnFocus: false
+	});
 
 	const productList: EcommerceProduct[] = useMemo(() => {
-		// API returns { data: EcommerceProduct[], pagination: {...} }
-		const mapped =
-			products?.data?.map((product) => {
-				const model = ProductModel(product);
-
-				// Debug: log first product to see structure
-				if (products.data.indexOf(product) === 0) {
-					console.log('🔍 First product raw data:', {
-						raw: product,
-						model: model,
-						tags: product.tags,
-						product_attributes: product.product_attributes,
-						attributes: (product as any).attributes
-					});
-				}
-
-				return model;
-			}) ?? [];
-		return mapped;
+		return products?.data?.map((product) => ProductModel(product)) ?? [];
 	}, [products]);
 
 	const columns = useMemo<MRT_ColumnDef<EcommerceProduct>[]>(
@@ -56,20 +32,31 @@ function ProductsTableForHome() {
 				header: '',
 				enableColumnFilter: false,
 				enableColumnDragging: false,
-				size: 64,
+				size: 80,
 				enableSorting: false,
 				Cell: ({ row }) => {
 					const imageUrl = row.original.featured_image?.url;
+					
+					const buildImageUrl = (url: string | undefined) => {
+						if (!url) return '/assets/images/apps/ecommerce/product-image-placeholder.png';
+						if (url.startsWith('http://') || url.startsWith('https://')) return url;
+						const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+						if (apiBase) {
+							return url.startsWith('/') ? `${apiBase}${url}` : `${apiBase}/${url}`;
+						}
+						return url.startsWith('/') ? url : `/${url}`;
+					};
+
 					return (
 						<div className="flex items-center justify-center">
 							<img
-								className="w-full max-h-9 max-w-9 block rounded-sm object-cover"
-								src={
-									imageUrl
-										? `${process.env.NEXT_PUBLIC_API_URL}/${imageUrl}`
-										: '/assets/images/apps/ecommerce/product-image-placeholder.png'
-								}
+								className="w-full max-h-16 max-w-16 block rounded-sm object-cover"
+								src={buildImageUrl(imageUrl)}
 								alt={row.original.name}
+								onError={(e) => {
+									const target = e.target as HTMLImageElement;
+									target.src = '/assets/images/apps/ecommerce/product-image-placeholder.png';
+								}}
 							/>
 						</div>
 					);
@@ -259,29 +246,6 @@ function ProductsTableForHome() {
 		[]
 	);
 
-	const handleDelete = async () => {
-		try {
-			if (singleDeleteId !== null) {
-				await removeProduct(singleDeleteId).unwrap();
-				enqueueSnackbar('Product deleted successfully', { variant: 'success' });
-			} else {
-				await Promise.all(selectedIds.map((id) => removeProduct(id).unwrap()));
-				enqueueSnackbar('Products deleted successfully', { variant: 'success' });
-
-				if (selectedTable) {
-					selectedTable.resetRowSelection();
-				}
-			}
-		} catch (error) {
-			console.error('Error deleting products:', error);
-			enqueueSnackbar('Failed to delete product(s)', { variant: 'error' });
-		} finally {
-			setIsDialogOpen(false);
-			setSelectedIds([]);
-			setSelectedTable(null);
-			setSingleDeleteId(null);
-		}
-	};
 
 	if (isLoading) return <FuseLoading />;
 

@@ -6,15 +6,15 @@ import Skeleton from '@mui/material/Skeleton';
 import { memo, useEffect, useState } from 'react';
 import MenuItem from '@mui/material/MenuItem';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
+import { useAppSelector } from 'src/store/hooks';
+import { selectWidget } from '../../../ProjectDashboardApi';
 import WidgetDataType, { RangeType } from './types/WidgetDataType';
 
 /**
  * The SummaryWidget widget.
  */
 function SummaryWidget() {
-	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
-	const widget = widgets?.summary as WidgetDataType;
+	const widget = useAppSelector(selectWidget<WidgetDataType>('summary'));
 	const data = widget?.data;
 	const ranges = widget?.ranges;
 	const currentRangeDefault = widget?.currentRange;
@@ -33,7 +33,7 @@ function SummaryWidget() {
 		setCurrentRange(event.target.value as RangeType);
 	}
 
-	if (isLoading || !widget || !data || !ranges) {
+	if (!widget || !data || !ranges) {
 		return (
 			<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
 				<div className="flex items-center justify-between px-2 pt-2">

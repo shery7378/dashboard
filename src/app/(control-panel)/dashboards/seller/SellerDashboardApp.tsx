@@ -1,7 +1,7 @@
 'use client';
 
 import FusePageSimple from '@fuse/core/FusePageSimple';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { styled } from '@mui/material/styles';
 import * as React from 'react';
 import FuseTabs from 'src/components/tabs/FuseTabs';
@@ -20,34 +20,18 @@ const Root = styled(FusePageSimple)(({ theme }) => ({
 /**
  * The SellerDashboardApp page.
  * Sellers directly sell products to customers (no wholesale catalog access).
+ *
+ * Performance: removed the 5-second timeout anti-pattern.
+ * Content renders immediately; widgets show their own skeletons while loading.
  */
 function SellerDashboardApp() {
-	const { isLoading, error } = useGetProjectDashboardWidgetsQuery(undefined, {
-		skip: false // Keep querying, but handle errors gracefully
-	});
+	// Prefetch widgets in background; errors are handled per-widget
+	useGetProjectDashboardWidgetsQuery();
 
 	const [tabValue, setTabValue] = useState('home');
-	const [showContent, setShowContent] = useState(false);
 
-	// Add timeout to prevent infinite loading (show content after 5 seconds even if still loading)
-	useEffect(() => {
-		if (!isLoading) {
-			setShowContent(true);
-		} else {
-			const timer = setTimeout(() => {
-				setShowContent(true);
-			}, 5000); // 5 second timeout
-			return () => clearTimeout(timer);
-		}
-	}, [isLoading]);
-
-	function handleTabChange(event: React.SyntheticEvent, value: string) {
+	function handleTabChange(_event: React.SyntheticEvent, value: string) {
 		setTabValue(value);
-	}
-
-	// Log error for debugging but don't block the page
-	if (error) {
-		console.error('[SellerDashboard] Error loading widgets:', error);
 	}
 
 	return (
@@ -60,7 +44,7 @@ function SellerDashboardApp() {
 						<FuseTabs
 							value={tabValue}
 							onChange={handleTabChange}
-							aria-label="Seller dashboard tabs"
+							aria-label="Vendor dashboard tabs"
 						>
 							<FuseTab
 								value="home"

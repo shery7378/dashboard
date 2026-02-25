@@ -9,14 +9,45 @@ const nextConfig: NextConfig = {
 	},
 	// Image optimization
 	images: {
+		unoptimized: true,
 		formats: ['image/avif', 'image/webp'],
 		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
 		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-		minimumCacheTTL: 60,
+		minimumCacheTTL: 31536000, // 1 year cache for optimized images
+		remotePatterns: [
+			{
+				protocol: 'http',
+				hostname: 'localhost',
+				port: '8000',
+				pathname: '/**',
+			},
+			{
+				protocol: 'http',
+				hostname: '127.0.0.1',
+				port: '8000',
+				pathname: '/**',
+			},
+			{
+				protocol: 'http',
+				hostname: 'localhost',
+				pathname: '/**',
+			},
+			{
+				protocol: 'http',
+				hostname: '127.0.0.1',
+				pathname: '/**',
+			},
+			{
+				protocol: 'https',
+				hostname: '**.multikonnect.com',
+				pathname: '/**',
+			}
+		]
 	},
 
 	// Compression
 	compress: true,
+	poweredByHeader: false, // Security and slight performance boost
 
 	// HTTP Cache Headers - CDN Ready
 	async headers() {
@@ -99,32 +130,10 @@ const nextConfig: NextConfig = {
 			});
 		}
 
-		// Increase chunk loading timeout and optimize chunks
+		// Optimized webpack configuration
 		config.optimization = {
 			...config.optimization,
-			splitChunks: {
-				chunks: 'all',
-				cacheGroups: {
-					default: {
-						minChunks: 2,
-						priority: -20,
-						reuseExistingChunk: true,
-					},
-					vendor: {
-						test: /[\\/]node_modules[\\/]/,
-						name: 'vendors',
-						priority: -10,
-						chunks: 'all',
-					},
-					common: {
-						name: 'common',
-						minChunks: 2,
-						chunks: 'all',
-						priority: -30,
-						reuseExistingChunk: true,
-					},
-				},
-			},
+			minimize: true,
 		};
 
 		return config;

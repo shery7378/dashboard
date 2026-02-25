@@ -14,19 +14,16 @@ export default function PWAInstallPrompt() {
 			// Stash the event so it can be triggered later
 			setDeferredPrompt(e);
 			setShowInstallButton(true);
-			console.log('[PWA] Install prompt available');
 		};
 
 		// Check if app is already installed
 		const checkIfInstalled = () => {
 			if (window.matchMedia('(display-mode: standalone)').matches) {
-				console.log('[PWA] App is already installed');
 				return;
 			}
 
 			// Check if running as PWA
 			if ((window.navigator as any).standalone === true) {
-				console.log('[PWA] App is running as standalone (iOS)');
 				return;
 			}
 		};
@@ -36,7 +33,6 @@ export default function PWAInstallPrompt() {
 
 		// Listen for app installed event
 		window.addEventListener('appinstalled', () => {
-			console.log('[PWA] App was installed');
 			setDeferredPrompt(null);
 			setShowInstallButton(false);
 		});
@@ -55,8 +51,7 @@ export default function PWAInstallPrompt() {
 		(deferredPrompt as any).prompt();
 
 		// Wait for the user to respond to the prompt
-		const { outcome } = await (deferredPrompt as any).userChoice;
-		console.log(`[PWA] User response to install prompt: ${outcome}`);
+		await (deferredPrompt as any).userChoice;
 
 		// Clear the deferredPrompt
 		setDeferredPrompt(null);

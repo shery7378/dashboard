@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 
 type DatePoint = { x: string; y: number };
@@ -21,7 +21,6 @@ type VisitorsVsPageViewsType = {
 	series: { name: string; data: DatePoint[] }[];
 };
 
-// Additional widget types to match existing UI contracts
 type NewVsReturningWidgetType = {
 	uniqueVisitors: number;
 	series: number[];
@@ -45,12 +44,22 @@ type AnalyticsDashboardResponse = Partial<
 	>
 >;
 
+// ─── Server-side in-memory cache ─────────────────────────────────────────────
+// Caches the expensive GA4 response for CACHE_TTL_MS (10 min) so navigating
+// between pages or refreshing the browser doesn't fire 6 more GA4 requests.
+let _cache: { data: AnalyticsDashboardResponse; ts: number } | null = null;
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function isCacheValid() {
+	return _cache !== null && Date.now() - _cache.ts < CACHE_TTL_MS;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function getClientFromEnv() {
 	const credsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
 	const propertyId = process.env.GA4_PROPERTY_ID;
 
 	if (!propertyId) throw new Error('GA4_PROPERTY_ID env is required (e.g., properties/511050543)');
-
 	if (!credsJson) throw new Error('GOOGLE_APPLICATION_CREDENTIALS_JSON env is required');
 
 	const creds = JSON.parse(credsJson);
@@ -65,7 +74,6 @@ function getClientFromEnv() {
 }
 
 function yyyymmddToISO(dateStr: string) {
-	// GA returns date as YYYYMMDD; convert to YYYY-MM-DD
 	const y = dateStr.slice(0, 4);
 	const m = dateStr.slice(4, 6);
 	const d = dateStr.slice(6, 8);
@@ -73,18 +81,85 @@ function yyyymmddToISO(dateStr: string) {
 }
 
 export async function GET(_req: NextRequest) {
+	// ── Serve from cache if fresh ───────────────────────────────────────────
+	if (isCacheValid() && _cache) {
+		return NextResponse.json(_cache.data, {
+			status: 200,
+			headers: {
+				'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60',
+				'X-Cache': 'HIT'
+			}
+		});
+	}
+
 	try {
 		const { client, propertyId } = getClientFromEnv();
 
-		// Daily users, sessions, page views (last 28 days)
-		const [dailyReport] = await client.runReport({
-			property: propertyId,
-			dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
-			dimensions: [{ name: 'date' }],
-			metrics: [{ name: 'totalUsers' }, { name: 'sessions' }, { name: 'screenPageViews' }],
-			orderBys: [{ dimension: { dimensionName: 'date' } }]
-		});
+		// ── Run ALL 6 GA4 queries in PARALLEL instead of sequentially ──────
+		// Previously: 6 sequential awaits = ~6–24 s  →  Now: max 1 round-trip
+		const [
+			[dailyReport],
+			[conversionsDaily],
+			[nvrReport],
+			[ageReport],
+			[genderReport],
+			[langReport]
+		] = await Promise.all([
+			// 1. Daily users, sessions, page-views (28 days)
+			client.runReport({
+				property: propertyId,
+				dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+				dimensions: [{ name: 'date' }],
+				metrics: [{ name: 'totalUsers' }, { name: 'sessions' }, { name: 'screenPageViews' }],
+				orderBys: [{ dimension: { dimensionName: 'date' } }]
+			}),
 
+			// 2. Conversions per day
+			client.runReport({
+				property: propertyId,
+				dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+				dimensions: [{ name: 'date' }],
+				metrics: [{ name: 'conversions' }],
+				orderBys: [{ dimension: { dimensionName: 'date' } }]
+			}),
+
+			// 3. New vs Returning
+			client.runReport({
+				property: propertyId,
+				dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+				dimensions: [{ name: 'newVsReturning' }],
+				metrics: [{ name: 'totalUsers' }]
+			}),
+
+			// 4. Age brackets
+			client.runReport({
+				property: propertyId,
+				dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+				dimensions: [{ name: 'userAgeBracket' }],
+				metrics: [{ name: 'totalUsers' }],
+				orderBys: [{ dimension: { dimensionName: 'userAgeBracket' } }]
+			}),
+
+			// 5. Gender
+			client.runReport({
+				property: propertyId,
+				dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+				dimensions: [{ name: 'userGender' }],
+				metrics: [{ name: 'totalUsers' }]
+			}),
+
+			// 6. Language (top 10)
+			client.runReport({
+				property: propertyId,
+				dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
+				dimensions: [{ name: 'language' }],
+				metrics: [{ name: 'totalUsers' }],
+				orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
+				limit: 10
+			})
+		]);
+
+		// ── Process daily report ────────────────────────────────────────────
 		const dates: string[] = [];
 		const usersSeries: DatePoint[] = [];
 		const sessionsSeries: number[] = [];
@@ -106,25 +181,16 @@ export async function GET(_req: NextRequest) {
 			sessionsSeries.push(sessions);
 			viewsSeries.push(views);
 			viewsSeriesPts.push({ x: iso, y: views });
-
 			usersTotal += users;
 			sessionsTotal += sessions;
 			viewsTotal += views;
 		}
 
 		const averageRatio = usersTotal > 0 ? Math.round((viewsTotal / usersTotal) * 100) : 0;
-		const predictedRatio = averageRatio; // placeholder
-		const overallScore = Math.min(1000, Math.max(0, Math.round(averageRatio * 5))); // arbitrary scoring
+		const predictedRatio = averageRatio;
+		const overallScore = Math.min(1000, Math.max(0, Math.round(averageRatio * 5)));
 
-		// Conversions by date (last 28 days)
-		const [conversionsDaily] = await client.runReport({
-			property: propertyId,
-			dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
-			dimensions: [{ name: 'date' }],
-			metrics: [{ name: 'conversions' }],
-			orderBys: [{ dimension: { dimensionName: 'date' } }]
-		});
-
+		// ── Process conversions ─────────────────────────────────────────────
 		const convLabels: string[] = [];
 		const convSeriesData: number[] = [];
 		let convTotal = 0;
@@ -136,14 +202,7 @@ export async function GET(_req: NextRequest) {
 			convTotal += c;
 		}
 
-		// New vs Returning (total users by segment, last 28 days)
-		const [nvrReport] = await client.runReport({
-			property: propertyId,
-			dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
-			dimensions: [{ name: 'newVsReturning' }],
-			metrics: [{ name: 'totalUsers' }]
-		});
-
+		// ── Process new vs returning ────────────────────────────────────────
 		const nvrLabels: string[] = [];
 		const nvrSeries: number[] = [];
 		let nvrTotal = 0;
@@ -155,14 +214,7 @@ export async function GET(_req: NextRequest) {
 			nvrTotal += val;
 		}
 
-		// Demographics: Age, Gender (unique users). Note: may require Google signals/demographics enabled.
-		const [ageReport] = await client.runReport({
-			property: propertyId,
-			dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
-			dimensions: [{ name: 'userAgeBracket' }],
-			metrics: [{ name: 'totalUsers' }],
-			orderBys: [{ dimension: { dimensionName: 'userAgeBracket' } }]
-		});
+		// ── Process age ─────────────────────────────────────────────────────
 		const ageLabels: string[] = [];
 		const ageSeries: number[] = [];
 		let ageTotal = 0;
@@ -174,12 +226,7 @@ export async function GET(_req: NextRequest) {
 			ageTotal += val;
 		}
 
-		const [genderReport] = await client.runReport({
-			property: propertyId,
-			dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
-			dimensions: [{ name: 'userGender' }],
-			metrics: [{ name: 'totalUsers' }]
-		});
+		// ── Process gender ──────────────────────────────────────────────────
 		const genderLabels: string[] = [];
 		const genderSeries: number[] = [];
 		let genderTotal = 0;
@@ -191,15 +238,7 @@ export async function GET(_req: NextRequest) {
 			genderTotal += val;
 		}
 
-		// Language (by users)
-		const [langReport] = await client.runReport({
-			property: propertyId,
-			dateRanges: [{ startDate: '28daysAgo', endDate: 'today' }],
-			dimensions: [{ name: 'language' }],
-			metrics: [{ name: 'totalUsers' }],
-			orderBys: [{ metric: { metricName: 'totalUsers' }, desc: true }],
-			limit: 10
-		});
+		// ── Process language ────────────────────────────────────────────────
 		const langLabels: string[] = [];
 		const langSeries: number[] = [];
 		let langTotal = 0;
@@ -211,38 +250,29 @@ export async function GET(_req: NextRequest) {
 			langTotal += val;
 		}
 
+		// ── Assemble response ───────────────────────────────────────────────
 		const response: AnalyticsDashboardResponse = {
-			// Visitors Overview (unique users daily)
 			visitors: {
 				ranges: { last28Days: 'Last 28 days' },
 				series: {
-					last28Days: [
-						{
-							name: 'Visitors',
-							data: usersSeries
-						}
-					]
+					last28Days: [{ name: 'Visitors', data: usersSeries }]
 				}
 			},
-			// Sessions trend card
 			visits: {
 				amount: sessionsTotal,
 				labels: dates,
 				series: [{ name: 'Sessions', data: sessionsSeries }]
 			},
-			// Views trend card (as Impressions)
 			impressions: {
 				amount: viewsTotal,
 				labels: dates,
 				series: [{ name: 'Views', data: viewsSeries }]
 			},
-			// Conversions trend card
 			conversions: {
 				amount: convTotal,
 				labels: convLabels,
 				series: [{ name: 'Conversions', data: convSeriesData }]
 			},
-			// Visitors vs Page Views (two time series)
 			visitorsVsPageViews: {
 				overallScore,
 				averageRatio,
@@ -252,34 +282,25 @@ export async function GET(_req: NextRequest) {
 					{ name: 'Page Views', data: viewsSeriesPts }
 				]
 			},
-			// New vs Returning
-			newVsReturning: {
-				uniqueVisitors: nvrTotal,
-				labels: nvrLabels,
-				series: nvrSeries
-			},
-			// Age
-			age: {
-				uniqueVisitors: ageTotal,
-				labels: ageLabels,
-				series: ageSeries
-			},
-			// Gender
-			gender: {
-				uniqueVisitors: genderTotal,
-				labels: genderLabels,
-				series: genderSeries
-			},
-			// Language
-			language: {
-				uniqueVisitors: langTotal,
-				labels: langLabels,
-				series: langSeries
-			}
+			newVsReturning: { uniqueVisitors: nvrTotal, labels: nvrLabels, series: nvrSeries },
+			age: { uniqueVisitors: ageTotal, labels: ageLabels, series: ageSeries },
+			gender: { uniqueVisitors: genderTotal, labels: genderLabels, series: genderSeries },
+			language: { uniqueVisitors: langTotal, labels: langLabels, series: langSeries }
 		};
 
-		return new Response(JSON.stringify(response), { status: 200 });
-	} catch (err: any) {
-		return new Response(JSON.stringify({ error: err?.message || 'GA4 error' }), { status: 500 });
+		// ── Store in server-side cache ──────────────────────────────────────
+		_cache = { data: response, ts: Date.now() };
+
+		return NextResponse.json(response, {
+			status: 200,
+			headers: {
+				// Tell browser / CDN to cache for 10 min, serve stale for 1 min while revalidating
+				'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=60',
+				'X-Cache': 'MISS'
+			}
+		});
+	} catch (err: unknown) {
+		const message = err instanceof Error ? err.message : 'GA4 error';
+		return NextResponse.json({ error: message }, { status: 500 });
 	}
 }

@@ -28,7 +28,9 @@ const baseQuery: BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError, o
 export const apiService = createApi({
 	baseQuery,
 	endpoints: () => ({}),
-	reducerPath: 'apiService'
+	reducerPath: 'apiService',
+	keepUnusedDataFor: 600, // Keep data in Redux cache for 10 minutes
+	refetchOnMountOrArgChange: 300 // Only refetch if data is older than 5 min
 });
 
 export default apiService;

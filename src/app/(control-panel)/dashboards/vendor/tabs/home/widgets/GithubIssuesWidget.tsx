@@ -7,8 +7,11 @@ import Skeleton from '@mui/material/Skeleton';
 import { ApexOptions } from 'apexcharts';
 import _ from 'lodash';
 import GithubIssuesDataType from './types/GithubIssuesDataType';
-import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
+import { useAppSelector } from 'src/store/hooks';
+import { selectWidget } from '../../../ProjectDashboardApi';
 import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
+
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
 	ssr: false,
 	loading: () => (
@@ -24,141 +27,114 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), {
  */
 function GithubIssuesWidget() {
 	const theme = useTheme();
-	const [awaitRender, setAwaitRender] = useState(true);
 	const [tabValue, setTabValue] = useState(0);
-	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
-	const widget = widgets?.githubIssues as GithubIssuesDataType;
+	const widget = useAppSelector(selectWidget<GithubIssuesDataType>('githubIssues'));
 	const overview = widget?.overview;
 	const series = widget?.series;
 	const ranges = widget?.ranges;
 	const labels = widget?.labels;
 	const currentRange = Object.keys(ranges || {})[tabValue];
 
-	const chartOptions: ApexOptions = {
-		chart: {
-			fontFamily: 'inherit',
-			foreColor: 'inherit',
-			height: '100%',
-			type: 'line',
-			toolbar: {
-				show: false
-			},
-			zoom: {
-				enabled: false
-			}
-		},
-		colors: [
-			'#FF5A2A', // New Issues
-			'#22C55E', // Closed Issues
-			'#6366F1', // Fixed
-			'#F59E42', // Won't Fix
-			'#E11D48', // Re-opened
-			'#0EA5E9' // Needs Triage
-		],
-		labels,
-		dataLabels: {
-			enabled: true,
-			enabledOnSeries: [0],
-			background: {
-				borderWidth: 0
-			}
-		},
-		grid: {
-			borderColor: theme.palette.divider
-		},
-		legend: {
-			show: true,
-			fontWeight: 600
-		},
-		plotOptions: {
-			bar: {
-				columnWidth: '50%'
-			}
-		},
-		states: {
-			hover: {
-				filter: {
-					type: 'darken'
+	const chartOptions: ApexOptions = useMemo(
+		() => ({
+			chart: {
+				fontFamily: 'inherit',
+				foreColor: 'inherit',
+				height: '100%',
+				type: 'line',
+				toolbar: {
+					show: false
+				},
+				zoom: {
+					enabled: false
 				}
-			}
-		},
-		stroke: {
-			width: [3, 0]
-		},
-		tooltip: {
-			followCursor: true,
-			theme: theme.palette.mode
-		},
-		xaxis: {
-			axisBorder: {
-				show: false
 			},
-			axisTicks: {
-				color: theme.palette.divider
-			},
-			labels: {
-				style: {
-					colors: theme.palette.text.secondary,
-					fontWeight: 600
+			colors: [
+				'#FF5A2A', // New Issues
+				'#22C55E', // Closed Issues
+				'#6366F1', // Fixed
+				'#F59E42', // Won't Fix
+				'#E11D48', // Re-opened
+				'#0EA5E9' // Needs Triage
+			],
+			labels,
+			dataLabels: {
+				enabled: true,
+				enabledOnSeries: [0],
+				background: {
+					borderWidth: 0
 				}
+			},
+			grid: {
+				borderColor: theme.palette.divider
+			},
+			legend: {
+				show: true,
+				fontWeight: 600
+			},
+			plotOptions: {
+				bar: {
+					columnWidth: '50%'
+				}
+			},
+			states: {
+				hover: {
+					filter: {
+						type: 'darken'
+					}
+				}
+			},
+			stroke: {
+				width: [3, 0]
 			},
 			tooltip: {
-				enabled: false
-			}
-		},
-		yaxis: {
-			labels: {
-				offsetX: -16,
-				style: {
-					colors: theme.palette.text.secondary,
-					fontWeight: 600
+				followCursor: true,
+				theme: theme.palette.mode
+			},
+			xaxis: {
+				axisBorder: {
+					show: false
+				},
+				axisTicks: {
+					color: theme.palette.divider
+				},
+				labels: {
+					style: {
+						colors: theme.palette.text.secondary,
+						fontWeight: 600
+					}
+				},
+				tooltip: {
+					enabled: false
+				}
+			},
+			yaxis: {
+				labels: {
+					offsetX: -16,
+					style: {
+						colors: theme.palette.text.secondary,
+						fontWeight: 600
+					}
 				}
 			}
-		}
-	};
+		}),
+		[theme, labels]
+	);
 
-	useEffect(() => {
-		setAwaitRender(false);
-	}, []);
-
-	if (isLoading || !widget || awaitRender) {
+	if (!widget) {
 		return (
-			<Paper className="flex flex-col flex-auto p-6 shadow-sm overflow-hidden">
-				<div className="flex flex-col sm:flex-row items-start justify-between">
-					<Skeleton
-						variant="text"
-						width={280}
-						height={32}
-					/>
-				</div>
-				<div className="grid grid-cols-1 lg:grid-cols-2 grid-flow-row gap-6 w-full mt-8 sm:mt-4">
-					<div className="flex flex-col flex-auto">
-						<Skeleton
-							variant="text"
-							width={160}
-						/>
-						<Skeleton
-							variant="rounded"
-							height={320}
-						/>
-					</div>
-					<div className="flex flex-col">
-						<Skeleton
-							variant="text"
-							width={120}
-						/>
-						<div className="flex-auto grid grid-cols-4 gap-4 mt-6">
-							{Array.from({ length: 6 }).map((_, idx) => (
-								<Skeleton
-									key={idx}
-									variant="rounded"
-									height={110}
-									className={idx < 2 ? 'col-span-2' : 'col-span-2 sm:col-span-1'}
-								/>
-							))}
-						</div>
-					</div>
-				</div>
+			<Paper className="flex flex-col flex-auto p-6 shadow-sm overflow-hidden text-center justify-center min-h-[400px]">
+				<Skeleton
+					variant="text"
+					width="60%"
+					height={40}
+					className="mx-auto"
+				/>
+				<Skeleton
+					variant="rounded"
+					height={300}
+					className="mt-6"
+				/>
 			</Paper>
 		);
 	}

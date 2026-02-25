@@ -14,8 +14,12 @@ const ECommerceLaravelApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoint
 
 		// Get all orders (paginated)
 		getECommerceOrders: build.query<GetECommerceOrdersApiResponse, GetECommerceOrdersApiArg>({
-			query: () => ({ url: `/api/orders` }),
-			providesTags: ['eCommerce_orders']
+			query: ({ page = 1, perPage = 10 } = {}) => ({
+				url: `/api/orders`,
+				params: { page, per_page: perPage }
+			}),
+			providesTags: ['eCommerce_orders'],
+			keepUnusedDataFor: 300 // Keep data for 5 minutes after unmount
 		}),
 
 		// Get single order by ID
@@ -111,7 +115,7 @@ export type GetECommerceOrdersApiResponse = {
 		last_page: number;
 	};
 };
-export type GetECommerceOrdersApiArg = void;
+export type GetECommerceOrdersApiArg = { page?: number; perPage?: number } | void;
 
 export type GetECommerceOrderApiResponse = {
 	status: number;

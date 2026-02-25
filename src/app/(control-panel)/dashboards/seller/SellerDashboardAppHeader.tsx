@@ -32,29 +32,24 @@ function VendorDashboardAppHeader() {
 				setCheckingStore(false);
 				return;
 			}
-
-			console.log('SellerDashboardAppHeader - User object:', user);
-			console.log('SellerDashboardAppHeader - User store_id:', user.store_id);
-
 			// If store_id is already present, no need to check
 			// Check for store_id as string, number, or truthy value
 			const hasStoreId = user.store_id !== null && user.store_id !== undefined && user.store_id !== '';
 
 			if (hasStoreId) {
-				console.log('Store ID found in user object:', user.store_id);
+
 				setCheckingStore(false);
 				setOpenStoreDialog(false);
 				return;
 			}
 
-			console.log('Store ID not found, checking API...');
+
 
 			// Try to fetch current store from API
 			try {
 				const accessToken = session?.accessAuthToken;
 
 				if (!accessToken) {
-					console.log('No access token available');
 					setCheckingStore(false);
 					// Wait a bit for token to be available
 					setTimeout(() => {
@@ -65,7 +60,7 @@ function VendorDashboardAppHeader() {
 					return;
 				}
 
-				console.log('Fetching store from API...');
+
 				const response = await apiFetchLaravel('/api/store/current', {
 					headers: {
 						Authorization: `Bearer ${accessToken}`
@@ -73,16 +68,14 @@ function VendorDashboardAppHeader() {
 					credentials: 'include'
 				});
 
-				console.log('Store API response status:', response.status);
+
 
 				if (response.ok) {
 					const storeData = await response.json();
-					console.log('Store data received:', storeData);
 					const storeId = storeData?.data?.id || storeData?.data?.id?.toString();
 
 					if (storeId) {
 						// Store exists - just update the session, don't try to update via API
-						console.log('Store found with ID:', storeId);
 						// Update local state to prevent dialog from showing
 						setCheckingStore(false);
 						setOpenStoreDialog(false);
@@ -92,7 +85,7 @@ function VendorDashboardAppHeader() {
 					}
 				} else if (response.status === 404) {
 					// Store not found - this is expected if user doesn't have a store
-					console.log('Store not found (404) - user needs to create a store');
+
 					setCheckingStore(false);
 					setOpenStoreDialog(true);
 					return;
@@ -149,7 +142,7 @@ function VendorDashboardAppHeader() {
 							>
 								{user?.role?.includes('supplier')
 									? 'Supplier Dashboard'
-									: 'Seller Dashboard - Direct Sales'}
+									: 'Vendor Dashboard - Direct Sales'}
 							</Typography>
 						</div>
 					</div>

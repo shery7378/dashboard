@@ -74,7 +74,7 @@ function StoreAddressTab() {
 	 * - Fallback or geolocation position is set
 	 */
 	const reverseGeocode = useCallback(
-		(pos: Position) => {
+		(pos: Position, skipAddress = false) => {
 			if (!geocoder) return;
 
 			geocoder.geocode({ location: pos }, (results, status) => {
@@ -155,8 +155,8 @@ function StoreAddressTab() {
 						'';
 					const newCountry = components.find((c) => c.types.includes('country'))?.long_name || '';
 
-					// Only update address if we got a valid formatted address (not Plus Code)
-					if (newAddress && !newAddress.match(/^[A-Z0-9]{6}\+[A-Z0-9]{2,3}/i)) {
+					// ONLY update address if not explicitly skipped (to avoid overwriting user typing)
+					if (!skipAddress && newAddress && !newAddress.match(/^[A-Z0-9]{6}\+[A-Z0-9]{2,3}/i)) {
 						setValue('address', newAddress, { shouldValidate: true, shouldDirty: true });
 					}
 
@@ -164,8 +164,13 @@ function StoreAddressTab() {
 						setValue('zip_code', newZip, { shouldValidate: true, shouldDirty: true });
 					}
 
-					setValue('city', newCity, { shouldValidate: true, shouldDirty: true });
-					setValue('country', newCountry, { shouldValidate: true, shouldDirty: true });
+					if (newCity) {
+						setValue('city', newCity, { shouldValidate: true, shouldDirty: true });
+					}
+
+					if (newCountry) {
+						setValue('country', newCountry, { shouldValidate: true, shouldDirty: true });
+					}
 
 					// Update local state
 					setLocationDetails(formatted);
@@ -203,9 +208,13 @@ function StoreAddressTab() {
 					const newCountry = components.find((c) => c.types.includes('country'))?.long_name || '';
 
 					// Only update postal code and country - NOT address, NOT city (preserve the selected city name)
-					if (newZip) setValue('zip_code', newZip, { shouldValidate: true, shouldDirty: true });
+					if (newZip) {
+						setValue('zip_code', newZip, { shouldValidate: true, shouldDirty: true });
+					}
 
-					if (newCountry) setValue('country', newCountry, { shouldValidate: true, shouldDirty: true });
+					if (newCountry) {
+						setValue('country', newCountry, { shouldValidate: true, shouldDirty: true });
+					}
 					// Don't update city - use the preserved city name from the selection
 
 					// Update local state
@@ -229,39 +238,42 @@ function StoreAddressTab() {
 	 * - Form blur on these fields
 	 * - Initialization when saved address exists
 	 */
-	const geocodeAddress = useCallback(() => {
-		if (!geocoder) {
-			setErrorMessage('Google Maps API not loaded for geocoding.');
-			return;
-		}
-
-		const { address, zip_code, city, country } = getValues();
-		const fullAddress = [address, zip_code, city, country].filter(Boolean).join(', ');
-
-		if (!fullAddress) return;
-
-		geocoder.geocode({ address: fullAddress }, (results, status) => {
-			if (status === 'OK' && results?.[0]) {
-				const loc = results[0].geometry.location;
-				const newLat = loc.lat();
-				const newLng = loc.lng();
-				const pos = { lat: newLat, lng: newLng };
-
-				// Update position + form values
-				setPosition(pos);
-				setValue('latitude', newLat, { shouldValidate: true });
-				setValue('longitude', newLng, { shouldValidate: true });
-				setLocationDetails(results[0].formatted_address);
-				setInfoWindowOpen(true);
-				setErrorMessage('');
-
-				// Ensure other fields also sync from Google
-				reverseGeocode(pos);
-			} else {
-				setErrorMessage(`Geocoding failed: ${status}. Please check the address.`);
+	const geocodeAddress = useCallback(
+		(skipAddressSync = false) => {
+			if (!geocoder) {
+				setErrorMessage('Google Maps API not loaded for geocoding.');
+				return;
 			}
-		});
-	}, [geocoder, getValues, setValue, reverseGeocode]);
+
+			const { address, zip_code, city, country } = getValues();
+			const fullAddress = [address, zip_code, city, country].filter(Boolean).join(', ');
+
+			if (!fullAddress) return;
+
+			geocoder.geocode({ address: fullAddress }, (results, status) => {
+				if (status === 'OK' && results?.[0]) {
+					const loc = results[0].geometry.location;
+					const newLat = loc.lat();
+					const newLng = loc.lng();
+					const pos = { lat: newLat, lng: newLng };
+
+					// Update position + form values
+					setPosition(pos);
+					setValue('latitude', newLat, { shouldValidate: true });
+					setValue('longitude', newLng, { shouldValidate: true });
+					setLocationDetails(results[0].formatted_address);
+					setInfoWindowOpen(true);
+					setErrorMessage('');
+
+					// Sync other fields but skip the address if it was the trigger (to avoid overwriting user typing)
+					reverseGeocode(pos, skipAddressSync);
+				} else {
+					setErrorMessage(`Geocoding failed: ${status}. Please check the address.`);
+				}
+			});
+		},
+		[geocoder, getValues, setValue, reverseGeocode]
+	);
 
 	/**
 	 * Initialization:
@@ -379,7 +391,7 @@ function StoreAddressTab() {
 		// Trigger geocoding when address or postal code changes
 		if (address || zipCode) {
 			const timeout = setTimeout(() => {
-				geocodeAddress();
+				geocodeAddress(true); // pass true to skip address sync while typing
 			}, 800); // debounce 800ms
 			return () => clearTimeout(timeout);
 		}

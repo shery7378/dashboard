@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
-import { type MRT_ColumnDef } from 'material-react-table';
+import React, { useMemo, useState } from 'react';
+import { type MRT_ColumnDef, type MRT_TableInstance } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import FuseLoading from '@fuse/core/FuseLoading';
+// import FuseLoading from '@fuse/core/FuseLoading';
 import {
 	Chip,
 	ListItemIcon,
@@ -30,35 +30,53 @@ import { getContrastColor } from '@/utils/colorUtils';
 import './i18n';
 
 function ProductsTable() {
-	const { data: products, isLoading } = useGetECommerceProductsQuery();
+	// 🔹 Pagination state
+	const [pagination, setPagination] = useState({
+		pageIndex: 0, // MRT uses 0-based indexing
+		pageSize: 15
+	});
+
+	const { data: products, isLoading } = useGetECommerceProductsQuery({
+		page: pagination.pageIndex + 1,
+		perPage: pagination.pageSize
+	}, {
+		refetchOnMountOrArgChange: 300,
+		refetchOnFocus: false
+	});
+
 	const [removeProduct] = useDeleteECommerceProductMutation();
 	const { enqueueSnackbar } = useSnackbar();
 	const { t } = useTranslation('products');
 
 	const [isDialogOpen, setIsDialogOpen] = useState(false);
 	const [selectedIds, setSelectedIds] = useState<number[]>([]);
-	const [selectedTable, setSelectedTable] = useState<any>(null);
+	const [selectedTable, setSelectedTable] = useState<MRT_TableInstance<EcommerceProduct> | null>(null);
 	const [singleDeleteId, setSingleDeleteId] = useState<number | null>(null);
 
 	const productList: EcommerceProduct[] = useMemo(() => {
 		// Handle different possible API response structures
-		const productsData =
-			(products as any)?.data ||
-			(products as any)?.products?.data ||
-			(products as any)?.products ||
-			products ||
+		type ProductsApiShape = {
+			data?: EcommerceProduct[];
+			products?: { data?: EcommerceProduct[] } | EcommerceProduct[];
+		};
+		const raw = products as ProductsApiShape | undefined;
+		const productsData: EcommerceProduct[] =
+			raw?.data ??
+			(Array.isArray(raw?.products)
+				? raw.products
+				: (raw?.products as { data?: EcommerceProduct[] } | undefined)?.data) ??
 			[];
 		const productArray = Array.isArray(productsData) ? productsData : [];
-		return productArray.map((product: any) => {
+		return productArray.map((product: EcommerceProduct) => {
 			const mapped = ProductModel(product);
 
 			// Ensure tags and product_attributes are arrays (handle null/undefined)
 			if (!Array.isArray(mapped.tags)) {
-				(mapped as any).tags = [];
+				(mapped as EcommerceProduct & { tags: string[] }).tags = [];
 			}
 
-			if (!Array.isArray((mapped as any).product_attributes)) {
-				(mapped as any).product_attributes = [];
+			if (!Array.isArray((mapped as EcommerceProduct & { product_attributes?: unknown[] }).product_attributes)) {
+				(mapped as EcommerceProduct & { product_attributes: unknown[] }).product_attributes = [];
 			}
 
 			return mapped;
@@ -72,7 +90,7 @@ function ProductsTable() {
 				header: '',
 				enableColumnFilter: false,
 				enableColumnDragging: false,
-				size: 64,
+				size: 100,
 				enableSorting: false,
 				Cell: ({ row }) => {
 					const imageUrl = row.original.featured_image?.url;
@@ -92,14 +110,14 @@ function ProductsTable() {
 					};
 
 					return (
-						<div className="flex items-center justify-center">
+						<div className="flex items-center justify-center relative w-20 h-20">
 							<img
-								className="w-full max-h-9 max-w-9 block rounded-sm object-cover"
+								className="rounded-sm object-cover w-full h-full"
 								src={buildImageUrl(imageUrl)}
 								alt={row.original.name}
 								onError={(e) => {
-									(e.target as HTMLImageElement).src =
-										'/assets/images/apps/ecommerce/product-image-placeholder.png';
+									const target = e.target as HTMLImageElement;
+									target.src = '/assets/images/apps/ecommerce/product-image-placeholder.png';
 								}}
 							/>
 						</div>
@@ -110,21 +128,13 @@ function ProductsTable() {
 				accessorKey: 'name',
 				header: t('name'),
 				Cell: ({ row }) => {
-					// Ensure product ID is a string and handle empty slug
-					const productId = String((row.original as any).id || '');
-					const slug = (row.original as any).slug || '';
+					type ProductRow = EcommerceProduct & { id?: string | number; slug?: string };
+					const productId = String((row.original as ProductRow).id || '');
+					const slug = (row.original as ProductRow).slug || '';
 
 					// Always use just the productId in the URL (slug is optional and handled by [[...handle]])
 					// This ensures the route matches correctly
 					const productUrl = `/apps/e-commerce/products/${productId}${slug && slug.trim() !== '' ? `/${slug}` : ''}`;
-
-					console.log('Product link:', {
-						productId,
-						slug,
-						url: productUrl,
-						productIdType: typeof productId,
-						product: { id: (row.original as any).id, name: row.original.name }
-					});
 
 					return (
 						<Typography
@@ -142,11 +152,12 @@ function ProductsTable() {
 				header: t('category'),
 				Cell: ({ row }) => {
 					const mainCategory = row.original.main_category;
-					const subcategories = (row.original as any).subcategories || [];
+					type SubCat = { id?: string | number; name: string };
+					const subcategories = ((row.original as EcommerceProduct & { subcategories?: SubCat[] }).subcategories) || [];
 					const categories = row.original.categories || [];
 
 					// Collect all categories to display
-					const categoryChips: any[] = [];
+					const categoryChips: React.ReactElement[] = [];
 
 					// Add main category if it exists
 					if (mainCategory && mainCategory.name) {
@@ -163,7 +174,7 @@ function ProductsTable() {
 
 					// Add subcategories if they exist
 					if (Array.isArray(subcategories) && subcategories.length > 0) {
-						subcategories.forEach((sub: any) => {
+						subcategories.forEach((sub: SubCat) => {
 							if (sub && sub.name) {
 								categoryChips.push(
 									<Chip
@@ -180,8 +191,8 @@ function ProductsTable() {
 
 					// Fallback: if no main_category or subcategories, try to use categories array
 					if (categoryChips.length === 0 && Array.isArray(categories) && categories.length > 0) {
-						categories.forEach((cat: any, index: number) => {
-							const catName = typeof cat === 'string' ? cat : cat?.name || cat;
+						categories.forEach((cat: string | { name?: string }, index: number) => {
+							const catName = typeof cat === 'string' ? cat : cat?.name;
 
 							if (catName) {
 								categoryChips.push(
@@ -209,25 +220,26 @@ function ProductsTable() {
 				header: t('tags'),
 				Cell: ({ row }) => {
 					const tags = row.original.tags || [];
-					const subcategories = (row.original as any).subcategories || [];
+					type TagOrSub = { id?: string | number; name?: string; type?: string };
+					const subcategories = ((row.original as EcommerceProduct & { subcategories?: TagOrSub[] }).subcategories) || [];
 
 					// Combine tags and subcategories
-					const allItems: any[] = [];
+					const allItems: TagOrSub[] = [];
 
 					// Add tags
 					if (Array.isArray(tags) && tags.length > 0) {
-						allItems.push(...tags.map((tag: any) => ({ ...tag, type: 'tag' })));
+						allItems.push(...tags.map((tag: TagOrSub) => ({ ...tag, type: 'tag' })));
 					}
 
 					// Add subcategories
 					if (Array.isArray(subcategories) && subcategories.length > 0) {
-						allItems.push(...subcategories.map((sub: any) => ({ ...sub, type: 'subcategory' })));
+						allItems.push(...subcategories.map((sub: TagOrSub) => ({ ...sub, type: 'subcategory' })));
 					}
 
 					return (
 						<div className="flex flex-wrap space-x-0.5 space-y-0.5">
 							{allItems.length > 0
-								? allItems.map((item: any, index: number) => (
+								? allItems.map((item: TagOrSub, index: number) => (
 										<Chip
 											key={item?.id ?? item?.name ?? index}
 											className="text-sm"
@@ -245,19 +257,22 @@ function ProductsTable() {
 				accessorKey: 'product_attributes',
 				header: t('attributes'),
 				Cell: ({ row }) => {
+					type Attr = { id?: string | number; attribute_name?: string; attribute_value?: string; name?: string; value?: string };
+					type Variant = { attributes?: Attr[]; price?: string | number; price_tax_excl?: string | number; quantity?: string | number; qty?: string | number };
+					type ProductWithVariants = EcommerceProduct & { product_attributes?: Attr[]; product_variants?: Variant[]; variants?: Variant[] };
+					const pRow = row.original as ProductWithVariants;
 					// Check both product_attributes and attributes from variants
-					const productAttrs = (row.original as any).product_attributes || [];
-					const variants = (row.original as any).product_variants || (row.original as any).variants || [];
+					const productAttrs: Attr[] = pRow.product_attributes || [];
+					const variants: Variant[] = pRow.product_variants || pRow.variants || [];
 
-					// Get attributes from variants if product_attributes is empty
-					let attributes = productAttrs;
+					let attributes: Attr[] = productAttrs;
 
 					if (attributes.length === 0 && variants.length > 0) {
 						// Extract unique attributes from variants
-						const variantAttrs: any[] = [];
-						variants.forEach((variant: any) => {
+						const variantAttrs: Attr[] = [];
+						variants.forEach((variant: Variant) => {
 							if (variant.attributes && Array.isArray(variant.attributes)) {
-								variant.attributes.forEach((attr: any) => {
+								variant.attributes.forEach((attr: Attr) => {
 									if (
 										!variantAttrs.find(
 											(a) =>
@@ -276,7 +291,7 @@ function ProductsTable() {
 					return (
 						<div className="flex flex-wrap space-x-0.5 space-y-0.5">
 							{Array.isArray(attributes) && attributes.length > 0
-								? attributes.map((attr: any, index: number) => (
+								? attributes.map((attr: Attr, index: number) => (
 										<Chip
 											key={
 												attr?.id ?? `${attr?.attribute_name}-${attr?.attribute_value}-${index}`
@@ -306,13 +321,15 @@ function ProductsTable() {
 				accessorKey: 'priceTaxIncl',
 				header: t('price'),
 				Cell: ({ row }) => {
+					type ProductWithVariants2 = EcommerceProduct & { product_variants?: { price?: string|number; price_tax_excl?: string|number }[]; variants?: { price?: string|number; price_tax_excl?: string|number }[] };
+					const pRow2 = row.original as ProductWithVariants2;
 					// Check if product has variants - use variant price if available
-					const variants = (row.original as any).product_variants || (row.original as any).variants || [];
+					const variants2 = pRow2.product_variants || pRow2.variants || [];
 
-					if (variants.length > 0) {
+					if (variants2.length > 0) {
 						// Get the lowest price from variants
-						const prices = variants
-							.map((v: any) => parseFloat(v.price || v.price_tax_excl || 0))
+						const prices = variants2
+							.map((v) => parseFloat(String(v.price || v.price_tax_excl || 0)))
 							.filter((p: number) => !isNaN(p) && p > 0);
 
 						if (prices.length > 0) {
@@ -330,11 +347,13 @@ function ProductsTable() {
 				accessorKey: 'quantity',
 				header: t('quantity'),
 				Cell: ({ row }) => {
+					type ProductWithVariants3 = EcommerceProduct & { product_variants?: { quantity?: string|number; qty?: string|number }[]; variants?: { quantity?: string|number; qty?: string|number }[] };
+					const pRow3 = row.original as ProductWithVariants3;
 					// Check if product has variants - sum up variant quantities
-					const variants = (row.original as any).product_variants || (row.original as any).variants || [];
+					const variants3 = pRow3.product_variants || pRow3.variants || [];
 
-					if (variants.length > 0) {
-						const totalStock = variants.reduce((sum: number, v: any) => {
+					if (variants3.length > 0) {
+						const totalStock = variants3.reduce((sum: number, v) => {
 							return sum + parseInt(String(v.quantity || v.qty || 0));
 						}, 0);
 						return (
@@ -424,7 +443,8 @@ function ProductsTable() {
 		}
 	};
 
-	if (isLoading) return <FuseLoading />;
+	// No full screen loading; let DataTable handle it for a smoother experience
+	// if (isLoading) return <FuseLoading />;
 
 	return (
 		<Paper
@@ -434,6 +454,10 @@ function ProductsTable() {
 			<DataTable
 				data={productList}
 				columns={columns}
+				manualPagination
+				rowCount={products?.pagination?.total ?? 0}
+				state={{ pagination, isLoading }}
+				onPaginationChange={setPagination}
 				renderRowActionMenuItems={({ closeMenu, row, table }) => [
 					<MenuItem
 						key="delete"

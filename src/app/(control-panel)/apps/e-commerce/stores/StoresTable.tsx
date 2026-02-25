@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { type MRT_ColumnDef, type MRT_TableInstance } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import FuseLoading from '@fuse/core/FuseLoading';
+// import FuseLoading from '@fuse/core/FuseLoading';
 import { Avatar, Button, ListItemIcon, MenuItem, Paper, Typography } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
@@ -21,7 +21,12 @@ function StoresTable() {
 	const isMountedRef = useIsMounted();
 	const { enqueueSnackbar } = useSnackbar();
 	const { data: user, isGuest } = useUser();
-	const userRole = user?.role;
+	const userRole = useMemo(() => {
+		const role = user?.role;
+		if (!role) return [];
+		return Array.isArray(role) ? role : [role];
+	}, [user?.role]);
+	const isAdmin = userRole.includes('admin');
 	const storeId = user?.store_id;
 	const navigate = useNavigate();
 
@@ -43,13 +48,13 @@ function StoresTable() {
 
 	// Redirect non-admin users to their store page
 	useEffect(() => {
-		if (storeId && !userRole.includes('admin')) {
+		if (storeId && !isAdmin) {
 			navigate(`/apps/e-commerce/stores/${storeId}`);
 		}
-	}, [storeId, userRole, navigate]);
+	}, [storeId, isAdmin, navigate]);
 
-	// If user is not admin, don't render the table
-	if (!userRole.includes('admin')) {
+	// If user role is still loading or not admin, don't render the table yet
+	if (userRole.length === 0 || !isAdmin) {
 		return null;
 	}
 
@@ -59,8 +64,11 @@ function StoresTable() {
 		isLoading,
 		error
 	} = useGetECommerceStoresQuery({
-		page: pagination.pageIndex + 1, // Convert to 1-based indexing for API
+		page: pagination.pageIndex + 1,
 		perPage: pagination.pageSize
+	}, {
+		refetchOnMountOrArgChange: 300, // Cache for 5 minutes
+		refetchOnFocus: false
 	});
 
 	const [removeStore] = useDeleteECommerceStoreMutation();
@@ -143,13 +151,7 @@ function StoresTable() {
 	);
 
 	// Log fetch or error events
-	useEffect(() => {
-		if (!isMountedRef.current) return;
 
-		if (stores) console.log('Fetched stores:', stores);
-
-		if (error) console.error('Failed to load stores:', error);
-	}, [stores, error, isMountedRef]);
 
 	// Confirm delete handler
 	const handleRemoveConfirmed = async () => {
@@ -191,9 +193,12 @@ function StoresTable() {
 		setSuccessMessage('');
 	};
 
-	if (isLoading) return <FuseLoading />;
-
-	if (error) return <Typography color="error">Failed to load stores</Typography>;
+	if (error) return (
+		<Paper className="p-24 flex flex-col items-center justify-center shadow-1 rounded-lg">
+			<Typography color="error" variant="body1" className="font-semibold">Failed to load stores</Typography>
+			<Typography color="text.secondary" variant="caption">Please check your connection or try again later.</Typography>
+		</Paper>
+	);
 
 	/**
 	 * Main rendered table component.
@@ -207,8 +212,8 @@ function StoresTable() {
 				data={stores?.data ?? []}
 				columns={columns}
 				manualPagination
-				rowCount={stores?.pagination.total ?? 0}
-				state={{ pagination }}
+				rowCount={stores?.pagination?.total ?? 0}
+				state={{ pagination, isLoading }}
 				onPaginationChange={setPagination}
 				renderRowActionMenuItems={({ closeMenu, row, table }) => [
 					<MenuItem

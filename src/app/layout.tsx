@@ -125,11 +125,11 @@ export default async function RootLayout({
 					rel="dns-prefetch"
 					href="https://www.google-analytics.com"
 				/>
-				<link
+{/* <link
 					rel="prefetch"
 					href="/dashboards/analytics"
 					as="document"
-				/>
+				/> */}
 				<noscript id="emotion-insertion-point" />
 			</head>
 			<body

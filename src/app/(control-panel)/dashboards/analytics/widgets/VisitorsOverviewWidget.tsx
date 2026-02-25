@@ -1,5 +1,5 @@
 import { alpha, ThemeProvider, useTheme } from '@mui/material/styles';
-import { useMemo, useState } from 'react';
+import { memo, useMemo, useState } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import { ApexOptions } from 'apexcharts';
@@ -13,7 +13,13 @@ import { useContrastMainTheme } from '@fuse/core/FuseSettings/hooks/fuseThemeHoo
 import VisitorsOverviewWidgetType from './types/VisitorsOverviewWidgetType';
 import { selectWidget } from '../AnalyticsDashboardApi';
 import dynamic from 'next/dynamic';
-const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
+
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { 
+	ssr: false,
+	loading: () => <Skeleton variant="rounded" height={280} />
+});
+
+const selectVisitors = selectWidget<VisitorsOverviewWidgetType>('visitors');
 
 /**
  * The visitors overview widget.
@@ -21,7 +27,7 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
 function VisitorsOverviewWidget() {
 	const theme = useTheme();
 	const contrastTheme = useContrastMainTheme(theme.palette.primary.dark);
-	const widget = useAppSelector(selectWidget<VisitorsOverviewWidgetType>('visitors'));
+	const widget = useAppSelector(selectVisitors);
 	const series = widget?.series;
 	const ranges = widget?.ranges;
 	const [tabValue, setTabValue] = useState(0);
@@ -166,4 +172,4 @@ function VisitorsOverviewWidget() {
 	);
 }
 
-export default VisitorsOverviewWidget;
+export default memo(VisitorsOverviewWidget);

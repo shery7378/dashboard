@@ -22,14 +22,16 @@ const ProjectDashboardApi = api
 				GetProjectDashboardWidgetsApiArg
 			>({
 				query: () => ({ url: `/api/vendor-dashboard/widgets` }),
-				providesTags: ['project_dashboard_widgets']
+				providesTags: ['project_dashboard_widgets'],
+				keepUnusedDataFor: 3600 // Cache widget data for 1 hour (it rarely changes)
 			}),
 			getProjectDashboardProjects: build.query<
 				GetProjectDashboardProjectsApiResponse,
 				GetProjectDashboardProjectsApiArg
 			>({
 				query: () => ({ url: `/api/mock/project-dashboard/projects` }),
-				providesTags: ['project_dashboard_projects']
+				providesTags: ['project_dashboard_projects'],
+				keepUnusedDataFor: 3600
 			})
 		}),
 		overrideExisting: true
@@ -77,7 +79,12 @@ export const selectProjectDashboardWidgets = createSelector(
 	(results) => results.data
 );
 
-export const selectWidget = <T>(id: string) =>
-	createSelector(selectProjectDashboardWidgets, (widgets) => {
-		return widgets?.[id] as T;
-	});
+const selectorCache: Record<string, (state: unknown) => unknown> = {};
+
+export const selectWidget = <T>(id: string) => {
+	if (!selectorCache[id]) {
+		selectorCache[id] = createSelector([selectProjectDashboardWidgets], (widgets) => widgets?.[id]);
+	}
+
+	return selectorCache[id] as (state: unknown) => T;
+};

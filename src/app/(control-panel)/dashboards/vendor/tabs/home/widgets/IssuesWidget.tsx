@@ -4,17 +4,17 @@ import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
 import { memo } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
+import { useAppSelector } from 'src/store/hooks';
+import { selectWidget } from '../../../ProjectDashboardApi';
 import WidgetDataType from './types/WidgetDataType';
 
 /**
  * The IssuesWidget widget.
  */
 function IssuesWidget() {
-	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
-	const widget = widgets?.issues as WidgetDataType;
+	const widget = useAppSelector(selectWidget<WidgetDataType>('issues')) as WidgetDataType;
 
-	if (isLoading || !widget) {
+	if (!widget) {
 		return (
 			<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
 				<div className="flex items-center justify-between px-2 pt-2">

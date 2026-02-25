@@ -25,7 +25,7 @@ const Root = styled('div')(({ theme }) => ({
 	}
 }));
 
-const StyledContent = styled(FuseScrollbars)(() => ({
+const StyledContent = styled('div')(() => ({
 	overscrollBehavior: 'contain',
 	overflowX: 'hidden',
 	overflowY: 'auto',
@@ -54,7 +54,6 @@ function NavbarStyle2Content(props: NavbarStyle2ContentProps) {
 
 			<StyledContent
 				className="flex min-h-0 flex-1 flex-col"
-				option={{ suppressScrollX: true, wheelPropagation: false }}
 			>
 				<Navigation layout="vertical" />
 			</StyledContent>

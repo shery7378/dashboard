@@ -1,6 +1,6 @@
 import { MaterialReactTable, useMaterialReactTable, MaterialReactTableProps, MRT_Icons } from 'material-react-table';
-import _ from 'lodash';
-import { useMemo } from 'react';
+
+import { useMemo, memo } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { Theme } from '@mui/material/styles';
 import DataTableTopToolbar from './DataTableTopToolbar';
@@ -69,12 +69,12 @@ const tableIcons: Partial<MRT_Icons> = {
 	VisibilityOffIcon: () => <FuseSvgIcon size={20}>heroicons-outline:eye-slash</FuseSvgIcon>
 };
 
-function DataTable<TData>(props: MaterialReactTableProps<TData>) {
+function DataTableComponent<TData>(props: MaterialReactTableProps<TData>) {
 	const { columns, data, ...rest } = props;
 
 	const defaults = useMemo(
 		() =>
-			_.defaults(rest, {
+			({
 				initialState: {
 					density: 'spacious',
 					showColumnFilters: false,
@@ -88,6 +88,9 @@ function DataTable<TData>(props: MaterialReactTableProps<TData>) {
 					},
 					enableFullScreenToggle: false
 				},
+				enableRowVirtualization: true, // Performance: Enable virtualization by default
+				rowVirtualizerOptions: { overscan: 5 }, // Pre-render a few extra rows for smoother scrolling
+				autoResetPageIndex: false, // Don't jump to page 1 on every data update
 				enableFullScreenToggle: false,
 				enableColumnFilterModes: true,
 				enableColumnOrdering: true,
@@ -105,10 +108,10 @@ function DataTable<TData>(props: MaterialReactTableProps<TData>) {
 					className: 'flex flex-col flex-auto h-full'
 				},
 				muiTableContainerProps: {
-					className: 'flex-auto'
+					className: 'flex-auto',
+					sx: { maxHeight: 'calc(100vh - 300px)' } // Ensure container has height for virtualization
 				},
 				enableStickyHeader: true,
-				// enableStickyFooter: true,
 				paginationDisplayMode: 'pages',
 				positionToolbarAlertBanner: 'top',
 				muiPaginationProps: {
@@ -194,8 +197,8 @@ function DataTable<TData>(props: MaterialReactTableProps<TData>) {
 				}),
 				renderTopToolbar: (_props) => <DataTableTopToolbar {..._props} />,
 				icons: tableIcons
-			} as Partial<MaterialReactTableProps<TData>>),
-		[rest]
+			}) as Partial<MaterialReactTableProps<TData>>,
+		[] // Static config – created once
 	);
 
 	const tableOptions = useMemo(
@@ -213,4 +216,7 @@ function DataTable<TData>(props: MaterialReactTableProps<TData>) {
 	return <MaterialReactTable table={tableInstance} />;
 }
 
+const DataTable = memo(DataTableComponent) as typeof DataTableComponent;
+
 export default DataTable;
+

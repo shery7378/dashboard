@@ -31,7 +31,9 @@ function OrdersTableForHome() {
 		isLoading,
 		error
 	} = useGetECommerceOrdersQuery(undefined, {
-		skip: sessionStatus === 'loading' || !hasToken
+		skip: sessionStatus === 'loading' || !hasToken,
+		refetchOnMountOrArgChange: 300, // Cache for 5 minutes
+		refetchOnFocus: false
 	});
 	const [removeOrders] = useDeleteECommerceOrdersMutation();
 
@@ -127,7 +129,7 @@ function OrdersTableForHome() {
 				)
 			}
 		],
-		[]
+		[session]
 	);
 
 	if (sessionStatus === 'loading') {

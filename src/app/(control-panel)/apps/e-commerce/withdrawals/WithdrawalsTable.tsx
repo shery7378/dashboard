@@ -110,7 +110,7 @@ function WithdrawalsTable() {
 			},
 			{
 				accessorKey: 'user.name',
-				header: 'vendor',
+				header: 'Seller',
 				Cell: ({ row }) => (
 					<div>
 						<Typography

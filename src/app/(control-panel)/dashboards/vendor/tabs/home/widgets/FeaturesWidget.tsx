@@ -5,18 +5,18 @@ import Typography from '@mui/material/Typography';
 import { memo } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import WidgetDataType from './types/WidgetDataType';
-import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
+import { useAppSelector } from 'src/store/hooks';
+import { selectWidget } from '../../../ProjectDashboardApi';
 
 /**
  * The FeaturesWidget widget.
  */
 function FeaturesWidget() {
-	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
-	const widget = widgets?.features as WidgetDataType;
+	const widget = useAppSelector(selectWidget<WidgetDataType>('features')) as WidgetDataType;
 	const data = widget?.data;
 	const title = widget?.title;
 
-	if (isLoading || !widget || !data) {
+	if (!widget || !data) {
 		return (
 			<Paper className="flex flex-col flex-auto shadow-sm overflow-hidden">
 				<div className="flex items-center justify-between px-2 pt-2">

@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Controller, useFormContext } from 'react-hook-form';
-import { TextField, Box, Typography, Paper, Grid } from '@mui/material';
+import { TextField, Box, Typography, Paper, Grid, InputAdornment } from '@mui/material';
+import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 
 declare global {
 	interface Window {
@@ -374,6 +375,14 @@ function LocationTab() {
 									inputProps={{ step: '0.000001' }}
 									error={!!errors.latitude}
 									helperText={errors.latitude?.message as string}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<FuseSvgIcon size={20}>heroicons-outline:map</FuseSvgIcon>
+											</InputAdornment>
+										)
+									}}
+									InputLabelProps={{ shrink: true }}
 								/>
 							)}
 						/>
@@ -392,6 +401,14 @@ function LocationTab() {
 									inputProps={{ step: '0.000001' }}
 									error={!!errors.longitude}
 									helperText={errors.longitude?.message as string}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<FuseSvgIcon size={20}>heroicons-outline:map</FuseSvgIcon>
+											</InputAdornment>
+										)
+									}}
+									InputLabelProps={{ shrink: true }}
 								/>
 							)}
 						/>
@@ -415,6 +432,14 @@ function LocationTab() {
 							helperText={
 								(errors.delivery_radius?.message as string) || 'Set the delivery radius in kilometers'
 							}
+							InputProps={{
+								startAdornment: (
+									<InputAdornment position="start">
+										<FuseSvgIcon size={20}>heroicons-outline:globe-alt</FuseSvgIcon>
+									</InputAdornment>
+								)
+							}}
+							InputLabelProps={{ shrink: true }}
 						/>
 					)}
 				/>
@@ -443,6 +468,14 @@ function LocationTab() {
 									fullWidth
 									error={!!errors.address}
 									helperText={errors.address?.message as string}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<FuseSvgIcon size={20}>heroicons-outline:map-pin</FuseSvgIcon>
+											</InputAdornment>
+										)
+									}}
+									InputLabelProps={{ shrink: true }}
 								/>
 							)}
 						/>
@@ -459,6 +492,14 @@ function LocationTab() {
 									fullWidth
 									error={!!errors.city}
 									helperText={errors.city?.message as string}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<FuseSvgIcon size={20}>heroicons-outline:building-office</FuseSvgIcon>
+											</InputAdornment>
+										)
+									}}
+									InputLabelProps={{ shrink: true }}
 								/>
 							)}
 						/>
@@ -475,6 +516,14 @@ function LocationTab() {
 									fullWidth
 									error={!!errors.state}
 									helperText={errors.state?.message as string}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<FuseSvgIcon size={20}>heroicons-outline:flag</FuseSvgIcon>
+											</InputAdornment>
+										)
+									}}
+									InputLabelProps={{ shrink: true }}
 								/>
 							)}
 						/>
@@ -491,6 +540,14 @@ function LocationTab() {
 									fullWidth
 									error={!!errors.country}
 									helperText={errors.country?.message as string}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<FuseSvgIcon size={20}>heroicons-outline:globe-alt</FuseSvgIcon>
+											</InputAdornment>
+										)
+									}}
+									InputLabelProps={{ shrink: true }}
 								/>
 							)}
 						/>
@@ -507,6 +564,14 @@ function LocationTab() {
 									fullWidth
 									error={!!errors.postal_code}
 									helperText={errors.postal_code?.message as string}
+									InputProps={{
+										startAdornment: (
+											<InputAdornment position="start">
+												<FuseSvgIcon size={20}>heroicons-outline:hashtag</FuseSvgIcon>
+											</InputAdornment>
+										)
+									}}
+									InputLabelProps={{ shrink: true }}
 								/>
 							)}
 						/>

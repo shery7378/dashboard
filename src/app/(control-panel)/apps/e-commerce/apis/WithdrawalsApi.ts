@@ -17,7 +17,8 @@ const WithdrawalsApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints({
 					admin_wallet: response.admin_wallet || null
 				};
 			},
-			providesTags: ['withdrawals']
+			providesTags: ['withdrawals'],
+			keepUnusedDataFor: 300
 		}),
 
 		// Approve withdrawal

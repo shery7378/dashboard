@@ -1,53 +1,58 @@
 'use client';
 
 import FusePageSimple from '@fuse/core/FusePageSimple';
-import { useState, useEffect } from 'react';
+import { Suspense, lazy } from 'react';
 import { motion } from 'motion/react';
 import Typography from '@mui/material/Typography';
+import Skeleton from '@mui/material/Skeleton';
+import Box from '@mui/material/Box';
 import AnalyticsDashboardAppHeader from './AnalyticsDashboardAppHeader';
-import VisitorsOverviewWidget from './widgets/VisitorsOverviewWidget';
-import ConversionsWidget from './widgets/ConversionsWidget';
-import ImpressionsWidget from './widgets/ImpressionsWidget';
-import VisitsWidget from './widgets/VisitsWidget';
-import VisitorsVsPageViewsWidget from './widgets/VisitorsVsPageViewsWidget';
-import NewVsReturningWidget from './widgets/NewVsReturningWidget';
-import AgeWidget from './widgets/AgeWidget';
-import LanguageWidget from './widgets/LanguageWidget';
-import GenderWidget from './widgets/GenderWidget';
 import { useGetAnalyticsDashboardWidgetsQuery } from './AnalyticsDashboardApi';
 import KpiSummary from './KpiSummary';
+
+// Lazy-load heavy chart widgets so the page shell renders immediately
+const VisitorsOverviewWidget = lazy(() => import('./widgets/VisitorsOverviewWidget'));
+const ConversionsWidget = lazy(() => import('./widgets/ConversionsWidget'));
+const ImpressionsWidget = lazy(() => import('./widgets/ImpressionsWidget'));
+const VisitsWidget = lazy(() => import('./widgets/VisitsWidget'));
+const VisitorsVsPageViewsWidget = lazy(() => import('./widgets/VisitorsVsPageViewsWidget'));
+const NewVsReturningWidget = lazy(() => import('./widgets/NewVsReturningWidget'));
+const AgeWidget = lazy(() => import('./widgets/AgeWidget'));
+const LanguageWidget = lazy(() => import('./widgets/LanguageWidget'));
+const GenderWidget = lazy(() => import('./widgets/GenderWidget'));
 
 const container = {
 	show: {
 		transition: {
-			staggerChildren: 0.04
+			staggerChildren: 0.02
 		}
 	}
 };
 
 const item = {
 	hidden: { opacity: 0, y: 20 },
-	show: { opacity: 1, y: 0 }
+	show: { opacity: 1, y: 0, transition: { duration: 0.25 } }
 };
+
+/** Skeleton shown while a widget is loading */
+function WidgetSkeleton({ height = 200 }: { height?: number }) {
+	return (
+		<Skeleton
+			variant="rounded"
+			height={height}
+			sx={{ borderRadius: 3 }}
+		/>
+	);
+}
 
 /**
  * The analytics dashboard app.
+ * Widgets are lazy-loaded so the page header and KPI bar appear instantly.
+ * Heavy GA4 widgets stream in as their data resolves.
  */
 function AnalyticsDashboardApp() {
-	const { isLoading } = useGetAnalyticsDashboardWidgetsQuery();
-	const [showContent, setShowContent] = useState(false);
-
-	// Add timeout to prevent infinite loading (show content after 5 seconds even if still loading)
-	useEffect(() => {
-		if (!isLoading) {
-			setShowContent(true);
-		} else {
-			const timer = setTimeout(() => {
-				setShowContent(true);
-			}, 5000); // 5 second timeout
-			return () => clearTimeout(timer);
-		}
-	}, [isLoading]);
+	// Fire the single GA4 fetch; RTK Query handles caching (10 min TTL)
+	useGetAnalyticsDashboardWidgetsQuery();
 
 	return (
 		<FusePageSimple
@@ -59,7 +64,7 @@ function AnalyticsDashboardApp() {
 					initial="hidden"
 					animate="show"
 				>
-					{/* KPI Summary Row */}
+					{/* KPI Summary – reads from Redux store, shows 0s until data arrives */}
 					<motion.div
 						variants={item}
 						className="sm:col-span-2 lg:col-span-3"
@@ -67,42 +72,56 @@ function AnalyticsDashboardApp() {
 						<KpiSummary />
 					</motion.div>
 
+					{/* Visitors Overview */}
 					<motion.div
 						variants={item}
 						className="sm:col-span-2 lg:col-span-3"
 					>
-						<VisitorsOverviewWidget />
+						<Suspense fallback={<WidgetSkeleton height={280} />}>
+							<VisitorsOverviewWidget />
+						</Suspense>
+					</motion.div>
+
+					{/* Three compact trend cards */}
+					<motion.div
+						variants={item}
+						className="sm:col-span-2 lg:col-span-1"
+					>
+						<Suspense fallback={<WidgetSkeleton height={180} />}>
+							<ConversionsWidget />
+						</Suspense>
 					</motion.div>
 
 					<motion.div
 						variants={item}
-						className="sm:col-span-2 lg:col-span-1 "
+						className="sm:col-span-2 lg:col-span-1"
 					>
-						<ConversionsWidget />
+						<Suspense fallback={<WidgetSkeleton height={180} />}>
+							<ImpressionsWidget />
+						</Suspense>
 					</motion.div>
 
 					<motion.div
 						variants={item}
-						className="sm:col-span-2 lg:col-span-1 "
+						className="sm:col-span-2 lg:col-span-1"
 					>
-						<ImpressionsWidget />
+						<Suspense fallback={<WidgetSkeleton height={180} />}>
+							<VisitsWidget />
+						</Suspense>
 					</motion.div>
 
-					<motion.div
-						variants={item}
-						className="sm:col-span-2 lg:col-span-1 "
-					>
-						<VisitsWidget />
-					</motion.div>
-
+					{/* Visitors vs Page Views */}
 					<motion.div
 						variants={item}
 						className="sm:col-span-2 lg:col-span-3"
 					>
-						<VisitorsVsPageViewsWidget />
+						<Suspense fallback={<WidgetSkeleton height={280} />}>
+							<VisitorsVsPageViewsWidget />
+						</Suspense>
 					</motion.div>
 
-					<div className="w-full mt-4 sm:col-span-3">
+					{/* Audience section */}
+					<Box className="w-full mt-4 sm:col-span-3">
 						<Typography className="text-2xl font-semibold tracking-tight leading-6">
 							Your Audience
 						</Typography>
@@ -112,21 +131,21 @@ function AnalyticsDashboardApp() {
 						>
 							Demographic properties of your users
 						</Typography>
-					</div>
+					</Box>
 
 					<div className="sm:col-span-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 w-full">
-						<motion.div variants={item}>
+						<Suspense fallback={<WidgetSkeleton height={220} />}>
 							<NewVsReturningWidget />
-						</motion.div>
-						<motion.div variants={item}>
+						</Suspense>
+						<Suspense fallback={<WidgetSkeleton height={220} />}>
 							<GenderWidget />
-						</motion.div>
-						<motion.div variants={item}>
+						</Suspense>
+						<Suspense fallback={<WidgetSkeleton height={220} />}>
 							<AgeWidget />
-						</motion.div>
-						<motion.div variants={item}>
+						</Suspense>
+						<Suspense fallback={<WidgetSkeleton height={220} />}>
 							<LanguageWidget />
-						</motion.div>
+						</Suspense>
 					</div>
 				</motion.div>
 			}

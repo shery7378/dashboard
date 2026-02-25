@@ -17,7 +17,8 @@ const ProductsLaravelApi = api.enhanceEndpoints({ addTagTypes }).injectEndpoints
 				url: `/api/products`,
 				params: { page, per_page: perPage }
 			}),
-			providesTags: ['eCommerce_products']
+			providesTags: ['eCommerce_products'],
+			keepUnusedDataFor: 300 // Keep data for 5 minutes after unmount
 		}),
 
 		// Get single product by ID

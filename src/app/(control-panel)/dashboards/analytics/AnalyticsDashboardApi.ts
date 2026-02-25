@@ -1,5 +1,5 @@
 import { apiService as api } from '@/store/apiService';
-import { WithSlice } from '@reduxjs/toolkit';
+import { WithSlice, createSelector } from '@reduxjs/toolkit';
 import rootReducer from '@/store/rootReducer';
 import AgeWidgetType from './widgets/types/AgeWidgetType';
 import ConversionsWidgetType from './widgets/types/ConversionsWidgetType';
@@ -23,11 +23,13 @@ const AnalyticsDashboardApi = api
 				GetAnalyticsDashboardWidgetsApiArg
 			>({
 				query: () => ({ url: `/api/ga4/dashboard/widgets` }),
-				providesTags: ['analytics_dashboard_widgets']
+				providesTags: ['analytics_dashboard_widgets'],
+				keepUnusedDataFor: 3600 // Cache GA4 data for 1 hour in Redux store
 			})
 		}),
 		overrideExisting: false
 	});
+
 export default AnalyticsDashboardApi;
 
 export type AnalyticsDashboardWidgetType =
@@ -49,8 +51,16 @@ declare module '@/store/rootReducer' {
 	export interface LazyLoadedSlices extends WithSlice<typeof AnalyticsDashboardApi> {}
 }
 
-export const selectWidget = <T>(id: string) =>
-	rootReducer.selector((state) => {
-		const widgets = AnalyticsDashboardApi.endpoints.getAnalyticsDashboardWidgets.select()(state)?.data;
-		return widgets?.[id] as T;
-	});
+const selectWidgetsData = AnalyticsDashboardApi.endpoints.getAnalyticsDashboardWidgets.select();
+
+// Cache for selector instances to ensure stable references across different files
+const selectorCache: Record<string, ReturnType<typeof createSelector>> = {};
+
+export const selectWidget = <T>(id: string) => {
+	if (!selectorCache[id]) {
+		selectorCache[id] = createSelector([selectWidgetsData], (result) => result?.data?.[id] as T);
+	}
+
+	return selectorCache[id];
+};
+
