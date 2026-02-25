@@ -10,7 +10,7 @@ import GithubIssuesDataType from './types/GithubIssuesDataType';
 import { useAppSelector } from 'src/store/hooks';
 import { selectWidget } from '../../../ProjectDashboardApi';
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), {
 	ssr: false,
