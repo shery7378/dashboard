@@ -2600,9 +2600,54 @@ function MultiKonnectListingCreation() {
 			}
 		}
 
-		if (template.gallery_images) {
-			const galleryImages = Array.isArray(template.gallery_images) ? template.gallery_images : [];
-			setValue('gallery_images', galleryImages, { shouldDirty: true });
+		// Images: collect from gallery_images, images, or media (API may use any of these)
+		const convertImageUrl = (img: any): string | null => {
+			if (img?.id || img?.file_id) {
+				const fileId = img.id || img.file_id;
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				return `${apiUrl}/api/files/${fileId}`;
+			}
+			const url = img?.url ?? img?.path ?? (typeof img === 'string' ? img : null);
+			if (!url || typeof url !== 'string' || url.length === 0) return null;
+			if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) return url;
+			if (url.startsWith('storage/')) {
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				return `${apiUrl}/storage/${url.replace(/^storage\//, '')}`;
+			}
+			if (!url.startsWith('/') && !url.startsWith('http')) {
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				return `${apiUrl}/${url}`;
+			}
+			return url;
+		};
+		let allTemplateImages: any[] = [];
+		if (template.gallery_images && Array.isArray(template.gallery_images) && template.gallery_images.length > 0) {
+			allTemplateImages = template.gallery_images;
+		} else if (template.images && Array.isArray(template.images) && template.images.length > 0) {
+			allTemplateImages = template.images;
+		} else if (template.media && Array.isArray(template.media) && template.media.length > 0) {
+			allTemplateImages = template.media;
+		} else if (template.base_image) {
+			allTemplateImages = [template.base_image];
+		}
+		if (allTemplateImages.length > 0) {
+			const galleryImages = allTemplateImages
+				.map((img: any, index: number) => {
+					const convertedUrl = convertImageUrl(img);
+					if (!convertedUrl) return null;
+					return {
+						...(img?.id ? { id: img.id } : {}),
+						...(img?.file_id ? { file_id: img.file_id } : {}),
+						url: convertedUrl,
+						is_featured: img?.is_featured ?? index === 0
+					};
+				})
+				.filter((x: any) => x !== null);
+			if (galleryImages.length > 0) {
+				const hasFeatured = galleryImages.some((img: any) => img.is_featured);
+				if (!hasFeatured) galleryImages[0].is_featured = true;
+				setValue('gallery_images', galleryImages, { shouldDirty: true });
+			}
 		}
 
 		if (template.product_variants && template.product_variants.length > 0) {
