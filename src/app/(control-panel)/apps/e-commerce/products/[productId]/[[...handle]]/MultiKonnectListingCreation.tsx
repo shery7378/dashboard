@@ -114,6 +114,7 @@ function MultiKonnectListingCreation() {
 	const [pastListingsDialogOpen, setPastListingsDialogOpen] = useState(false);
 	const [importVendorDialogOpen, setImportVendorDialogOpen] = useState(false);
 	const [masterTemplateDialogOpen, setMasterTemplateDialogOpen] = useState(false);
+	const [isLoadingMasterTemplate, setIsLoadingMasterTemplate] = useState(false);
 	const [liveSyncEnabled, setLiveSyncEnabled] = useState(false);
 	const [searchQuery, setSearchQuery] = useState('');
 	const [addStorageDialogOpen, setAddStorageDialogOpen] = useState(false);
@@ -2566,72 +2567,127 @@ function MultiKonnectListingCreation() {
 		setMasterTemplateDialogOpen(true);
 	};
 
-	const handleSelectMasterTemplate = (template: any) => {
-		// Load template data into form
-		if (template.name) setValue('name', template.name, { shouldDirty: true });
-
-		if (template.description) setValue('description', template.description, { shouldDirty: true });
-
-		if (template.meta_title) setValue('meta_title', template.meta_title, { shouldDirty: true });
-
-		if (template.meta_description) setValue('meta_description', template.meta_description, { shouldDirty: true });
-
-		if (template.meta_keywords) setValue('meta_keywords', template.meta_keywords, { shouldDirty: true });
-
-		if (template.price_tax_excl) setValue('price_tax_excl', template.price_tax_excl, { shouldDirty: true });
-
-		if (template.price_tax_incl) setValue('price_tax_incl', template.price_tax_incl, { shouldDirty: true });
-
-		if (template.sku) setValue('sku', template.sku, { shouldDirty: true });
-
-		// Handle categories
-		if (template.categories && template.categories.length > 0) {
-			const mainCategory = template.categories.find((cat: any) => !cat.parent_id);
-			const subcategories = template.categories.filter((cat: any) => cat.parent_id);
-
-			if (mainCategory) setValue('main_category_id', mainCategory.id, { shouldDirty: true });
-
-			if (subcategories.length > 0) {
-				setValue(
-					'subcategory_ids',
-					subcategories.map((cat: any) => cat.id),
-					{ shouldDirty: true }
-				);
-			}
+	const handleSelectMasterTemplate = async (template: any) => {
+		const templateId = template?.id ?? template?.data?.id;
+		if (!templateId) {
+			enqueueSnackbar('Invalid template', { variant: 'error', anchorOrigin: { vertical: 'top', horizontal: 'right' } });
+			return;
 		}
 
-		// Images: collect from gallery_images, images, or media (API may use any of these)
+		setIsLoadingMasterTemplate(true);
+		setMasterTemplateDialogOpen(false);
+		enqueueSnackbar('Loading template...', { variant: 'info', anchorOrigin: { vertical: 'top', horizontal: 'right' }, autoHideDuration: 2000 });
+
+		let product = template;
+		try {
+			// Fetch full product so we get images and full category relations (list endpoint often omits them)
+			const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+			const token = (session as any)?.accessAuthToken ?? (session as any)?.accessToken ?? '';
+			const response = await fetch(`${apiUrl}/api/products/${templateId}`, {
+				headers: {
+					...(token && { Authorization: `Bearer ${token}` }),
+					'Content-Type': 'application/json'
+				},
+				credentials: 'include'
+			});
+			if (response.ok) {
+				const json = await response.json();
+				const fullProduct = json?.data ?? json;
+				if (fullProduct && (fullProduct.gallery_images?.length || fullProduct.images?.length || fullProduct.media?.length || fullProduct.categories?.length || fullProduct.main_category)) {
+					product = fullProduct;
+				}
+			}
+		} catch (e) {
+			console.warn('Could not fetch full master template, using list data:', e);
+		} finally {
+			setIsLoadingMasterTemplate(false);
+		}
+
+		// Basic fields
+		if (product.name) setValue('name', product.name, { shouldDirty: true });
+		if (product.description) setValue('description', product.description, { shouldDirty: true });
+		if (product.meta_title) setValue('meta_title', product.meta_title, { shouldDirty: true });
+		if (product.meta_description) setValue('meta_description', product.meta_description, { shouldDirty: true });
+		if (product.meta_keywords) setValue('meta_keywords', product.meta_keywords, { shouldDirty: true });
+		if (product.price_tax_excl != null) setValue('price_tax_excl', product.price_tax_excl, { shouldDirty: true });
+		if (product.price_tax_incl != null) setValue('price_tax_incl', product.price_tax_incl, { shouldDirty: true });
+		if (product.sku) setValue('sku', product.sku, { shouldDirty: true });
+
+		// Categories: set both main_category (object) and subcategory (array of objects) so dropdowns show
+		if (product.main_category && product.main_category.id) {
+			setValue('main_category_id', product.main_category.id, { shouldDirty: true });
+			setValue('main_category', { id: product.main_category.id, name: product.main_category.name || '' }, { shouldDirty: true });
+		}
+		if (product.categories && Array.isArray(product.categories) && product.categories.length > 0) {
+			const mainCat = product.categories.find((c: any) => !c.parent_id && c.parent_id !== 0);
+			const subcats = product.categories.filter((c: any) => c.parent_id != null && c.parent_id !== '');
+			if (mainCat && !product.main_category) {
+				setValue('main_category_id', mainCat.id, { shouldDirty: true });
+				setValue('main_category', { id: mainCat.id, name: mainCat.name || '' }, { shouldDirty: true });
+			}
+			if (subcats.length > 0) {
+				setValue('subcategory_ids', subcats.map((c: any) => c.id), { shouldDirty: true });
+				setValue('subcategory', subcats.map((c: any) => ({ id: c.id, name: c.name || '' })), { shouldDirty: true });
+			}
+		}
+		if (product.subcategory && Array.isArray(product.subcategory) && product.subcategory.length > 0) {
+			setValue('subcategory_ids', product.subcategory.map((c: any) => c.id), { shouldDirty: true });
+			setValue('subcategory', product.subcategory.map((c: any) => ({ id: c.id, name: c.name || '' })), { shouldDirty: true });
+		}
+
+		// Images: from gallery_images, images, or media
 		const convertImageUrl = (img: any): string | null => {
-			if (img?.id || img?.file_id) {
-				const fileId = img.id || img.file_id;
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				return `${apiUrl}/api/files/${fileId}`;
-			}
-			const url = img?.url ?? img?.path ?? (typeof img === 'string' ? img : null);
-			if (!url || typeof url !== 'string' || url.length === 0) return null;
-			if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) return url;
-			if (url.startsWith('storage/')) {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				return `${apiUrl}/storage/${url.replace(/^storage\//, '')}`;
-			}
-			if (!url.startsWith('/') && !url.startsWith('http')) {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				return `${apiUrl}/${url}`;
-			}
-			return url;
-		};
-		let allTemplateImages: any[] = [];
-		if (template.gallery_images && Array.isArray(template.gallery_images) && template.gallery_images.length > 0) {
-			allTemplateImages = template.gallery_images;
-		} else if (template.images && Array.isArray(template.images) && template.images.length > 0) {
-			allTemplateImages = template.images;
-		} else if (template.media && Array.isArray(template.media) && template.media.length > 0) {
-			allTemplateImages = template.media;
-		} else if (template.base_image) {
-			allTemplateImages = [template.base_image];
-		}
-		if (allTemplateImages.length > 0) {
-			const galleryImages = allTemplateImages
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+  // LOG: see what each image object looks like
+  console.log('[MasterTemplate] convertImageUrl input:', JSON.stringify(img));
+
+  // Try to get the raw URL from common fields
+  const raw = img?.url ?? img?.path ?? img?.src ?? (typeof img === 'string' ? img : null);
+
+  console.log('[MasterTemplate] raw url extracted:', raw);
+
+  if (!raw || typeof raw !== 'string' || raw.length === 0) {
+    console.warn('[MasterTemplate] ⚠️ No usable URL field found on image object:', img);
+    return null;
+  }
+
+  // Already absolute — return as-is
+  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+    console.log('[MasterTemplate] ✅ Absolute URL, using as-is:', raw);
+    return raw;
+  }
+
+  // Strip leading slash for consistent handling
+  const cleaned = raw.replace(/^\/+/, '');
+
+  // Already contains storage/ — don't double-prefix
+  if (cleaned.startsWith('storage/')) {
+    const final = `${apiUrl}/${cleaned}`;
+    console.log('[MasterTemplate] 🔗 storage/ path:', final);
+    return final;
+  }
+
+  // categories/ or images/categories/ — prepend storage/
+  if (cleaned.startsWith('categories/') || cleaned.startsWith('images/')) {
+    const final = `${apiUrl}/storage/${cleaned}`;
+    console.log('[MasterTemplate] 🔗 relative path → storage:', final);
+    return final;
+  }
+
+  // Fallback — just prepend API base
+  const final = `${apiUrl}/${cleaned}`;
+  console.log('[MasterTemplate] 🔗 fallback URL:', final);
+  return final;
+};
+		// Make sure you're reading from the right fields
+let allImages: any[] = [];
+if (product.gallery_images?.length)      allImages = product.gallery_images;
+else if (product.images?.length)         allImages = product.images;
+else if (product.media?.length)          allImages = product.media;
+		else if (product.base_image) allImages = [product.base_image];
+		if (allImages.length > 0) {
+			const galleryImages = allImages
 				.map((img: any, index: number) => {
 					const convertedUrl = convertImageUrl(img);
 					if (!convertedUrl) return null;
@@ -2644,25 +2700,20 @@ function MultiKonnectListingCreation() {
 				})
 				.filter((x: any) => x !== null);
 			if (galleryImages.length > 0) {
-				const hasFeatured = galleryImages.some((img: any) => img.is_featured);
-				if (!hasFeatured) galleryImages[0].is_featured = true;
+				if (!galleryImages.some((img: any) => img.is_featured)) galleryImages[0].is_featured = true;
 				setValue('gallery_images', galleryImages, { shouldDirty: true });
 			}
 		}
 
-		if (template.product_variants && template.product_variants.length > 0) {
-			// Extract unique storage and color options from variants
+		// Variants
+		if (product.product_variants && product.product_variants.length > 0) {
 			const storageSet = new Set<string>();
 			const colorSet = new Set<string>();
-
-			const templateVariants = template.product_variants.map((v: any) => {
+			const templateVariants = product.product_variants.map((v: any) => {
 				const storage = v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '';
 				const color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
-
 				if (storage) storageSet.add(storage);
-
 				if (color) colorSet.add(color);
-
 				return {
 					id: v.id?.toString(),
 					storage,
@@ -2674,20 +2725,15 @@ function MultiKonnectListingCreation() {
 					image: v.image || v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value
 				};
 			});
-
-			// Update storage and color options
-			if (storageSet.size > 0) {
-				setStorageOptions(Array.from(storageSet));
-			}
-
-			if (colorSet.size > 0) {
-				setColorOptions(Array.from(colorSet));
-			}
-
+			if (storageSet.size > 0) setStorageOptions(Array.from(storageSet));
+			if (colorSet.size > 0) setColorOptions(Array.from(colorSet));
 			setVariants(templateVariants);
 		}
 
-		setMasterTemplateDialogOpen(false);
+		enqueueSnackbar('Master template applied. Categories and images loaded.', {
+			variant: 'success',
+			anchorOrigin: { vertical: 'top', horizontal: 'right' }
+		});
 	};
 
 	// Past Listing handler
@@ -2776,43 +2822,30 @@ function MultiKonnectListingCreation() {
 
 		// Helper function to convert image URL to proper format
 		const convertImageUrl = (img: any): string | null => {
-			// If image has a file ID, use the file serving route (preferred method)
-			if (img.id || img.file_id) {
-				const fileId = img.id || img.file_id;
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				return `${apiUrl}/api/files/${fileId}`;
-			}
+  const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 
-			const url = img.url || img.path || img;
+  const raw = img?.url ?? img?.path ?? img?.src ?? (typeof img === 'string' ? img : null);
 
-			// Return null if URL is missing or not a string
-			if (!url || typeof url !== 'string' || url.length === 0) {
-				return null;
-			}
+  if (!raw || typeof raw !== 'string' || raw.length === 0) return null;
 
-			// If already a full URL (http/https) or base64, return as-is
-			if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) {
-				return url;
-			}
+  // Already absolute or base64
+  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+    return raw;
+  }
 
-			// If it's a relative storage path, convert to full URL (try to use it)
-			// Even if it's product-specific, we'll try it and let error handler deal with it if it fails
-			if (url.startsWith('storage/')) {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				// Remove 'storage/' prefix and use the public storage URL
-				const pathWithoutStorage = url.replace(/^storage\//, '');
-				return `${apiUrl}/storage/${pathWithoutStorage}`;
-			}
+  const cleaned = raw.replace(/^\/+/, ''); // strip any leading slashes
 
-			// If it's already a relative path (doesn't start with storage/), try to make it work
-			if (!url.startsWith('/') && !url.startsWith('http')) {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				return `${apiUrl}/${url}`;
-			}
+  // ✅ This is your case: "storage/images/products/22/product_22_xxx.jpeg"
+  if (cleaned.startsWith('storage/')) {
+    return `${apiUrl}/${cleaned}`; // → http://127.0.0.1:8000/storage/images/products/...
+  }
 
-			// Return as-is if it looks like a valid path
-			return url;
-		};
+  if (cleaned.startsWith('categories/') || cleaned.startsWith('images/')) {
+    return `${apiUrl}/storage/${cleaned}`;
+  }
+
+  return `${apiUrl}/${cleaned}`;
+};
 
 		// Images - Check multiple sources: gallery_images, images, media, base_image
 		let allImages: any[] = [];
