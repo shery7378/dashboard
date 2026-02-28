@@ -3,6 +3,8 @@ import Paper from '@mui/material/Paper';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
+import Menu from '@mui/material/Menu';
+import MenuItemComponent from '@mui/material/MenuItem';
 import { memo, useEffect, useState } from 'react';
 import MenuItem from '@mui/material/MenuItem';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -18,10 +20,35 @@ function SummaryWidget() {
 	const data = widget?.data;
 	const ranges = widget?.ranges;
 	const currentRangeDefault = widget?.currentRange;
+	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const menuOpen = Boolean(anchorEl);
 
 	const [currentRange, setCurrentRange] = useState<RangeType>(
 		(currentRangeDefault as RangeType) || ('this-week' as RangeType)
 	);
+
+	const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+		setAnchorEl(event.currentTarget);
+	};
+
+	const handleMenuClose = () => {
+		setAnchorEl(null);
+	};
+
+	const handleRefresh = () => {
+		// Refresh functionality
+		handleMenuClose();
+	};
+
+	const handleExport = () => {
+		console.log('Export data');
+		handleMenuClose();
+	};
+
+	const handleSettings = () => {
+		console.log('Widget settings');
+		handleMenuClose();
+	};
 
 	useEffect(() => {
 		if (currentRangeDefault) {
@@ -96,9 +123,39 @@ function SummaryWidget() {
 						);
 					})}
 				</Select>
-				<IconButton aria-label="more">
+				<IconButton
+					aria-label="more"
+					onClick={handleMenuOpen}
+					size="small"
+				>
 					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
+				<Menu
+					anchorEl={anchorEl}
+					open={menuOpen}
+					onClose={handleMenuClose}
+					anchorOrigin={{
+						vertical: 'bottom',
+						horizontal: 'right'
+					}}
+					transformOrigin={{
+						vertical: 'top',
+						horizontal: 'right'
+					}}
+				>
+					<MenuItemComponent onClick={handleRefresh}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:arrow-path</FuseSvgIcon>
+						Refresh
+					</MenuItemComponent>
+					<MenuItemComponent onClick={handleExport}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:arrow-down-tray</FuseSvgIcon>
+						Export
+					</MenuItemComponent>
+					<MenuItemComponent onClick={handleSettings}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:cog-6-tooth</FuseSvgIcon>
+						Settings
+					</MenuItemComponent>
+				</Menu>
 			</div>
 			<div className="text-center mt-4">
 				<Typography className="text-7xl sm:text-8xl font-bold tracking-tight leading-none text-blue-500">

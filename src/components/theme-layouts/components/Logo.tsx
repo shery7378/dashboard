@@ -1,5 +1,4 @@
 import { styled } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
 
 const Root = styled('div')(({ theme }) => ({
 	'& > .logo-icon': {
@@ -23,33 +22,17 @@ function Logo() {
 	return (
 		<Root className="flex flex-1 items-center space-x-3">
 			<div className="flex flex-1 items-center space-x-2 px-2.5">
-				{/* <img
-					className="logo-icon h-8 w-8"
-					src="/assets/images/logo/logo.svg"
-					alt="logo"
-				/> */}
-				<div className="logo-text flex flex-col flex-auto gap-0.5">
-					<Typography
-						className="text-2xl tracking-light font-semibold leading-none"
-						color="primary"
-						sx={{
-							color: '#FF5A2A'
-						}}
-					>
-						MultiKonnect
-					</Typography>
-					{/* <Typography
-						className="text-[13.6px] tracking-light font-semibold leading-none"
-						color="primary"
-						sx={{
-							color: '#82d7f7'
-						}}
-					>
-						REACT
-					</Typography> */}
-				</div>
+				<img
+					className="logo-icon"
+					src="/assets/images/MultiKonnect.svg"
+					alt="MultiKonnect Logo"
+					style={{
+						height: '40px',
+						width: 'auto',
+						objectFit: 'contain'
+					}}
+				/>
 			</div>
-			{/* <MainProjectSelection /> */}
 		</Root>
 	);
 }

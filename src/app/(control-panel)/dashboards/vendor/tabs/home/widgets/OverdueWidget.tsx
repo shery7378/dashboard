@@ -2,7 +2,9 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
-import { memo } from 'react';
+import Menu from '@mui/material/Menu';
+import MenuItemComponent from '@mui/material/MenuItem';
+import { memo, useState } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import { useAppSelector } from 'src/store/hooks';
 import { selectWidget } from '../../../ProjectDashboardApi';
@@ -13,6 +15,30 @@ import WidgetDataType from './types/WidgetDataType';
  */
 function OverdueWidget() {
 	const widget = useAppSelector(selectWidget<WidgetDataType>('overdue')) as WidgetDataType;
+	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const menuOpen = Boolean(anchorEl);
+
+	const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+		setAnchorEl(event.currentTarget);
+	};
+
+	const handleMenuClose = () => {
+		setAnchorEl(null);
+	};
+
+	const handleRefresh = () => {
+		handleMenuClose();
+	};
+
+	const handleExport = () => {
+		console.log('Export data');
+		handleMenuClose();
+	};
+
+	const handleSettings = () => {
+		console.log('Widget settings');
+		handleMenuClose();
+	};
 
 	if (!widget) {
 		return (
@@ -63,7 +89,7 @@ function OverdueWidget() {
 				>
 					Total Orders
 				</Typography>
-				<IconButton aria-label="more">
+				<IconButton aria-label="more" onClick={handleMenuOpen} size="small">
 					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
 			</div>
@@ -80,6 +106,34 @@ function OverdueWidget() {
 				<span className="truncate">{data.extra.name}:</span>
 				<b>{String(data.extra.count)}</b>
 			</Typography>
+
+			{/* Menu */}
+			<Menu
+				anchorEl={anchorEl}
+				open={menuOpen}
+				onClose={handleMenuClose}
+				anchorOrigin={{
+					vertical: 'bottom',
+					horizontal: 'right'
+				}}
+				transformOrigin={{
+					vertical: 'top',
+					horizontal: 'right'
+				}}
+			>
+				<MenuItemComponent onClick={handleRefresh}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:arrow-path</FuseSvgIcon>
+					Refresh
+				</MenuItemComponent>
+				<MenuItemComponent onClick={handleExport}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:arrow-down-tray</FuseSvgIcon>
+					Export
+				</MenuItemComponent>
+				<MenuItemComponent onClick={handleSettings}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:cog-6-tooth</FuseSvgIcon>
+					Settings
+				</MenuItemComponent>
+			</Menu>
 		</Paper>
 	);
 }

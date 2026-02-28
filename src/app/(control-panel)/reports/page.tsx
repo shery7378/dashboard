@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { useGetSalesQuery, useGetvendorPerformanceQuery, useGetSalesHeatmapQuery } from './apis/AnalyticsApi';
+import { useGetSalesQuery, useGetVendorPerformanceQuery, useGetSalesHeatmapQuery } from './apis/AnalyticsApi';
 import {
 	Card,
 	CardContent,
@@ -65,7 +65,7 @@ export default function ReportsPage() {
 	const [currencySymbol, setCurrencySymbol] = useState<string>('£');
 
 	const { data: salesData } = useGetSalesQuery({ interval: 'day' });
-	const { data: vendorPerf } = useGetvendorPerformanceQuery({ limit: 10 });
+	const { data: vendorPerf } = useGetVendorPerformanceQuery({ limit: 10 });
 	const { data: heatmap } = useGetSalesHeatmapQuery({});
 
 	const sales = Array.isArray(salesData?.data) ? salesData.data : [];

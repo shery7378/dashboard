@@ -2603,6 +2603,15 @@ function MultiKonnectListingCreation() {
 			setIsLoadingMasterTemplate(false);
 		}
 
+		// Use the same robust population logic as "past listings" (handles categories, media/images, and variant attributes).
+		// This avoids master-template-specific parsing bugs (e.g., Storage/Color empty, media not showing).
+		handleSelectPastListing(product);
+		enqueueSnackbar('Master template applied.', {
+			variant: 'success',
+			anchorOrigin: { vertical: 'top', horizontal: 'right' }
+		});
+		return;
+
 		// Basic fields
 		if (product.name) setValue('name', product.name, { shouldDirty: true });
 		if (product.description) setValue('description', product.description, { shouldDirty: true });
@@ -2637,54 +2646,54 @@ function MultiKonnectListingCreation() {
 
 		// Images: from gallery_images, images, or media
 		const convertImageUrl = (img: any): string | null => {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+			const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
 
-  // LOG: see what each image object looks like
-  console.log('[MasterTemplate] convertImageUrl input:', JSON.stringify(img));
+			// LOG: see what each image object looks like
+			console.log('[MasterTemplate] convertImageUrl input:', JSON.stringify(img));
 
-  // Try to get the raw URL from common fields
-  const raw = img?.url ?? img?.path ?? img?.src ?? (typeof img === 'string' ? img : null);
+			// Try to get the raw URL from common fields
+			const raw = img?.url ?? img?.path ?? img?.src ?? (typeof img === 'string' ? img : null);
 
-  console.log('[MasterTemplate] raw url extracted:', raw);
+			console.log('[MasterTemplate] raw url extracted:', raw);
 
-  if (!raw || typeof raw !== 'string' || raw.length === 0) {
-    console.warn('[MasterTemplate] ⚠️ No usable URL field found on image object:', img);
-    return null;
-  }
+			if (!raw || typeof raw !== 'string' || raw.length === 0) {
+				console.warn('[MasterTemplate] ⚠️ No usable URL field found on image object:', img);
+				return null;
+			}
 
-  // Already absolute — return as-is
-  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
-    console.log('[MasterTemplate] ✅ Absolute URL, using as-is:', raw);
-    return raw;
-  }
+			// Already absolute — return as-is
+			if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+				console.log('[MasterTemplate] ✅ Absolute URL, using as-is:', raw);
+				return raw;
+			}
 
-  // Strip leading slash for consistent handling
-  const cleaned = raw.replace(/^\/+/, '');
+			// Strip leading slash for consistent handling
+			const cleaned = raw.replace(/^\/+/, '');
 
-  // Already contains storage/ — don't double-prefix
-  if (cleaned.startsWith('storage/')) {
-    const final = `${apiUrl}/${cleaned}`;
-    console.log('[MasterTemplate] 🔗 storage/ path:', final);
-    return final;
-  }
+			// Already contains storage/ — don't double-prefix
+			if (cleaned.startsWith('storage/')) {
+				const final = `${apiUrl}/${cleaned}`;
+				console.log('[MasterTemplate] 🔗 storage/ path:', final);
+				return final;
+			}
 
-  // categories/ or images/categories/ — prepend storage/
-  if (cleaned.startsWith('categories/') || cleaned.startsWith('images/')) {
-    const final = `${apiUrl}/storage/${cleaned}`;
-    console.log('[MasterTemplate] 🔗 relative path → storage:', final);
-    return final;
-  }
+			// categories/ or images/categories/ — prepend storage/
+			if (cleaned.startsWith('categories/') || cleaned.startsWith('images/')) {
+				const final = `${apiUrl}/storage/${cleaned}`;
+				console.log('[MasterTemplate] 🔗 relative path → storage:', final);
+				return final;
+			}
 
-  // Fallback — just prepend API base
-  const final = `${apiUrl}/${cleaned}`;
-  console.log('[MasterTemplate] 🔗 fallback URL:', final);
-  return final;
-};
+			// Fallback — just prepend API base
+			const final = `${apiUrl}/${cleaned}`;
+			console.log('[MasterTemplate] 🔗 fallback URL:', final);
+			return final;
+		};
 		// Make sure you're reading from the right fields
-let allImages: any[] = [];
-if (product.gallery_images?.length)      allImages = product.gallery_images;
-else if (product.images?.length)         allImages = product.images;
-else if (product.media?.length)          allImages = product.media;
+		let allImages: any[] = [];
+		if (product.gallery_images?.length) allImages = product.gallery_images;
+		else if (product.images?.length) allImages = product.images;
+		else if (product.media?.length) allImages = product.media;
 		else if (product.base_image) allImages = [product.base_image];
 		if (allImages.length > 0) {
 			const galleryImages = allImages
@@ -2707,13 +2716,33 @@ else if (product.media?.length)          allImages = product.media;
 
 		// Variants
 		if (product.product_variants && product.product_variants.length > 0) {
+
 			const storageSet = new Set<string>();
 			const colorSet = new Set<string>();
+
 			const templateVariants = product.product_variants.map((v: any) => {
-				const storage = v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '';
-				const color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
+
+				let storage = v.attributes?.find((a: any) => a.attribute_name === 'Storage')?.attribute_value || '';
+				let color = v.attributes?.find((a: any) => a.attribute_name === 'Color')?.attribute_value || '';
+
+				// 🔧 Fallback: extract from variant name
+				if ((!storage || !color) && v.name) {
+					const name = v.name.toLowerCase();
+
+					if (name.includes('storage')) {
+						const parts = v.name.split('-');
+						if (parts[1]) storage = parts[1].trim();
+					}
+
+					if (name.includes('color')) {
+						const parts = v.name.split('-');
+						if (parts[1]) color = parts[1].trim();
+					}
+				}
+
 				if (storage) storageSet.add(storage);
 				if (color) colorSet.add(color);
+
 				return {
 					id: v.id?.toString(),
 					storage,
@@ -2725,8 +2754,10 @@ else if (product.media?.length)          allImages = product.media;
 					image: v.image || v.attributes?.find((a: any) => a.attribute_name === 'Image')?.attribute_value
 				};
 			});
+
 			if (storageSet.size > 0) setStorageOptions(Array.from(storageSet));
 			if (colorSet.size > 0) setColorOptions(Array.from(colorSet));
+
 			setVariants(templateVariants);
 		}
 
@@ -2822,30 +2853,53 @@ else if (product.media?.length)          allImages = product.media;
 
 		// Helper function to convert image URL to proper format
 		const convertImageUrl = (img: any): string | null => {
-  const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+			const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 
-  const raw = img?.url ?? img?.path ?? img?.src ?? (typeof img === 'string' ? img : null);
+			if (img === null || img === undefined) return null;
 
-  if (!raw || typeof raw !== 'string' || raw.length === 0) return null;
+			// Some backends return just a numeric file id (number or numeric string)
+			if (typeof img === 'number') {
+				return `${apiUrl}/api/files/${img}`;
+			}
+			if (typeof img === 'string' && /^\d+$/.test(img.trim())) {
+				return `${apiUrl}/api/files/${img.trim()}`;
+			}
 
-  // Already absolute or base64
-  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
-    return raw;
-  }
+			// Spatie/Laravel media often uses original_url / preview_url
+			const raw =
+				img?.original_url ??
+				img?.full_url ??
+				img?.preview_url ??
+				img?.url ??
+				img?.path ??
+				img?.src ??
+				(typeof img === 'string' ? img : null);
 
-  const cleaned = raw.replace(/^\/+/, ''); // strip any leading slashes
+			if (!raw || typeof raw !== 'string' || raw.length === 0) return null;
 
-  // ✅ This is your case: "storage/images/products/22/product_22_xxx.jpeg"
-  if (cleaned.startsWith('storage/')) {
-    return `${apiUrl}/${cleaned}`; // → http://127.0.0.1:8000/storage/images/products/...
-  }
+			// Already absolute or base64
+			if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:image/')) {
+				return raw;
+			}
 
-  if (cleaned.startsWith('categories/') || cleaned.startsWith('images/')) {
-    return `${apiUrl}/storage/${cleaned}`;
-  }
+			const cleaned = raw.replace(/^\/+/, ''); // strip any leading slashes
 
-  return `${apiUrl}/${cleaned}`;
-};
+			// Already contains an api/files path
+			if (cleaned.startsWith('api/files/')) {
+				return `${apiUrl}/${cleaned}`;
+			}
+
+			// Common storage paths
+			if (cleaned.startsWith('storage/')) {
+				return `${apiUrl}/${cleaned}`;
+			}
+			if (cleaned.startsWith('categories/') || cleaned.startsWith('images/')) {
+				return `${apiUrl}/storage/${cleaned}`;
+			}
+
+			// Fallback: prepend API base
+			return `${apiUrl}/${cleaned}`;
+		};
 
 		// Images - Check multiple sources: gallery_images, images, media, base_image
 		let allImages: any[] = [];
@@ -2853,13 +2907,19 @@ else if (product.media?.length)          allImages = product.media;
 		// Priority 1: gallery_images or images array
 		if (product.gallery_images && Array.isArray(product.gallery_images) && product.gallery_images.length > 0) {
 			allImages = product.gallery_images;
+		} else if (product.gallery_images?.data && Array.isArray(product.gallery_images.data) && product.gallery_images.data.length > 0) {
+			allImages = product.gallery_images.data;
 		} else if (product.images && Array.isArray(product.images) && product.images.length > 0) {
 			allImages = product.images;
+		} else if (product.images?.data && Array.isArray(product.images.data) && product.images.data.length > 0) {
+			allImages = product.images.data;
 		}
 
 		// Priority 2: Check media/files relationship (if images array is empty)
 		if (allImages.length === 0 && product.media && Array.isArray(product.media) && product.media.length > 0) {
 			allImages = product.media;
+		} else if (allImages.length === 0 && product.media?.data && Array.isArray(product.media.data) && product.media.data.length > 0) {
+			allImages = product.media.data;
 		}
 
 		// Priority 3: Check base_image (if still empty)
@@ -2998,12 +3058,17 @@ else if (product.media?.length)          allImages = product.media;
 			}
 
 			// Return attribute value
-			return attr?.attribute_value || attr?.value || '';
+			const raw = attr?.attribute_value ?? attr?.value;
+			if (Array.isArray(raw)) {
+				return raw.length > 0 ? String(raw[0] ?? '') : '';
+			}
+			return raw !== undefined && raw !== null ? String(raw) : '';
 		};
 
 		// Variants - Replace all variants with proper price handling
 		if (product.product_variants && product.product_variants.length > 0) {
 			// Extract unique storage and color options from variants
+			// 
 			const storageSet = new Set<string>();
 			const colorSet = new Set<string>();
 
@@ -3549,9 +3614,8 @@ else if (product.media?.length)          allImages = product.media;
 
 					{/* Left Sidebar - Listing Steps - Light Grey */}
 					<aside
-						className={`fixed lg:static w-[280px] max-w-[85vw] lg:max-w-none border-r overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
-							sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-						}`}
+						className={`fixed lg:static w-[280px] max-w-[85vw] lg:max-w-none border-r overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+							}`}
 						style={{
 							backgroundColor: '#f8f9fa',
 							borderColor: '#e5e7eb',
@@ -3657,9 +3721,8 @@ else if (product.media?.length)          allImages = product.media;
 
 					{/* Main Content Area */}
 					<main
-						className={`flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${
-							sidebarOpen || rightSidebarOpen ? 'lg:ml-0 lg:mr-0' : ''
-						}`}
+						className={`flex-1 overflow-y-auto min-w-0 px-4 sm:px-6 lg:px-8 transition-all duration-300 ${sidebarOpen || rightSidebarOpen ? 'lg:ml-0 lg:mr-0' : ''
+							}`}
 						style={{
 							backgroundColor: '#ffffff',
 							paddingTop: '16px',
@@ -5696,16 +5759,16 @@ else if (product.media?.length)          allImages = product.media;
 															lineHeight: '1.5'
 														},
 														'& .MuiInputLabel-root': {
-														fontSize: '14px',
-														color: '#6b7280'
-													},
-													'& .MuiFormHelperText-root': {
-														fontSize: '12px',
-														marginTop: '4px',
-														color: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#6b7280'
-													}
-												}}
-											/>
+															fontSize: '14px',
+															color: '#6b7280'
+														},
+														'& .MuiFormHelperText-root': {
+															fontSize: '12px',
+															marginTop: '4px',
+															color: isError ? '#ef4444' : isWarning && charCount > 0 ? '#f59e0b' : '#6b7280'
+														}
+													}}
+												/>
 											);
 										}}
 									/>
@@ -6432,9 +6495,8 @@ else if (product.media?.length)          allImages = product.media;
 										className={`grid gap-4 ${previewMode === 'mobile' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1.1fr_0.9fr]'}`}
 									>
 										<div
-											className={`rounded-xl overflow-hidden relative bg-gray-100 ${
-												previewMode === 'mobile' ? 'h-[300px] sm:h-[360px]' : 'h-[360px]'
-											}`}
+											className={`rounded-xl overflow-hidden relative bg-gray-100 ${previewMode === 'mobile' ? 'h-[300px] sm:h-[360px]' : 'h-[360px]'
+												}`}
 											style={{
 												borderRadius: '14px'
 											}}
@@ -6777,9 +6839,8 @@ else if (product.media?.length)          allImages = product.media;
 
 					{/* Right Sidebar - Listing Score & Actions */}
 					<aside
-						className={`fixed lg:static w-[320px] max-w-[85vw] lg:max-w-none bg-white border-l overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${
-							rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
-						}`}
+						className={`fixed lg:static w-[320px] max-w-[85vw] lg:max-w-none bg-white border-l overflow-y-auto flex-shrink-0 z-[70] lg:z-auto transition-transform duration-300 ease-in-out ${rightSidebarOpen ? 'translate-x-0' : 'translate-x-full lg:translate-x-0'
+							}`}
 						style={{
 							borderLeftColor: '#e5e7eb',
 							borderLeftWidth: '1px',
@@ -7691,7 +7752,7 @@ else if (product.media?.length)          allImages = product.media;
 			{/* Image Processing Dialog */}
 			<Dialog
 				open={imageProcessingDialogOpen}
-				onClose={() => {}}
+				onClose={() => { }}
 				PaperProps={{ sx: { borderRadius: '16px' } }}
 				maxWidth="sm"
 				fullWidth

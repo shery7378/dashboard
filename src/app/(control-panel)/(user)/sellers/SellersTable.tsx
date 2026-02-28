@@ -82,7 +82,7 @@ function SellersTable() {
 			},
 			{
 				accessorKey: 'user.name',
-				header: 'Vendor Name',
+				header: 'Seller Name',
 				Cell: ({ row }) => (
 					<Typography
 						component={Link}
@@ -226,22 +226,7 @@ function SellersTable() {
 				state={{ pagination }}
 				onPaginationChange={setPagination}
 				renderRowActionMenuItems={({ closeMenu, row, table }) => [
-					<MenuItem
-						key="reset-password"
-						onClick={() => {
-							if (row.original.user?.id) {
-								handleResetPassword(row.original.user.id);
-							}
 
-							closeMenu();
-						}}
-						disabled={isResettingPassword || !row.original.user?.id}
-					>
-						<ListItemIcon>
-							<FuseSvgIcon>heroicons-outline:key</FuseSvgIcon>
-						</ListItemIcon>
-						Reset Password
-					</MenuItem>,
 					<MenuItem
 						key="delete"
 						onClick={() => {

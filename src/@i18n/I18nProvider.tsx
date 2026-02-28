@@ -11,7 +11,7 @@ type I18nProviderProps = {
 };
 
 const languages: LanguageType[] = [
-	{ id: 'en', title: 'English', flag: 'US' },
+	{ id: 'en', title: 'English', flag: 'GB' },
 	{ id: 'tr', title: 'Turkish', flag: 'TR' },
 	{ id: 'ar', title: 'Arabic', flag: 'SA' },
 	{ id: 'es', title: 'Spanish', flag: 'ES' },
@@ -22,15 +22,40 @@ const languages: LanguageType[] = [
 	{ id: 'zh', title: 'Chinese', flag: 'CN' }
 ];
 
+// Helper function to get saved language from localStorage
+const getSavedLanguage = (): string => {
+	if (typeof window === 'undefined') {
+		return i18n.options.lng as string;
+	}
+
+	try {
+		const savedLanguage = localStorage.getItem('app-language');
+		if (savedLanguage && languages.some(lang => lang.id === savedLanguage)) {
+			return savedLanguage;
+		}
+	} catch (error) {
+		console.warn('Failed to read language from localStorage:', error);
+	}
+
+	return i18n.options.lng as string;
+};
+
 export function I18nProvider(props: I18nProviderProps) {
 	const { children } = props;
 	const { data: settings, setSettings } = useFuseSettings();
 	const settingsThemeDirection = useMemo(() => settings.direction, [settings]);
-	const [languageId, setLanguageId] = useState(i18n.options.lng);
+	const [languageId, setLanguageId] = useState(() => getSavedLanguage());
 
 	const changeLanguage = async (languageId: string) => {
 		setLanguageId(languageId);
 		await i18n.changeLanguage(languageId);
+
+		// Save language preference to localStorage
+		try {
+			localStorage.setItem('app-language', languageId);
+		} catch (error) {
+			console.warn('Failed to save language to localStorage:', error);
+		}
 	};
 
 	useEffect(() => {

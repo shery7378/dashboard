@@ -1,7 +1,10 @@
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { memo } from 'react';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import { memo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
@@ -11,8 +14,48 @@ import WidgetDataType from './types/WidgetDataType';
  * The OverdueWidget widget.
  */
 function OverdueWidget() {
-	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
+	const router = useRouter();
+	const [selectedPeriod, setSelectedPeriod] = useState<'7days' | '15days' | '30days' | 'all'>('all');
+	const { data: widgets, isLoading, refetch } = useGetProjectDashboardWidgetsQuery({
+		dateRange: selectedPeriod
+	});
+	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const menuOpen = Boolean(anchorEl);
+
 	const widget = widgets?.overdue as WidgetDataType;
+
+	const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+		setAnchorEl(event.currentTarget);
+	};
+
+	const handleMenuClose = () => {
+		setAnchorEl(null);
+	};
+
+	const handleRefresh = () => {
+		refetch();
+		handleMenuClose();
+	};
+
+	const handle7Days = () => {
+		setSelectedPeriod('7days');
+		handleMenuClose();
+	};
+
+	const handle15Days = () => {
+		setSelectedPeriod('15days');
+		handleMenuClose();
+	};
+
+	const handle30Days = () => {
+		setSelectedPeriod('30days');
+		handleMenuClose();
+	};
+
+	const handleAllDays = () => {
+		setSelectedPeriod('all');
+		handleMenuClose();
+	};
 
 	if (isLoading) {
 		return <FuseLoading />;
@@ -29,7 +72,11 @@ function OverdueWidget() {
 					>
 						Total Orders
 					</Typography>
-					<IconButton aria-label="more">
+					<IconButton
+						aria-label="more"
+						onClick={handleMenuOpen}
+						size="small"
+					>
 						<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 					</IconButton>
 				</div>
@@ -46,6 +93,42 @@ function OverdueWidget() {
 					<span className="truncate">Today's orders:</span>
 					<b>0</b>
 				</Typography>
+
+				{/* Menu */}
+				<Menu
+					anchorEl={anchorEl}
+					open={menuOpen}
+					onClose={handleMenuClose}
+					anchorOrigin={{
+						vertical: 'bottom',
+						horizontal: 'right'
+					}}
+					transformOrigin={{
+						vertical: 'top',
+						horizontal: 'right'
+					}}
+				>
+					<MenuItem onClick={handle7Days}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+						7 Days
+					</MenuItem>
+					<MenuItem onClick={handle15Days}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+						15 Days
+					</MenuItem>
+					<MenuItem onClick={handle30Days}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+						30 Days
+					</MenuItem>
+					<MenuItem onClick={handleAllDays}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+						All Days
+					</MenuItem>
+					<MenuItem onClick={handleRefresh}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:arrow-path</FuseSvgIcon>
+						Refresh
+					</MenuItem>
+				</Menu>
 			</Paper>
 		);
 	}
@@ -61,7 +144,11 @@ function OverdueWidget() {
 				>
 					{title || ''}
 				</Typography>
-				<IconButton aria-label="more">
+				<IconButton
+					aria-label="more"
+					onClick={handleMenuOpen}
+					size="small"
+				>
 					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
 			</div>
@@ -78,8 +165,43 @@ function OverdueWidget() {
 				<span className="truncate">{data?.extra?.name ?? ''}:</span>
 				<b>{String(data?.extra?.count ?? 0)}</b>
 			</Typography>
-		</Paper>
-	);
+
+			{/* Menu */}
+			<Menu
+				anchorEl={anchorEl}
+				open={menuOpen}
+				onClose={handleMenuClose}
+				anchorOrigin={{
+					vertical: 'bottom',
+					horizontal: 'right'
+				}}
+				transformOrigin={{
+					vertical: 'top',
+					horizontal: 'right'
+				}}
+			>
+				<MenuItem onClick={handle7Days}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+					7 Days
+				</MenuItem>
+				<MenuItem onClick={handle15Days}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+					15 Days
+				</MenuItem>
+				<MenuItem onClick={handle30Days}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+					30 Days
+				</MenuItem>
+				<MenuItem onClick={handleAllDays}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:calendar-days</FuseSvgIcon>
+					All Days
+				</MenuItem>
+				<MenuItem onClick={handleRefresh}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:arrow-path</FuseSvgIcon>
+					Refresh
+				</MenuItem>
+			</Menu>
+		</Paper>);
 }
 
 export default memo(OverdueWidget);

@@ -19,9 +19,15 @@ const ProjectDashboardApi = api
 		endpoints: (build) => ({
 			getProjectDashboardWidgets: build.query<
 				GetProjectDashboardWidgetsApiResponse,
-				GetProjectDashboardWidgetsApiArg
+				GetProjectDashboardWidgetsApiArg | void
 			>({
-				query: () => ({ url: `/api/project-dashboard/widgets` }),
+				query: (arg) => {
+					let url = `/api/project-dashboard/widgets`;
+					if (arg?.dateRange) {
+						url += `?dateRange=${arg.dateRange}`;
+					}
+					return { url };
+				},
 				providesTags: ['project_dashboard_widgets']
 			}),
 			getProjectDashboardProjects: build.query<
@@ -49,7 +55,9 @@ export type ProjectDashboardWidgetType =
 
 export type GetProjectDashboardWidgetsApiResponse = Record<string, ProjectDashboardWidgetType>;
 
-export type GetProjectDashboardWidgetsApiArg = void;
+export type GetProjectDashboardWidgetsApiArg = {
+	dateRange?: '7days' | '15days' | '30days' | 'all';
+};
 
 export type GetProjectDashboardProjectsApiResponse = /** status 200 OK */ ProjectType[];
 export type GetProjectDashboardProjectsApiArg = void;
@@ -69,7 +77,7 @@ export type ProjectDashboardApiType = {
  * Lazy load
  * */
 declare module '@/store/rootReducer' {
-	export interface LazyLoadedSlices extends WithSlice<typeof ProjectDashboardApi> {}
+	export interface LazyLoadedSlices extends WithSlice<typeof ProjectDashboardApi> { }
 }
 
 export const selectProjectDashboardWidgets = createSelector(

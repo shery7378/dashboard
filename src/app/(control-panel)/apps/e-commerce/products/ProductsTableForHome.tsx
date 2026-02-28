@@ -1,5 +1,6 @@
 //src/app/(control-panel)/apps/e-commerce/products/ProductsTableForHome.tsx
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
 import FuseLoading from '@fuse/core/FuseLoading';
@@ -16,6 +17,7 @@ import ProductModel from './models/ProductModel';
 import { getContrastColor } from '@/utils/colorUtils';
 
 function ProductsTableForHome() {
+	const { t } = useTranslation('products');
 	const { data: products, isLoading } = useGetECommerceProductsQuery(undefined, {
 		refetchOnMountOrArgChange: 300, // Cache for 5 minutes
 		refetchOnFocus: false
@@ -36,7 +38,7 @@ function ProductsTableForHome() {
 				enableSorting: false,
 				Cell: ({ row }) => {
 					const imageUrl = row.original.featured_image?.url;
-					
+
 					const buildImageUrl = (url: string | undefined) => {
 						if (!url) return '/assets/images/apps/ecommerce/product-image-placeholder.png';
 						if (url.startsWith('http://') || url.startsWith('https://')) return url;
@@ -90,14 +92,14 @@ function ProductsTableForHome() {
 						<div className="flex flex-wrap space-x-0.5">
 							{categories.length > 0
 								? categories.map((cat: any, idx: number) => (
-										<Chip
-											key={cat?.id || cat?.name || idx}
-											className="text-sm"
-											size="small"
-											color="default"
-											label={cat?.name || cat || '-'}
-										/>
-									))
+									<Chip
+										key={cat?.id || cat?.name || idx}
+										className="text-sm"
+										size="small"
+										color="default"
+										label={cat?.name || cat || '-'}
+									/>
+								))
 								: '-'}
 						</div>
 					);
@@ -118,22 +120,22 @@ function ProductsTableForHome() {
 						<div className="flex flex-wrap space-x-0.5 space-y-0.5">
 							{tagList.length > 0
 								? tagList.map((tag: any, idx: number) => {
-										// Handle different tag formats
-										const tagName = typeof tag === 'string' ? tag : tag?.name || tag?.label || tag;
-										const tagId = tag?.id || idx;
+									// Handle different tag formats
+									const tagName = typeof tag === 'string' ? tag : tag?.name || tag?.label || tag;
+									const tagId = tag?.id || idx;
 
-										if (!tagName) return null;
+									if (!tagName) return null;
 
-										return (
-											<Chip
-												key={tagId}
-												className="text-sm"
-												size="small"
-												color="primary"
-												label={tagName}
-											/>
-										);
-									})
+									return (
+										<Chip
+											key={tagId}
+											className="text-sm"
+											size="small"
+											color="primary"
+											label={tagName}
+										/>
+									);
+								})
 								: '-'}
 						</div>
 					);
@@ -166,31 +168,31 @@ function ProductsTableForHome() {
 						<div className="flex flex-wrap space-x-0.5 space-y-0.5">
 							{allAttributes.length > 0
 								? allAttributes.map((attr: any, idx: number) => {
-										// Handle different attribute formats
-										const attrName = attr?.attribute_name || attr?.name || 'Attribute';
-										const attrValue = attr?.attribute_value || attr?.value || '-';
-										const attrId = attr?.id || idx;
+									// Handle different attribute formats
+									const attrName = attr?.attribute_name || attr?.name || 'Attribute';
+									const attrValue = attr?.attribute_value || attr?.value || '-';
+									const attrId = attr?.id || idx;
 
-										return (
-											<Chip
-												key={attrId}
-												className="text-sm"
-												size="small"
-												color="default"
-												label={`${attrName}: ${attrValue}`}
-												sx={{
-													...(attrName === 'Color' && attrValue && attrValue !== '-'
-														? {
-																backgroundColor: `${attrValue} !important`,
-																'& .MuiChip-label': {
-																	color: `${getContrastColor(attrValue.toLowerCase())} `
-																}
-															}
-														: {})
-												}}
-											/>
-										);
-									})
+									return (
+										<Chip
+											key={attrId}
+											className="text-sm"
+											size="small"
+											color="default"
+											label={`${attrName}: ${attrValue}`}
+											sx={{
+												...(attrName === 'Color' && attrValue && attrValue !== '-'
+													? {
+														backgroundColor: `${attrValue} !important`,
+														'& .MuiChip-label': {
+															color: `${getContrastColor(attrValue.toLowerCase())} `
+														}
+													}
+													: {})
+											}}
+										/>
+									);
+								})
 								: '-'}
 						</div>
 					);
@@ -221,26 +223,21 @@ function ProductsTableForHome() {
 			},
 			{
 				accessorKey: 'active',
-				header: 'Active',
-				Cell: ({ row }) => (
-					<div className="flex items-center">
-						{row.original.active ? (
-							<FuseSvgIcon
-								className="text-green-500"
-								size={20}
-							>
-								heroicons-outline:check-circle
-							</FuseSvgIcon>
-						) : (
-							<FuseSvgIcon
-								className="text-red-500"
-								size={20}
-							>
-								heroicons-outline:minus-circle
-							</FuseSvgIcon>
-						)}
-					</div>
-				)
+				header: t('active'),
+				Cell: ({ row }) => {
+					const isActive = row.original.active;
+
+					return (
+						<span
+							className={clsx(
+								'px-2 py-1 rounded text-xs font-medium',
+								isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+							)}
+						>
+							{isActive ? t('active') : t('draft')}
+						</span>
+					);
+				}
 			}
 		],
 		[]

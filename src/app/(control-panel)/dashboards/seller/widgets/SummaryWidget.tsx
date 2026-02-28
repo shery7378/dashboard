@@ -2,6 +2,8 @@ import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
 import Typography from '@mui/material/Typography';
+import Menu from '@mui/material/Menu';
+import MenuItemComponent from '@mui/material/MenuItem';
 import { memo, useState } from 'react';
 import MenuItem from '@mui/material/MenuItem';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
@@ -19,8 +21,32 @@ function SummaryWidget() {
 	const data = widget?.data;
 	const ranges = widget?.ranges || {};
 	const currentRangeDefault = widget?.currentRange || 'DT';
+	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const menuOpen = Boolean(anchorEl);
 
 	const [currentRange, setCurrentRange] = useState<RangeType>(currentRangeDefault as RangeType);
+
+	const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+		setAnchorEl(event.currentTarget);
+	};
+
+	const handleMenuClose = () => {
+		setAnchorEl(null);
+	};
+
+	const handleRefresh = () => {
+		handleMenuClose();
+	};
+
+	const handleExport = () => {
+		console.log('Export data');
+		handleMenuClose();
+	};
+
+	const handleSettings = () => {
+		console.log('Widget settings');
+		handleMenuClose();
+	};
 
 	function handleChangeRange(event: SelectChangeEvent<string>) {
 		setCurrentRange(event.target.value as RangeType);
@@ -60,7 +86,7 @@ function SummaryWidget() {
 						);
 					})}
 				</Select>
-				<IconButton aria-label="more">
+				<IconButton aria-label="more" onClick={handleMenuOpen} size="small">
 					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
 			</div>
@@ -79,6 +105,34 @@ function SummaryWidget() {
 				<span className="truncate">{data?.extra?.name ?? 'Total Pending'}:</span>
 				<b>{data?.extra?.count?.[currentRange] ?? 0}</b>
 			</Typography>
+
+			{/* Menu */}
+			<Menu
+				anchorEl={anchorEl}
+				open={menuOpen}
+				onClose={handleMenuClose}
+				anchorOrigin={{
+					vertical: 'bottom',
+					horizontal: 'right'
+				}}
+				transformOrigin={{
+					vertical: 'top',
+					horizontal: 'right'
+				}}
+			>
+				<MenuItemComponent onClick={handleRefresh}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:arrow-path</FuseSvgIcon>
+					Refresh
+				</MenuItemComponent>
+				<MenuItemComponent onClick={handleExport}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:arrow-down-tray</FuseSvgIcon>
+					Export
+				</MenuItemComponent>
+				<MenuItemComponent onClick={handleSettings}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:cog-6-tooth</FuseSvgIcon>
+					Settings
+				</MenuItemComponent>
+			</Menu>
 		</Paper>
 	);
 }

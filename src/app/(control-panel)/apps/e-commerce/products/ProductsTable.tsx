@@ -240,14 +240,14 @@ function ProductsTable() {
 						<div className="flex flex-wrap space-x-0.5 space-y-0.5">
 							{allItems.length > 0
 								? allItems.map((item: TagOrSub, index: number) => (
-										<Chip
-											key={item?.id ?? item?.name ?? index}
-											className="text-sm"
-											size="small"
-											color={item.type === 'subcategory' ? 'default' : 'primary'}
-											label={item?.name ?? item ?? '-'}
-										/>
-									))
+									<Chip
+										key={item?.id ?? item?.name ?? index}
+										className="text-sm"
+										size="small"
+										color={item.type === 'subcategory' ? 'default' : 'primary'}
+										label={item?.name ?? item ?? '-'}
+									/>
+								))
 								: '-'}
 						</div>
 					);
@@ -292,26 +292,26 @@ function ProductsTable() {
 						<div className="flex flex-wrap space-x-0.5 space-y-0.5">
 							{Array.isArray(attributes) && attributes.length > 0
 								? attributes.map((attr: Attr, index: number) => (
-										<Chip
-											key={
-												attr?.id ?? `${attr?.attribute_name}-${attr?.attribute_value}-${index}`
-											}
-											className="text-sm"
-											size="small"
-											color="default"
-											label={`${attr?.attribute_name || attr?.name || 'Attribute'}: ${attr?.attribute_value || attr?.value || '-'}`}
-											sx={{
-												...(attr?.attribute_name === 'Color' && attr?.attribute_value
-													? {
-															backgroundColor: `${attr.attribute_value} !important`,
-															'& .MuiChip-label': {
-																color: `${getContrastColor(attr.attribute_value.toLowerCase())} `
-															}
-														}
-													: {})
-											}}
-										/>
-									))
+									<Chip
+										key={
+											attr?.id ?? `${attr?.attribute_name}-${attr?.attribute_value}-${index}`
+										}
+										className="text-sm"
+										size="small"
+										color="default"
+										label={`${attr?.attribute_name || attr?.name || 'Attribute'}: ${attr?.attribute_value || attr?.value || '-'}`}
+										sx={{
+											...(attr?.attribute_name === 'Color' && attr?.attribute_value
+												? {
+													backgroundColor: `${attr.attribute_value} !important`,
+													'& .MuiChip-label': {
+														color: `${getContrastColor(attr.attribute_value.toLowerCase())} `
+													}
+												}
+												: {})
+										}}
+									/>
+								))
 								: '-'}
 						</div>
 					);
@@ -321,7 +321,7 @@ function ProductsTable() {
 				accessorKey: 'priceTaxIncl',
 				header: t('price'),
 				Cell: ({ row }) => {
-					type ProductWithVariants2 = EcommerceProduct & { product_variants?: { price?: string|number; price_tax_excl?: string|number }[]; variants?: { price?: string|number; price_tax_excl?: string|number }[] };
+					type ProductWithVariants2 = EcommerceProduct & { product_variants?: { price?: string | number; price_tax_excl?: string | number }[]; variants?: { price?: string | number; price_tax_excl?: string | number }[] };
 					const pRow2 = row.original as ProductWithVariants2;
 					// Check if product has variants - use variant price if available
 					const variants2 = pRow2.product_variants || pRow2.variants || [];
@@ -347,7 +347,7 @@ function ProductsTable() {
 				accessorKey: 'quantity',
 				header: t('quantity'),
 				Cell: ({ row }) => {
-					type ProductWithVariants3 = EcommerceProduct & { product_variants?: { quantity?: string|number; qty?: string|number }[]; variants?: { quantity?: string|number; qty?: string|number }[] };
+					type ProductWithVariants3 = EcommerceProduct & { product_variants?: { quantity?: string | number; qty?: string | number }[]; variants?: { quantity?: string | number; qty?: string | number }[] };
 					const pRow3 = row.original as ProductWithVariants3;
 					// Check if product has variants - sum up variant quantities
 					const variants3 = pRow3.product_variants || pRow3.variants || [];
@@ -395,25 +395,20 @@ function ProductsTable() {
 			{
 				accessorKey: 'active',
 				header: t('active'),
-				accessorFn: (row) => (
-					<div className="flex items-center">
-						{row.active ? (
-							<FuseSvgIcon
-								className="text-green-500"
-								size={20}
-							>
-								heroicons-outline:check-circle
-							</FuseSvgIcon>
-						) : (
-							<FuseSvgIcon
-								className="text-red-500"
-								size={20}
-							>
-								heroicons-outline:minus-circle
-							</FuseSvgIcon>
-						)}
-					</div>
-				)
+				Cell: ({ row }) => {
+					const isActive = row.original.active;
+
+					return (
+						<span
+							className={clsx(
+								'px-2 py-1 rounded text-xs font-medium',
+								isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+							)}
+						>
+							{isActive ? t('active') : t('draft')}
+						</span>
+					);
+				}
 			}
 		],
 		[t]

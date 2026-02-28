@@ -1,7 +1,10 @@
 import IconButton from '@mui/material/IconButton';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
-import { memo } from 'react';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import { memo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import FuseLoading from '@fuse/core/FuseLoading';
 import { useGetProjectDashboardWidgetsQuery } from '../../../ProjectDashboardApi';
@@ -12,10 +15,32 @@ import WidgetDataType from './types/WidgetDataType';
  * Shows Pending Orders in simple card style.
  */
 function SummaryWidget() {
-	const { data: widgets, isLoading } = useGetProjectDashboardWidgetsQuery();
+	const router = useRouter();
+	const { data: widgets, isLoading, refetch } = useGetProjectDashboardWidgetsQuery();
+	const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+	const menuOpen = Boolean(anchorEl);
+
 	const widget = widgets?.summary as WidgetDataType;
 	const data = widget?.data;
 	const title = widget?.title;
+
+	const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+		setAnchorEl(event.currentTarget);
+	};
+
+	const handleMenuClose = () => {
+		setAnchorEl(null);
+	};
+
+	const handleRefresh = () => {
+		refetch();
+		handleMenuClose();
+	};
+
+	const handleAddUser = () => {
+		router.push('/accounts/new');
+		handleMenuClose();
+	};
 
 	if (isLoading) {
 		return <FuseLoading />;
@@ -32,7 +57,11 @@ function SummaryWidget() {
 					>
 						Pending Orders
 					</Typography>
-					<IconButton aria-label="more">
+					<IconButton
+						aria-label="more"
+						onClick={handleMenuOpen}
+						size="small"
+					>
 						<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 					</IconButton>
 				</div>
@@ -49,6 +78,30 @@ function SummaryWidget() {
 					<span className="truncate">Total Pending:</span>
 					<b>0</b>
 				</Typography>
+
+				{/* Menu */}
+				<Menu
+					anchorEl={anchorEl}
+					open={menuOpen}
+					onClose={handleMenuClose}
+					anchorOrigin={{
+						vertical: 'bottom',
+						horizontal: 'right'
+					}}
+					transformOrigin={{
+						vertical: 'top',
+						horizontal: 'right'
+					}}
+				>
+					<MenuItem onClick={handleAddUser}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:user-plus</FuseSvgIcon>
+						Add User
+					</MenuItem>
+					<MenuItem onClick={handleRefresh}>
+						<FuseSvgIcon className="mr-2">heroicons-outline:arrow-path</FuseSvgIcon>
+						Refresh
+					</MenuItem>
+				</Menu>
 			</Paper>
 		);
 	}
@@ -65,7 +118,11 @@ function SummaryWidget() {
 				>
 					{title || 'Pending Orders'}
 				</Typography>
-				<IconButton aria-label="more">
+				<IconButton
+					aria-label="more"
+					onClick={handleMenuOpen}
+					size="small"
+				>
 					<FuseSvgIcon>heroicons-outline:ellipsis-vertical</FuseSvgIcon>
 				</IconButton>
 			</div>
@@ -84,6 +141,30 @@ function SummaryWidget() {
 				<span className="truncate">{data?.extra?.name ?? 'Total Pending'}:</span>
 				<b>{data?.extra?.count?.[currentRange] ?? 0}</b>
 			</Typography>
+
+			{/* Menu */}
+			<Menu
+				anchorEl={anchorEl}
+				open={menuOpen}
+				onClose={handleMenuClose}
+				anchorOrigin={{
+					vertical: 'bottom',
+					horizontal: 'right'
+				}}
+				transformOrigin={{
+					vertical: 'top',
+					horizontal: 'right'
+				}}
+			>
+				<MenuItem onClick={handleAddUser}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:user-plus</FuseSvgIcon>
+					Add User
+				</MenuItem>
+				<MenuItem onClick={handleRefresh}>
+					<FuseSvgIcon className="mr-2">heroicons-outline:arrow-path</FuseSvgIcon>
+					Refresh
+				</MenuItem>
+			</Menu>
 		</Paper>
 	);
 }
