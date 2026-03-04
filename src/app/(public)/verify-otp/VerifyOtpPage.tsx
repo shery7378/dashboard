@@ -98,6 +98,11 @@ export default function VerifyOtpPage() {
 			const nextInput = document.getElementById(`otp-${index + 1}`);
 
 			if (nextInput) nextInput.focus();
+		} else if (index === 3 && newOtp[3]) {
+			// Auto-verify when the last digit is entered
+			setTimeout(() => {
+				handleVerify();
+			}, 100);
 		}
 	};
 
