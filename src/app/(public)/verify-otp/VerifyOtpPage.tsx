@@ -166,7 +166,19 @@ export default function VerifyOtpPage() {
 					if (contentType && contentType.includes('application/json')) {
 						try {
 							const errorData = await res.json();
-							errorMsg = errorData.message || errorMsg;
+							const backendMessage = errorData.message || errorMsg;
+
+							// Check the specific error type from backend
+							if (backendMessage.includes('expired') || backendMessage.includes('Expired')) {
+								errorMsg = 'Code has expired. Please request a new code.';
+							} else if (backendMessage.includes('mismatch') || backendMessage.includes('does not match')) {
+								errorMsg = 'Invalid code. Please try again.';
+							} else if (backendMessage.includes('No verification code found')) {
+								errorMsg = 'No verification code found. Please request a new code.';
+							} else {
+								errorMsg = backendMessage;
+							}
+
 							console.error('Auto-verify error:', errorData);
 						} catch (jsonError) {
 							console.error('Failed to parse error response:', jsonError);
@@ -272,7 +284,19 @@ export default function VerifyOtpPage() {
 					if (contentType && contentType.includes('application/json')) {
 						try {
 							const errorData = await res.json();
-							errorMessage = errorData.message || errorMessage;
+							const backendMessage = errorData.message || errorMessage;
+
+							// Check the specific error type from backend
+							if (backendMessage.includes('expired') || backendMessage.includes('Expired')) {
+								errorMessage = 'Code has expired. Please request a new code.';
+							} else if (backendMessage.includes('mismatch') || backendMessage.includes('does not match')) {
+								errorMessage = 'Invalid code. Please try again.';
+							} else if (backendMessage.includes('No verification code found')) {
+								errorMessage = 'No verification code found. Please request a new code.';
+							} else {
+								errorMessage = backendMessage;
+							}
+
 							errorDetails = errorData.debug || errorData.errors || null;
 
 							console.error('Verification error:', {
