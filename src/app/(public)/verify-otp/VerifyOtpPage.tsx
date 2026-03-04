@@ -100,11 +100,99 @@ export default function VerifyOtpPage() {
 			if (nextInput) nextInput.focus();
 		} else if (index === 3 && newOtp[3]) {
 			// Auto-verify when the last digit is entered
+			console.log('Auto-verifying OTP:', newOtp.join(''));
 			setTimeout(() => {
-				handleVerify();
-			}, 100);
+				verifyOtpAuto(newOtp);
+			}, 200);
 		}
 	};
+
+	const verifyOtpAuto = async (otpToVerify: string[]) => {
+		const code = otpToVerify.join('');
+		console.log('verifyOtpAuto called with code:', code);
+
+		if (code.length === 4) {
+			setIsSubmitting(true);
+			setErrorMessage('');
+
+			try {
+				// Try to get CSRF cookie first
+				try {
+					await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/sanctum/csrf-cookie`, {
+						credentials: 'include'
+					}).catch(() => {
+						console.log('CSRF cookie endpoint not available, continuing anyway');
+					});
+				} catch (csrfError) {
+					console.log('CSRF cookie request failed, continuing:', csrfError);
+				}
+
+				const normalizedCode = code
+					.trim()
+					.replace(/\s+/g, '')
+					.replace(/[^0-9]/g, '');
+				const normalizedEmail = email.trim().toLowerCase();
+
+				if (!normalizedCode || normalizedCode.length !== 4) {
+					setErrorMessage('Please enter a valid 4-digit verification code.');
+					setIsSubmitting(false);
+					return;
+				}
+
+				console.log('Auto-verifying with code:', {
+					email: normalizedEmail,
+					code_original: code,
+					code_normalized: normalizedCode,
+					code_length: normalizedCode.length
+				});
+
+				const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/verify-code`, {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Accept: 'application/json'
+					},
+					credentials: 'include',
+					body: JSON.stringify({
+						email: normalizedEmail,
+						code: normalizedCode
+					})
+				});
+
+				if (!res.ok) {
+					const contentType = res.headers.get('content-type');
+					let errorMsg = 'Invalid verification code. Please try again.';
+
+					if (contentType && contentType.includes('application/json')) {
+						try {
+							const errorData = await res.json();
+							errorMsg = errorData.message || errorMsg;
+							console.error('Auto-verify error:', errorData);
+						} catch (jsonError) {
+							console.error('Failed to parse error response:', jsonError);
+						}
+					}
+
+					setErrorMessage(errorMsg);
+					setIsSubmitting(false);
+					return;
+				}
+
+				const responseData = await res.json();
+				console.log('Auto-verify successful:', responseData);
+
+				const cleanEmail = normalizedEmail.trim();
+				const cleanUserType = userType.trim();
+				const targetUrl = `/store-setup/step-2?email=${encodeURIComponent(cleanEmail)}&userType=${encodeURIComponent(cleanUserType)}`;
+				console.log('Navigating to:', targetUrl);
+				router.push(targetUrl);
+			} catch (error: any) {
+				console.error('Error in auto-verify:', error);
+				setErrorMessage(error.message || 'An error occurred while verifying the code. Please try again.');
+				setIsSubmitting(false);
+			}
+		}
+	}
 
 	const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === 'Backspace' && !otp[index] && index > 0) {
