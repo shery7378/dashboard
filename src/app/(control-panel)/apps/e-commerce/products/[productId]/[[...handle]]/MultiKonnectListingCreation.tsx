@@ -2109,7 +2109,7 @@ function MultiKonnectListingCreation() {
 			4: 'pricing',
 			5: 'delivery',
 			6: 'copy',
-			7: 'policies',
+			7: 'qc-policies',
 			8: 'offers',
 			9: 'trust',
 			10: 'preview'
