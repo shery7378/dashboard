@@ -21,6 +21,7 @@ export default function StoreSetupStep3() {
 	const addressInputRef = useRef<HTMLInputElement | null>(null);
 
 	const [phone, setPhone] = useState('');
+	const [countryCode, setCountryCode] = useState('+92'); // Default to Pakistan
 	const [city, setCity] = useState('');
 	const [zipCode, setZipCode] = useState('');
 	const [address, setAddress] = useState('');
@@ -37,6 +38,32 @@ export default function StoreSetupStep3() {
 		(typeof window !== 'undefined' ? localStorage.getItem('signupUserType') : 'seller') ||
 		'seller';
 
+	// Fetch country code from IP on component mount
+	useEffect(() => {
+		const fetchCountryCode = async () => {
+			try {
+				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+				const response = await fetch(`${apiUrl}/api/country-code`, {
+					method: 'GET',
+					credentials: 'include',
+				});
+
+				if (response.ok) {
+					const data = await response.json();
+					if (data.data && data.data.phone_code) {
+						setCountryCode(data.data.phone_code);
+						console.log('Country code fetched:', data.data.phone_code);
+					}
+				}
+			} catch (error) {
+				console.error('Error fetching country code:', error);
+				// Silently fail and use default
+			}
+		};
+
+		fetchCountryCode();
+	}, []);
+
 	// Load saved values from localStorage (e.g. when user navigates back)
 	useEffect(() => {
 		if (typeof window === 'undefined') return;
@@ -45,9 +72,11 @@ export default function StoreSetupStep3() {
 		const savedZip = localStorage.getItem('zipCode');
 		const savedLat = localStorage.getItem('storeLatitude');
 		const savedLng = localStorage.getItem('storeLongitude');
+		const savedCountryCode = localStorage.getItem('countryCode');
 		if (saved) setAddress(saved);
 		if (savedCity) setCity(savedCity);
 		if (savedZip) setZipCode(savedZip);
+		if (savedCountryCode) setCountryCode(savedCountryCode);
 		if (savedLat && savedLng) {
 			const lat = parseFloat(savedLat);
 			const lng = parseFloat(savedLng);
@@ -215,6 +244,7 @@ export default function StoreSetupStep3() {
 		}
 
 		localStorage.setItem('phone', phone.trim());
+		localStorage.setItem('countryCode', countryCode);
 		localStorage.setItem('city', city.trim());
 		localStorage.setItem('zipCode', zipCode.trim());
 		localStorage.setItem('address', address.trim());
@@ -268,13 +298,23 @@ export default function StoreSetupStep3() {
 
 					<div className="space-y-4 mb-6">
 						<div>
-							<AuthInput
-								label="Phone Number"
-								type="tel"
-								value={phone}
-								onChange={(e) => setPhone(e.target.value)}
-								placeholder="Your phone number"
-							/>
+							<label className="block text-sm font-medium mb-2">Phone Number</label>
+							<div className="flex gap-2 items-end">
+								<input
+									type="text"
+									value={countryCode}
+									readOnly
+									className="w-[100px] px-3 py-2 bg-gray-100 border border-gray-300 rounded-lg text-sm font-semibold text-center"
+									placeholder="+XX"
+								/>
+								<input
+									type="tel"
+									value={phone}
+									onChange={(e) => setPhone(e.target.value)}
+									placeholder="3001234567"
+									className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+								/>
+							</div>
 						</div>
 
 						<div>
@@ -286,7 +326,7 @@ export default function StoreSetupStep3() {
 								onChange={(e) => setAddress(e.target.value)}
 								placeholder="Your address"
 							/>
-						</div>
+						</div>>
 
 						<div className="flex gap-4">
 							<div className="flex-1">
