@@ -5,30 +5,41 @@ export async function POST(request: NextRequest) {
 		const body = await request.json();
 		const { email, code } = body;
 
-		console.error('Mock OTP verification request:', { email, code });
-
-		// Simple mock validation - accept the specific code "1234" for testing
 		if (!email || !code || code.length !== 4) {
 			return NextResponse.json({ message: 'Invalid verification code. Please try again.' }, { status: 400 });
 		}
 
-		// Check if the code matches our mock code
-		if (code !== '1234') {
-			return NextResponse.json({ message: 'Invalid verification code. Use 1234 for testing.' }, { status: 400 });
+		// Forward the request to the real backend API
+		const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+		const apiEndpoint = `${backendUrl}/api/verify-code`;
+
+		console.error('Forwarding verify-code request to backend:', { email, code: '****', endpoint: apiEndpoint });
+
+		const response = await fetch(apiEndpoint, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Accept': 'application/json'
+			},
+			body: JSON.stringify({ email, code })
+		});
+
+		const responseData = await response.json();
+
+		// If backend returns an error, pass it along to the frontend
+		if (!response.ok) {
+			console.error('Backend API error:', {
+				status: response.status,
+				message: responseData.message,
+				errors: responseData.errors
+			});
+			return NextResponse.json(responseData, { status: response.status });
 		}
 
-		// Mock successful verification
-		return NextResponse.json({
-			message: 'Code verified successfully',
-			success: true,
-			user: {
-				id: 'mock-user-id',
-				email: email,
-				name: 'Test User'
-			}
-		});
+		console.error('OTP verified successfully:', { email });
+		return NextResponse.json(responseData);
 	} catch (error) {
-		console.error('Mock OTP verification error:', error);
+		console.error('Verify code error:', error);
 		return NextResponse.json({ message: 'Internal server error' }, { status: 500 });
 	}
 }

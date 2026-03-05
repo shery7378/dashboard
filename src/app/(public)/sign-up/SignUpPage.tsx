@@ -41,7 +41,7 @@ export default function SignUpPage() {
 				// Normalize email to lowercase for consistency
 				const normalizedEmail = email.trim().toLowerCase();
 
-				// Send OTP to email
+				// Send OTP to email - call backend directly (same as multifront)
 				const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/send-code`, {
 					method: 'POST',
 					headers: {
@@ -123,16 +123,14 @@ export default function SignUpPage() {
 							onClick={() => handleUserTypeChange('seller')}
 						>
 							<div
-								className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-									userType === 'seller' ? 'border-[#F44322] bg-white' : 'border-gray-400 bg-white'
-								}`}
+								className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${userType === 'seller' ? 'border-[#F44322] bg-white' : 'border-gray-400 bg-white'
+									}`}
 							>
 								{userType === 'seller' && <div className="w-2.5 h-2.5 rounded-full bg-[#F44322]"></div>}
 							</div>
 							<span
-								className={`text-base ${
-									userType === 'seller' ? 'text-gray-800 font-semibold' : 'text-gray-500 font-normal'
-								}`}
+								className={`text-base ${userType === 'seller' ? 'text-gray-800 font-semibold' : 'text-gray-500 font-normal'
+									}`}
 							>
 								Seller
 							</span>
@@ -142,20 +140,18 @@ export default function SignUpPage() {
 							onClick={() => handleUserTypeChange('supplier')}
 						>
 							<div
-								className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-									userType === 'supplier' ? 'border-[#F44322] bg-white' : 'border-gray-400 bg-white'
-								}`}
+								className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${userType === 'supplier' ? 'border-[#F44322] bg-white' : 'border-gray-400 bg-white'
+									}`}
 							>
 								{userType === 'supplier' && (
 									<div className="w-2.5 h-2.5 rounded-full bg-[#F44322]"></div>
 								)}
 							</div>
 							<span
-								className={`text-base ${
-									userType === 'supplier'
+								className={`text-base ${userType === 'supplier'
 										? 'text-gray-800 font-semibold'
 										: 'text-gray-500 font-normal'
-								}`}
+									}`}
 							>
 								Supplier
 							</span>
@@ -218,7 +214,7 @@ export default function SignUpPage() {
 							/>
 							<span className="text-[#111111] text-base">Continue with Apple</span>
 						</button>
-			        	</div>
+					</div>
 
 					{/* Footer Link */}
 					<div className="text-center text-sm text-gray-600">
