@@ -2121,14 +2121,11 @@ function MultiKonnectListingCreation() {
 			const element = sectionRefs.current[stepId] || document.getElementById(sectionId);
 
 			if (element) {
-				const headerOffset = 60; // Header height
-				const elementPosition = element.getBoundingClientRect().top;
-				const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-				window.scrollTo({
-					top: offsetPosition,
-					behavior: 'smooth'
-				});
+				// Use setTimeout to ensure DOM is ready
+				setTimeout(() => {
+					// Scroll into view within the scrollable main content area
+					element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+				}, 100);
 			}
 		}
 	}, []);
