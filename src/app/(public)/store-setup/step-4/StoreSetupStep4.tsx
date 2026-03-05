@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -161,12 +161,12 @@ export default function StoreSetupStep4() {
 				const errorMsg = data.message || data.error || 'Registration failed';
 				const errorDetails = data.errors
 					? '\n' +
-						Object.entries(data.errors)
-							.map(
-								([field, msgs]: [string, any]) =>
-									`${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`
-							)
-							.join('\n')
+					Object.entries(data.errors)
+						.map(
+							([field, msgs]: [string, any]) =>
+								`${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`
+						)
+						.join('\n')
 					: '';
 				throw new Error(errorMsg + errorDetails);
 			}
@@ -264,6 +264,51 @@ export default function StoreSetupStep4() {
 								onChange={(e) => setPassword(e.target.value)}
 								placeholder="Enter password"
 							/>
+
+							{/* Password strength indicator */}
+							<div className="mt-2">
+								{/** Compute strength using memoized helper */}
+								{(() => {
+									function evaluate(pw: string) {
+										const length = pw.length;
+										let score = 0;
+										const suggestions: string[] = [];
+
+										if (length >= 12) score += 2;
+										else if (length >= 8) score += 1;
+
+										if (/[a-z]/.test(pw)) score += 1; else suggestions.push('Add lowercase letters');
+										if (/[A-Z]/.test(pw)) score += 1; else suggestions.push('Add uppercase letters');
+										if (/[0-9]/.test(pw)) score += 1; else suggestions.push('Add numbers');
+										if (/[^a-zA-Z0-9]/.test(pw)) score += 1; else suggestions.push('Add symbols');
+
+										if (length < 6) { score = Math.max(0, score - 1); suggestions.push('Make it longer (8+ chars)'); }
+
+										let level: 'weak' | 'medium' | 'strong' = 'weak';
+										if (score <= 2) level = 'weak'; else if (score <= 4) level = 'medium'; else level = 'strong';
+
+										return { length, score, level, suggestions };
+									}
+
+									const s = evaluate(password);
+
+									const pct = Math.min(100, (s.score / 6) * 100);
+									const barColor = s.level === 'weak' ? '#ef4444' : s.level === 'medium' ? '#f59e0b' : '#10b981';
+									return (
+										<div>
+											<div className="w-full bg-[#F3F4F6] rounded-full h-2 overflow-hidden">
+												<div style={{ width: `${pct}%`, background: barColor, height: '100%', transition: 'width 150ms ease' }} />
+											</div>
+											<div className="mt-1 text-sm font-semibold" style={{ color: barColor }}>{s.level.charAt(0).toUpperCase() + s.level.slice(1)}</div>
+											{s.suggestions.length > 0 && (
+												<div id="pw-suggestions" className="mt-2 text-xs text-gray-600">
+													{s.suggestions.slice(0, 3).map((sg, i) => <div key={i}>• {sg}</div>)}
+												</div>
+											)}
+										</div>
+									);
+								})()}
+							</div>
 						</div>
 
 						<div>
@@ -294,14 +339,13 @@ export default function StoreSetupStep4() {
 								password !== confirmPassword ||
 								isSubmitting
 							}
-							className={`flex-1 py-3 font-semibold rounded-lg text-white transition-colors ${
-								password.trim() &&
-								confirmPassword.trim() &&
-								password === confirmPassword &&
-								!isSubmitting
+							className={`flex-1 py-3 font-semibold rounded-lg text-white transition-colors ${password.trim() &&
+									confirmPassword.trim() &&
+									password === confirmPassword &&
+									!isSubmitting
 									? 'bg-[#FF6B35] hover:bg-[#FF5722]'
 									: 'bg-gray-300 text-gray-500 cursor-not-allowed'
-							}`}
+								}`}
 						>
 							{isSubmitting ? 'Creating...' : 'Continue'}
 						</AuthButton>
