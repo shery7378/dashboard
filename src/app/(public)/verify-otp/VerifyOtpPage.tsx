@@ -171,6 +171,8 @@ export default function VerifyOtpPage() {
 							// Check the specific error type from backend
 							if (backendMessage.includes('expired') || backendMessage.includes('Expired')) {
 								errorMsg = 'Code has expired. Please request a new code.';
+							} else if (backendMessage.includes('invalid') || backendMessage.includes('Invalid')) {
+								errorMsg = 'Invalid code. Please try again.';
 							} else if (backendMessage.includes('mismatch') || backendMessage.includes('does not match')) {
 								errorMsg = 'Invalid code. Please try again.';
 							} else if (backendMessage.includes('No verification code found')) {
@@ -289,6 +291,8 @@ export default function VerifyOtpPage() {
 							// Check the specific error type from backend
 							if (backendMessage.includes('expired') || backendMessage.includes('Expired')) {
 								errorMessage = 'Code has expired. Please request a new code.';
+							} else if (backendMessage.includes('invalid') || backendMessage.includes('Invalid')) {
+								errorMessage = 'Invalid code. Please try again.';
 							} else if (backendMessage.includes('mismatch') || backendMessage.includes('does not match')) {
 								errorMessage = 'Invalid code. Please try again.';
 							} else if (backendMessage.includes('No verification code found')) {
