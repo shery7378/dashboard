@@ -326,7 +326,7 @@ export default function StoreSetupStep3() {
 								onChange={(e) => setAddress(e.target.value)}
 								placeholder="Your address"
 							/>
-						</div>>
+						</div>
 
 						<div className="flex gap-4">
 							<div className="flex-1">
