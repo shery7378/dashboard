@@ -340,11 +340,11 @@ export default function StoreSetupStep4() {
 								isSubmitting
 							}
 							className={`flex-1 py-3 font-semibold rounded-lg text-white transition-colors ${password.trim() &&
-									confirmPassword.trim() &&
-									password === confirmPassword &&
-									!isSubmitting
-									? 'bg-[#FF6B35] hover:bg-[#FF5722]'
-									: 'bg-gray-300 text-gray-500 cursor-not-allowed'
+								confirmPassword.trim() &&
+								password === confirmPassword &&
+								!isSubmitting
+								? 'bg-[#FF6B35] hover:bg-[#FF5722]'
+								: 'bg-gray-300 text-gray-500 cursor-not-allowed'
 								}`}
 						>
 							{isSubmitting ? 'Creating...' : 'Continue'}

@@ -312,7 +312,7 @@ export default function StoreSetupStep3() {
 									value={phone}
 									onChange={(e) => setPhone(e.target.value)}
 									placeholder="3001234567"
-									className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+									className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2"
 								/>
 							</div>
 						</div>
