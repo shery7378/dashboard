@@ -1,15 +1,27 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-	reactStrictMode: false,
+	reactStrictMode: true,
 	typescript: {
 		// Dangerously allow production builds to successfully complete even if
 		// your project has type errors.
 		ignoreBuildErrors: true
 	},
+	// Performance optimizations
+	experimental: {
+		optimizePackageImports: [
+			'@mui/material',
+			'@mui/icons-material',
+			'@mui/lab',
+			'@mui/x-data-grid',
+			'@mui/x-date-pickers',
+			'lodash',
+			'date-fns',
+			'motion'
+		]
+	},
 	// Image optimization
 	images: {
-		unoptimized: true,
 		formats: ['image/avif', 'image/webp'],
 		deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
 		imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
@@ -129,12 +141,6 @@ const nextConfig: NextConfig = {
 				use: 'raw-loader'
 			});
 		}
-
-		// Optimized webpack configuration
-		config.optimization = {
-			...config.optimization,
-			minimize: true,
-		};
 
 		return config;
 	}

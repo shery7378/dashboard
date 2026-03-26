@@ -1,28 +1,31 @@
 'use client';
 
-import GlobalStyles from '@mui/material/GlobalStyles';
-import OrdersHeader from './OrdersHeader';
+import PageHeader from '@/components/PageHeader';
 import OrdersTable from './OrdersTable';
 
 /**
- * The orders page.
+ * The e-commerce orders management page.
  */
 function Orders() {
 	return (
-		<>
-			<GlobalStyles
-				styles={() => ({
-					'#root': {
-						maxHeight: '100vh'
+		<div className="w-full h-full flex flex-col">
+			<PageHeader 
+				title="Orders" 
+				subtitle="Manage and track customer orders across all stores"
+				actions={[
+					{
+						label: 'Export Orders',
+						icon: 'heroicons-outline:arrow-down-tray',
+						color: 'secondary'
 					}
-				})}
+				]}
 			/>
-			<div className="w-full h-full flex flex-col px-4">
-				<OrdersHeader />
+			<div className="flex-auto p-24 pt-0">
 				<OrdersTable />
 			</div>
-		</>
+		</div>
 	);
 }
 
 export default Orders;
+

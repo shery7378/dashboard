@@ -49,16 +49,15 @@ function VendorDashboardAppHeader() {
 			try {
 				const accessToken = session?.accessAuthToken;
 
-				if (!accessToken) {
-					setCheckingStore(false);
-					// Wait a bit for token to be available
-					setTimeout(() => {
-						if (!user.store_id) {
-							setOpenStoreDialog(true);
-						}
-					}, 1000);
-					return;
+			if (!accessToken) {
+				setCheckingStore(false);
+				
+				// Re-check user object directly from hook as it's more reliable than the closure
+				if (!user?.store_id) {
+					setOpenStoreDialog(true);
 				}
+				return;
+			}
 
 
 				const response = await apiFetchLaravel('/api/store/current', {

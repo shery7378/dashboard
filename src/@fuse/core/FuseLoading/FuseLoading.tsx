@@ -12,13 +12,10 @@ export type FuseLoadingProps = {
  * Safe for SSR hydration by avoiding mismatched rendering.
  */
 function FuseLoading({ delay = 0, className }: FuseLoadingProps) {
-	const [showLoading, setShowLoading] = useState(false);
+	const [showLoading, setShowLoading] = useState(delay === 0);
 
 	useEffect(() => {
-		// Only run after component mounts (client-side)
-		if (delay === 0) {
-			setShowLoading(true);
-		} else {
+		if (delay > 0) {
 			const timer = setTimeout(() => setShowLoading(true), delay);
 			return () => clearTimeout(timer);
 		}

@@ -1,28 +1,29 @@
-//app/(control-panel)/(user)/accounts
 'use client';
 
-import GlobalStyles from '@mui/material/GlobalStyles';
-import SellersHeader from './SellersHeader';
+import PageHeader from '@/components/PageHeader';
 import SellersTable from './SellersTable';
 
 /**
- * The products page.
+ * The Sellers Page.
  */
 function Sellers() {
 	return (
-		<>
-			<GlobalStyles
-				styles={() => ({
-					'#root': {
-						maxHeight: '100vh'
+		<div className="w-full h-full flex flex-col">
+			<PageHeader 
+				title="Sellers" 
+				actions={[
+					{
+						label: 'Add',
+						href: '/accounts/new',
+						icon: 'heroicons-outline:plus',
+						color: 'secondary'
 					}
-				})}
+				]}
 			/>
-			<div className="w-full h-full flex flex-col px-4">
-				<SellersHeader />
+			<div className="px-4 pb-4 flex-auto overflow-hidden">
 				<SellersTable />
 			</div>
-		</>
+		</div>
 	);
 }
 

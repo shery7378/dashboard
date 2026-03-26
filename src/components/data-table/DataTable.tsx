@@ -1,82 +1,50 @@
 import { MaterialReactTable, useMaterialReactTable, MaterialReactTableProps, MRT_Icons } from 'material-react-table';
-
 import { useMemo, memo } from 'react';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import { Theme } from '@mui/material/styles';
+import { Theme, Box, Skeleton } from '@mui/material';
 import DataTableTopToolbar from './DataTableTopToolbar';
 
 const tableIcons: Partial<MRT_Icons> = {
 	ArrowDownwardIcon: (props) => (
-		<FuseSvgIcon
-			size={20}
-			{...props}
-		>
-			heroicons-outline:arrow-down-circle
-		</FuseSvgIcon>
+		<FuseSvgIcon size={20} {...props}>heroicons-outline:arrow-down-circle</FuseSvgIcon>
 	),
 	ClearAllIcon: () => <FuseSvgIcon size={20}>heroicons-outline:adjustments-horizontal</FuseSvgIcon>,
 	DensityLargeIcon: () => <FuseSvgIcon size={20}>heroicons-outline:bars-3-bottom-left</FuseSvgIcon>,
 	DensityMediumIcon: () => <FuseSvgIcon size={20}>heroicons-outline:bars-3</FuseSvgIcon>,
 	DensitySmallIcon: () => <FuseSvgIcon size={20}>heroicons-outline:bars-2</FuseSvgIcon>,
 	DragHandleIcon: () => (
-		<FuseSvgIcon
-			className="rotate-45"
-			size={14}
-		>
-			heroicons-outline:arrows-pointing-out
-		</FuseSvgIcon>
+		<FuseSvgIcon className="rotate-45" size={14}>heroicons-outline:arrows-pointing-out</FuseSvgIcon>
 	),
 	FilterListIcon: (props) => (
-		<FuseSvgIcon
-			size={16}
-			{...props}
-		>
-			heroicons-outline:funnel
-		</FuseSvgIcon>
+		<FuseSvgIcon size={16} {...props}>heroicons-outline:funnel</FuseSvgIcon>
 	),
 	FilterListOffIcon: () => <FuseSvgIcon size={20}>heroicons-outline:funnel</FuseSvgIcon>,
 	FullscreenExitIcon: () => <FuseSvgIcon size={20}>heroicons-outline:arrows-pointing-in</FuseSvgIcon>,
 	FullscreenIcon: () => <FuseSvgIcon size={20}>heroicons-outline:arrows-pointing-out</FuseSvgIcon>,
 	SearchIcon: (props) => (
-		<FuseSvgIcon
-			color="action"
-			size={20}
-			{...props}
-		>
-			heroicons-outline:magnifying-glass
-		</FuseSvgIcon>
+		<FuseSvgIcon color="action" size={20} {...props}>heroicons-outline:magnifying-glass</FuseSvgIcon>
 	),
 	SearchOffIcon: () => <FuseSvgIcon size={20}>heroicons-outline:magnifying-glass</FuseSvgIcon>,
 	ViewColumnIcon: () => <FuseSvgIcon size={20}>heroicons-outline:view-columns</FuseSvgIcon>,
 	MoreVertIcon: () => <FuseSvgIcon size={20}>heroicons-outline:ellipsis-vertical</FuseSvgIcon>,
 	MoreHorizIcon: () => <FuseSvgIcon size={20}>heroicons-outline:ellipsis-horizontal</FuseSvgIcon>,
 	SortIcon: (props) => (
-		<FuseSvgIcon
-			size={20}
-			{...props}
-		>
-			heroicons-outline:arrows-up-down
-		</FuseSvgIcon>
+		<FuseSvgIcon size={20} {...props}>heroicons-outline:arrows-up-down</FuseSvgIcon>
 	),
 	PushPinIcon: (props) => (
-		<FuseSvgIcon
-			size={20}
-			{...props}
-		>
-			heroicons-outline:bookmark
-		</FuseSvgIcon>
+		<FuseSvgIcon size={20} {...props}>heroicons-outline:bookmark</FuseSvgIcon>
 	),
 	VisibilityOffIcon: () => <FuseSvgIcon size={20}>heroicons-outline:eye-slash</FuseSvgIcon>
 };
 
 function DataTableComponent<TData>(props: MaterialReactTableProps<TData>) {
-	const { columns, data, ...rest } = props;
+	const { columns, data, state, ...rest } = props;
 
 	const defaults = useMemo(
 		() =>
 			({
 				initialState: {
-					density: 'spacious',
+					density: 'comfortable',
 					showColumnFilters: false,
 					showGlobalFilter: true,
 					columnPinning: {
@@ -88,10 +56,9 @@ function DataTableComponent<TData>(props: MaterialReactTableProps<TData>) {
 					},
 					enableFullScreenToggle: false
 				},
-				enableRowVirtualization: true, // Performance: Enable virtualization by default
-				rowVirtualizerOptions: { overscan: 5 }, // Pre-render a few extra rows for smoother scrolling
-				autoResetPageIndex: false, // Don't jump to page 1 on every data update
-				enableFullScreenToggle: false,
+				enableRowVirtualization: true,
+				rowVirtualizerOptions: { overscan: 5 },
+				autoResetPageIndex: false,
 				enableColumnFilterModes: true,
 				enableColumnOrdering: true,
 				enableGrouping: true,
@@ -100,94 +67,65 @@ function DataTableComponent<TData>(props: MaterialReactTableProps<TData>) {
 				enableRowActions: true,
 				enableRowSelection: true,
 				muiBottomToolbarProps: {
-					className: 'flex items-center min-h-14 h-14'
+					className: 'flex items-center min-h-14 h-14 border-t-1 bg-gray-50/50'
 				},
 				muiTablePaperProps: {
 					elevation: 0,
 					square: true,
-					className: 'flex flex-col flex-auto h-full'
+					className: 'flex flex-col flex-auto h-full border-none'
 				},
 				muiTableContainerProps: {
-					className: 'flex-auto',
-					sx: { maxHeight: 'calc(100vh - 300px)' } // Ensure container has height for virtualization
+					className: 'flex-auto overflow-auto',
+					sx: { maxHeight: 'calc(100vh - 280px)' }
 				},
 				enableStickyHeader: true,
 				paginationDisplayMode: 'pages',
 				positionToolbarAlertBanner: 'top',
 				muiPaginationProps: {
 					color: 'secondary',
-					rowsPerPageOptions: [10, 20, 30],
+					rowsPerPageOptions: [10, 15, 20, 50],
 					shape: 'rounded',
 					variant: 'outlined',
-					showRowsPerPage: false
+					showRowsPerPage: true
 				},
 				muiSearchTextFieldProps: {
-					placeholder: 'Search',
-					sx: { minWidth: '300px' },
+					placeholder: 'Quick search...',
+					sx: { minWidth: '320px' },
 					variant: 'outlined',
 					size: 'small'
 				},
 				muiFilterTextFieldProps: {
 					variant: 'outlined',
 					size: 'small',
-					sx: {
-						'& .MuiInputBase-root': {
-							padding: '0px 8px',
-							height: '32px!important',
-							minHeight: '32px!important'
-						}
-					}
 				},
 				muiSelectAllCheckboxProps: {
 					className: 'w-12'
 				},
 				muiSelectCheckboxProps: {
-					className: 'w-12'
+					className: 'w-12 text-secondary'
 				},
 				muiTableBodyRowProps: ({ row, table }) => {
 					const { density } = table.getState();
-
-					if (density === 'compact') {
-						return {
-							sx: {
-								backgroundColor: 'initial',
-								opacity: 1,
-								boxShadow: 'none',
-								height: row.getIsPinned() ? `${37}px` : undefined
-							}
-						};
-					}
-
 					return {
 						sx: {
-							backgroundColor: 'initial',
-							opacity: 1,
-							boxShadow: 'none',
-							// Set a fixed height for pinned rows
-							height: row.getIsPinned() ? `${density === 'comfortable' ? 53 : 69}px` : undefined
+							transition: 'background-color 0.2s',
+							'&:hover': {
+								backgroundColor: (theme) => `${theme.palette.action.hover} !important`,
+							},
+							height: row.getIsPinned() ? (density === 'compact' ? 40 : 60) : undefined
 						}
 					};
 				},
 				muiTableHeadCellProps: ({ column }) => ({
-					sx: {
-						'& .Mui-TableHeadCell-Content-Labels': {
-							flex: 1,
-							justifyContent: 'space-between'
-						},
-						'& .Mui-TableHeadCell-Content-Actions': {
-							'& > button': {
-								marginX: '2px'
-							}
-						},
-						'& .MuiFormHelperText-root': {
-							textAlign: 'center',
-							marginX: 0,
-							color: (theme: Theme) => theme.vars.palette.text.disabled,
-							fontSize: 11
-						},
-						backgroundColor: (theme) =>
-							column.getIsPinned() ? theme.vars.palette.background.paper : 'inherit'
-					}
+					sx: (theme) => ({
+						backgroundColor: column.getIsPinned() ? theme.palette.background.paper : theme.palette.background.default,
+						fontWeight: 700,
+						textTransform: 'uppercase',
+						fontSize: '12px',
+						letterSpacing: '0.05em',
+						color: theme.palette.text.secondary,
+						borderBottom: `2px solid ${theme.palette.divider}`,
+					})
 				}),
 				mrtTheme: (theme) => ({
 					baseBackgroundColor: theme.palette.background.paper,
@@ -198,17 +136,39 @@ function DataTableComponent<TData>(props: MaterialReactTableProps<TData>) {
 				renderTopToolbar: (_props) => <DataTableTopToolbar {..._props} />,
 				icons: tableIcons
 			}) as Partial<MaterialReactTableProps<TData>>,
-		[] // Static config – created once
+		[]
 	);
+
+	// Custom Skeleton rendering when loading and no data
+	const tableData = useMemo(() => {
+		if (state?.isLoading && (!data || data.length === 0)) {
+			return Array(10).fill({}) as TData[];
+		}
+		return data;
+	}, [data, state?.isLoading]);
+
+	const processedColumns = useMemo(() => {
+		if (state?.isLoading && (!data || data.length === 0)) {
+			return columns.map(col => ({
+				...col,
+				Cell: () => <Skeleton variant="text" width="80%" height={24} animation="wave" />,
+			}));
+		}
+		return columns;
+	}, [columns, data, state?.isLoading]);
 
 	const tableOptions = useMemo(
 		() => ({
-			columns,
-			data,
+			columns: processedColumns,
+			data: tableData,
 			...defaults,
-			...rest
+			...rest,
+			state: {
+				...state,
+				showSkeletons: state?.isLoading && (!data || data.length === 0),
+			}
 		}),
-		[columns, data, defaults, rest]
+		[processedColumns, tableData, defaults, rest, state, data]
 	);
 
 	const tableInstance = useMaterialReactTable<TData>(tableOptions);

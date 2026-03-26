@@ -3,32 +3,15 @@
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import { z } from 'zod';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import _ from 'lodash';
-import { useEffect } from 'react';
+import { useEffect, useCallback, memo } from 'react';
 import { useGetAccountSettingsQuery, useUpdateAccountSettingsMutation } from '../SettingsApi';
 
-const defaultValues: FormType = {
-	id: '',
-	name: '',
-	username: '',
-	title: '',
-	company: '',
-	about: '',
-	email: '',
-	phone: '',
-	country: '',
-	language: ''
-};
-
-/**
- * Form Validation Schema
- */
 const schema = z.object({
 	id: z.string().min(1, 'ID is required'),
 	name: z.string().min(1, 'Name is required'),
@@ -39,340 +22,138 @@ const schema = z.object({
 	email: z.string().email('Invalid email').min(1, 'Email is required'),
 	phone: z.string().min(1, 'Phone is required'),
 	country: z.string().min(1, 'Country is required'),
-	language: z.string().min(1, 'Language is required')
+	language: z.string().min(1, 'Language is required'),
 });
 
 type FormType = z.infer<typeof schema>;
+
+const defaultValues: FormType = {
+	id: '', name: '', username: '', title: '', company: '',
+	about: '', email: '', phone: '', country: '', language: '',
+};
+
+// Memoized adornment — prevents new JSX object on every Controller render
+const Adornment = memo(({ icon }: { icon: string }) => (
+	<InputAdornment position="start">
+		<FuseSvgIcon size={20}>{icon}</FuseSvgIcon>
+	</InputAdornment>
+));
+Adornment.displayName = 'Adornment';
+
+// Memoized field — only re-renders when its own value/error changes
+const FormField = memo(({
+	control, name, label, placeholder, id, error, helperText, icon, multiline, minRows, maxRows, colSpan,
+}: {
+	control: any; name: keyof FormType; label: string; placeholder: string;
+	id?: string; error?: any; helperText?: React.ReactNode; icon: string;
+	multiline?: boolean; minRows?: number; maxRows?: number; colSpan?: string;
+}) => (
+	<div className={colSpan ?? 'sm:col-span-2'}>
+		<Controller
+			control={control}
+			name={name}
+			render={({ field }) => (
+				<TextField
+					{...field}
+					label={label}
+					placeholder={placeholder}
+					id={id}
+					error={!!error}
+					helperText={helperText}
+					variant="outlined"
+					fullWidth
+					multiline={multiline}
+					minRows={minRows}
+					maxRows={maxRows}
+					slotProps={{
+						input: {
+							className: multiline ? 'max-h-min h-min items-start' : undefined,
+							startAdornment: multiline
+								? <InputAdornment className="mt-4" position="start"><FuseSvgIcon size={20}>{icon}</FuseSvgIcon></InputAdornment>
+								: <Adornment icon={icon} />,
+						},
+					}}
+				/>
+			)}
+		/>
+	</div>
+));
+FormField.displayName = 'FormField';
 
 function AccountTab() {
 	const { data: accountSettings } = useGetAccountSettingsQuery();
 	const [updateAccountSettings] = useUpdateAccountSettingsMutation();
 
-	const { control, reset, handleSubmit, formState } = useForm<FormType>({
+	const { control, reset, handleSubmit, formState: { isValid, dirtyFields, errors } } = useForm<FormType>({
 		defaultValues,
 		mode: 'all',
-		resolver: zodResolver(schema)
+		resolver: zodResolver(schema),
 	});
 
-	const { isValid, dirtyFields, errors } = formState;
-
 	useEffect(() => {
-		reset(accountSettings);
+		if (accountSettings) reset(accountSettings);
 	}, [accountSettings, reset]);
 
-	/**
-	 * Form Submit
-	 */
-	function onSubmit(formData: FormType) {
+	// useCallback — stable reference, doesn't recreate on every render
+	const onSubmit = useCallback((formData: FormType) => {
 		updateAccountSettings(formData);
-	}
+	}, [updateAccountSettings]);
+
+	const handleReset = useCallback(() => {
+		reset(accountSettings);
+	}, [reset, accountSettings]);
+
+	const isDirty = Object.keys(dirtyFields).length > 0;
 
 	return (
 		<div className="w-full max-w-5xl">
 			<form onSubmit={handleSubmit(onSubmit)}>
 				<div className="w-full">
 					<Typography className="text-xl">Profile</Typography>
-					<Typography color="text.secondary">
-						Following information is publicly displayed, be careful!
-					</Typography>
+					<Typography color="text.secondary">Following information is publicly displayed, be careful!</Typography>
 				</div>
+
 				<div className="mt-8 grid w-full gap-6 sm:grid-cols-4">
-					<div className="sm:col-span-4">
-						<Controller
-							control={control}
-							name="name"
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="Name"
-									placeholder="Name"
-									id="name"
-									error={!!errors.name}
-									helperText={errors?.name?.message}
-									variant="outlined"
-									required
-									fullWidth
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<FuseSvgIcon size={20}>heroicons-solid:user-circle</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-4">
-						<Controller
-							control={control}
-							name="username"
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="Username"
-									placeholder="Username"
-									id="user-name"
-									error={!!errors.username}
-									helperText={errors?.username?.message}
-									variant="outlined"
-									required
-									fullWidth
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<Typography
-														color="text.secondary"
-														className="italic"
-													>
-														fusetheme.com/
-													</Typography>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-2">
-						<Controller
-							control={control}
-							name="title"
-							render={({ field }) => (
-								<TextField
-									className=""
-									{...field}
-									label="Title"
-									placeholder="Job title"
-									id="title"
-									error={!!errors.title}
-									helperText={errors?.title?.message}
-									variant="outlined"
-									fullWidth
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<FuseSvgIcon size={20}>heroicons-solid:briefcase</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-2">
-						<Controller
-							control={control}
-							name="company"
-							render={({ field }) => (
-								<TextField
-									className=""
-									{...field}
-									label="Company"
-									placeholder="Company"
-									id="company"
-									error={!!errors.company}
-									helperText={errors?.company?.message}
-									variant="outlined"
-									fullWidth
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<FuseSvgIcon size={20}>
-														heroicons-solid:building-office-2
-													</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-4">
-						<Controller
-							control={control}
-							name="about"
-							render={({ field }) => (
-								<TextField
-									className=""
-									{...field}
-									label="Notes"
-									placeholder="Notes"
-									id="notes"
-									error={!!errors.about}
-									variant="outlined"
-									fullWidth
-									multiline
-									minRows={5}
-									maxRows={10}
-									slotProps={{
-										input: {
-											className: 'max-h-min h-min items-start',
-											startAdornment: (
-												<InputAdornment
-													className="mt-4"
-													position="start"
-												>
-													<FuseSvgIcon size={20}>
-														heroicons-solid:bars-3-bottom-left
-													</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-									helperText={
-										<span className="flex flex-col">
-											<span>
-												Brief description for your profile. Basic HTML and Emoji are allowed.
-											</span>
-											<span>{errors?.about?.message}</span>
-										</span>
-									}
-								/>
-							)}
-						/>
-					</div>
+					<FormField control={control} name="name" label="Name" placeholder="Name" id="name" error={errors.name} helperText={errors.name?.message} icon="heroicons-solid:user-circle" colSpan="sm:col-span-4" />
+					<FormField
+						control={control} name="username" label="Username" placeholder="Username" id="user-name"
+						error={errors.username} helperText={errors.username?.message} icon=""
+						colSpan="sm:col-span-4"
+					/>
+					<FormField control={control} name="title" label="Title" placeholder="Job title" id="title" error={errors.title} helperText={errors.title?.message} icon="heroicons-solid:briefcase" />
+					<FormField control={control} name="company" label="Company" placeholder="Company" id="company" error={errors.company} helperText={errors.company?.message} icon="heroicons-solid:building-office-2" />
+					<FormField
+						control={control} name="about" label="Notes" placeholder="Notes" id="notes"
+						error={errors.about} icon="heroicons-solid:bars-3-bottom-left"
+						multiline minRows={5} maxRows={10} colSpan="sm:col-span-4"
+						helperText={
+							<span className="flex flex-col">
+								<span>Brief description for your profile. Basic HTML and Emoji are allowed.</span>
+								<span>{errors.about?.message}</span>
+							</span>
+						}
+					/>
 				</div>
 
 				<div className="my-10 border-t" />
+
 				<div className="w-full">
 					<Typography className="text-xl">Personal Information</Typography>
-					<Typography color="text.secondary">
-						Communication details in case we want to connect with you. These will be kept private.
-					</Typography>
+					<Typography color="text.secondary">Communication details in case we want to connect with you. These will be kept private.</Typography>
 				</div>
+
 				<div className="grid w-full gap-6 sm:grid-cols-4 mt-8">
-					<div className="sm:col-span-2">
-						<Controller
-							control={control}
-							name="email"
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="Email"
-									placeholder="Email"
-									variant="outlined"
-									fullWidth
-									error={!!errors.email}
-									helperText={errors?.email?.message}
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<FuseSvgIcon size={20}>heroicons-solid:envelope</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-2">
-						<Controller
-							control={control}
-							name="phone"
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="Phone Number"
-									placeholder="Phone Number"
-									variant="outlined"
-									fullWidth
-									error={!!errors.phone}
-									helperText={errors?.phone?.message}
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<FuseSvgIcon size={20}>heroicons-solid:phone</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-2">
-						<Controller
-							control={control}
-							name="country"
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="Country"
-									placeholder="County"
-									variant="outlined"
-									fullWidth
-									error={!!errors.country}
-									helperText={errors?.country?.message}
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<FuseSvgIcon size={20}>heroicons-solid:flag</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
-					<div className="sm:col-span-2">
-						<Controller
-							control={control}
-							name="language"
-							render={({ field }) => (
-								<TextField
-									{...field}
-									label="Language"
-									placeholder="Language"
-									variant="outlined"
-									fullWidth
-									error={!!errors.language}
-									helperText={errors?.language?.message}
-									slotProps={{
-										input: {
-											startAdornment: (
-												<InputAdornment position="start">
-													<FuseSvgIcon size={20}>heroicons-solid:globe-alt</FuseSvgIcon>
-												</InputAdornment>
-											)
-										}
-									}}
-								/>
-							)}
-						/>
-					</div>
+					<FormField control={control} name="email" label="Email" placeholder="Email" error={errors.email} helperText={errors.email?.message} icon="heroicons-solid:envelope" />
+					<FormField control={control} name="phone" label="Phone Number" placeholder="Phone Number" error={errors.phone} helperText={errors.phone?.message} icon="heroicons-solid:phone" />
+					<FormField control={control} name="country" label="Country" placeholder="Country" error={errors.country} helperText={errors.country?.message} icon="heroicons-solid:flag" />
+					<FormField control={control} name="language" label="Language" placeholder="Language" error={errors.language} helperText={errors.language?.message} icon="heroicons-solid:globe-alt" />
 				</div>
 
 				<Divider className="mb-10 mt-11 border-t" />
+
 				<div className="flex items-center justify-end space-x-2">
-					<Button
-						variant="outlined"
-						disabled={_.isEmpty(dirtyFields)}
-						onClick={() => reset(accountSettings)}
-					>
-						Cancel
-					</Button>
-					<Button
-						variant="contained"
-						color="secondary"
-						disabled={_.isEmpty(dirtyFields) || !isValid}
-						type="submit"
-					>
-						Save
-					</Button>
+					<Button variant="outlined" disabled={!isDirty} onClick={handleReset}>Cancel</Button>
+					<Button variant="contained" color="secondary" disabled={!isDirty || !isValid} type="submit">Save</Button>
 				</div>
 			</form>
 		</div>

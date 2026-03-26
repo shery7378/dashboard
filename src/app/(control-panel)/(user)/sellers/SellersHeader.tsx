@@ -6,18 +6,16 @@ import NavLinkAdapter from '@fuse/core/NavLinkAdapter';
 import useThemeMediaQuery from '@fuse/hooks/useThemeMediaQuery';
 import PageBreadcrumb from 'src/components/PageBreadcrumb';
 
-/**
- * The products header.
- */
+// Animation variants defined outside — not recreated on every render
+const leftVariant = { initial: { x: -20 }, animate: { x: 0, transition: { delay: 0.2 } } };
+const rightVariant = { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0, transition: { delay: 0.2 } } };
+
 function SellersHeader() {
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
 
 	return (
 		<div className="flex grow-0 flex-1 w-full items-center justify-between space-y-2 sm:space-y-0 py-6 sm:py-8">
-			<motion.span
-				initial={{ x: -20 }}
-				animate={{ x: 0, transition: { delay: 0.2 } }}
-			>
+			<motion.span initial={leftVariant.initial} animate={leftVariant.animate}>
 				<div>
 					<PageBreadcrumb className="mb-2" />
 					<Typography className="text-4xl font-extrabold leading-none tracking-tight">Sellers</Typography>
@@ -25,13 +23,8 @@ function SellersHeader() {
 			</motion.span>
 
 			<div className="flex flex-1 items-center justify-end space-x-2">
-				<motion.div
-					className="flex grow-0"
-					initial={{ opacity: 0, x: 20 }}
-					animate={{ opacity: 1, x: 0, transition: { delay: 0.2 } }}
-				>
+				<motion.div className="flex grow-0" initial={rightVariant.initial} animate={rightVariant.animate}>
 					<Button
-						className=""
 						variant="contained"
 						color="secondary"
 						component={NavLinkAdapter}

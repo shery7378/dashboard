@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { styled } from '@mui/material/styles';
 
 const Root = styled('div')(({ theme }) => ({
@@ -22,13 +23,13 @@ function Logo() {
 	return (
 		<Root className="flex flex-1 items-center space-x-3">
 			<div className="flex flex-1 items-center space-x-2 px-2.5">
-				<img
+				<Image
 					className="logo-icon"
 					src="/assets/images/MultiKonnect.svg"
 					alt="MultiKonnect Logo"
+					height={40}
+					width={137}
 					style={{
-						height: '40px',
-						width: 'auto',
 						objectFit: 'contain'
 					}}
 				/>

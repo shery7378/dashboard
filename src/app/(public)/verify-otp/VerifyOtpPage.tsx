@@ -1,535 +1,238 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useTransition, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
-import { getStorageUrl } from '@/utils/urlHelpers';
-import { ArrowBack } from '@mui/icons-material';
 import { AuthButton, AuthTitle } from '@/components/auth';
 import StepBar from '@/components/StepBar';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+// Extracted + memoized to prevent re-renders on every OTP keystroke
+const BackArrow = memo(() => (
+	<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+		<path d="M19 12H5M12 5l-7 7 7 7" />
+	</svg>
+));
+BackArrow.displayName = 'BackArrow';
+
+// Shared helper — deduplicates 4 identical fetch blocks into one
+async function verifyCode(email: string, code: string): Promise<{ ok: boolean; error?: string; data?: any }> {
+	fetch(`${API_URL}/sanctum/csrf-cookie`, { credentials: 'include' }).catch(() => { });
+
+	const res = await fetch(`${API_URL}/api/verify-code`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+		credentials: 'include',
+		body: JSON.stringify({ email, code }),
+	});
+
+	if (!res.ok) {
+		let msg = 'Invalid verification code. Please try again.';
+		if (res.headers.get('content-type')?.includes('application/json')) {
+			try {
+				const { message = msg } = await res.json();
+				if (message.includes('expired') || message.includes('Expired')) msg = 'Code has expired. Please request a new code.';
+				else if (message.includes('No verification code found')) msg = 'No verification code found. Please request a new code.';
+				else if (message.includes('invalid') || message.includes('Invalid') || message.includes('mismatch')) msg = 'Invalid code. Please try again.';
+				else msg = message;
+			} catch { }
+		}
+		return { ok: false, error: msg };
+	}
+
+	return { ok: true, data: await res.json() };
+}
 
 export default function VerifyOtpPage() {
 	const router = useRouter();
 	const searchParams = useSearchParams();
 	const [otp, setOtp] = useState(['', '', '', '']);
-	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isResending, setIsResending] = useState(false);
 	const [countdown, setCountdown] = useState(0);
 	const [errorMessage, setErrorMessage] = useState('');
+	const [isPending, startTransition] = useTransition();
+	// Refs for direct DOM focus — no getElementById needed
+	const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-	const email = searchParams.get('email') || localStorage.getItem('signupEmail') || '';
-	const userType = searchParams.get('userType') || localStorage.getItem('signupUserType') || 'seller';
+	const email = searchParams.get('email') || (typeof window !== 'undefined' ? localStorage.getItem('signupEmail') : '') || '';
+	const userType = searchParams.get('userType') || (typeof window !== 'undefined' ? localStorage.getItem('signupUserType') : '') || 'seller';
+	const normalizedEmail = email.trim().toLowerCase();
 
-
-	// Countdown timer for resend
+	// Countdown timer
 	useEffect(() => {
-		if (countdown > 0) {
-			const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-			return () => clearTimeout(timer);
-		}
+		if (countdown <= 0) return;
+		const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+		return () => clearTimeout(timer);
 	}, [countdown]);
 
-	// Send OTP automatically when page loads (if email is available and not already sent)
+	// Send OTP on mount if not already sent
 	useEffect(() => {
-		const sendInitialOtp = async () => {
-			if (!email) return;
-
-			// Normalize email to match how it was stored
-			const normalizedEmail = email.trim().toLowerCase();
-
-			// Check if OTP was already sent (stored in sessionStorage)
-			const otpSent = sessionStorage.getItem(`otp_sent_${normalizedEmail}`);
-
-			if (otpSent) {
-				// OTP already sent, set countdown to prevent immediate resend
+		if (!normalizedEmail) return;
+		if (sessionStorage.getItem(`otp_sent_${normalizedEmail}`)) {
+			setCountdown(60);
+			return;
+		}
+		fetch(`${API_URL}/sanctum/csrf-cookie`, { credentials: 'include' }).catch(() => { });
+		fetch(`${API_URL}/api/send-code`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ email: normalizedEmail }),
+		}).then((res) => {
+			if (res.ok) {
+				sessionStorage.setItem(`otp_sent_${normalizedEmail}`, 'true');
 				setCountdown(60);
-				return; // Already sent, don't send again
 			}
+		}).catch(() => { });
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
-			try {
-				// Try to get CSRF cookie first
-				try {
-					await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/sanctum/csrf-cookie`, {
-						credentials: 'include'
-					}).catch(() => {
-						console.log('CSRF cookie endpoint not available, continuing anyway');
-					});
-				} catch (csrfError) {
-					console.log('CSRF cookie request failed, continuing:', csrfError);
-				}
+	const navigateNext = useCallback((email: string, userType: string) => {
+		router.push(`/store-setup/step-2?email=${encodeURIComponent(email)}&userType=${encodeURIComponent(userType)}`);
+	}, [router]);
 
-				// Send OTP to email (use normalized email)
-				const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/send-code`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					credentials: 'include',
-					body: JSON.stringify({ email: normalizedEmail })
-				});
+	const submitVerify = useCallback((otpArr: string[]) => {
+		const code = otpArr.join('');
+		if (code.length !== 4) return;
 
-				if (res.ok) {
-					// Mark as sent
-					sessionStorage.setItem(`otp_sent_${normalizedEmail}`, 'true');
-					// Set countdown to 60 seconds
-					setCountdown(60);
-				} else {
-					console.error('Failed to send initial OTP:', res.status, res.statusText);
-				}
-			} catch (error) {
-				console.error('Error sending initial OTP:', error);
+		startTransition(async () => {
+			setErrorMessage('');
+			const result = await verifyCode(normalizedEmail, code);
+			if (!result.ok) {
+				setErrorMessage(result.error || 'Verification failed.');
+				return;
 			}
-		};
+			navigateNext(normalizedEmail, userType);
+		});
+	}, [normalizedEmail, userType, navigateNext]);
 
-		sendInitialOtp();
-	}, [email]);
-
-	const handleOtpChange = (index: number, value: string) => {
+	const handleOtpChange = useCallback((index: number, value: string) => {
 		if (isNaN(Number(value))) return;
+		const digit = value.slice(-1);
 
-		const newOtp = [...otp];
-		newOtp[index] = value.substring(value.length - 1);
-		setOtp(newOtp);
+		setOtp((prev) => {
+			const next = [...prev];
+			next[index] = digit;
 
-		// Move to next input
-		if (value && index < 3) {
-			const nextInput = document.getElementById(`otp-${index + 1}`);
-
-			if (nextInput) nextInput.focus();
-		} else if (index === 3 && newOtp[3]) {
-			// Auto-verify when the last digit is entered
-			console.log('Auto-verifying OTP:', newOtp.join(''));
-			setTimeout(() => {
-				verifyOtpAuto(newOtp);
-			}, 200);
-		}
-	};
-
-	const verifyOtpAuto = async (otpToVerify: string[]) => {
-		const code = otpToVerify.join('');
-		console.log('verifyOtpAuto called with code:', code);
-
-		if (code.length === 4) {
-			setIsSubmitting(true);
-			setErrorMessage('');
-
-			try {
-				// Try to get CSRF cookie first
-				try {
-					await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/sanctum/csrf-cookie`, {
-						credentials: 'include'
-					}).catch(() => {
-						console.log('CSRF cookie endpoint not available, continuing anyway');
-					});
-				} catch (csrfError) {
-					console.log('CSRF cookie request failed, continuing:', csrfError);
-				}
-
-				const normalizedCode = code
-					.trim()
-					.replace(/\s+/g, '')
-					.replace(/[^0-9]/g, '');
-				const normalizedEmail = email.trim().toLowerCase();
-
-				if (!normalizedCode || normalizedCode.length !== 4) {
-					setErrorMessage('Please enter a valid 4-digit verification code.');
-					setIsSubmitting(false);
-					return;
-				}
-
-				console.log('Auto-verifying with code:', {
-					email: normalizedEmail,
-					code_original: code,
-					code_normalized: normalizedCode,
-					code_length: normalizedCode.length
-				});
-
-				const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/verify-code`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Accept: 'application/json'
-					},
-					credentials: 'include',
-					body: JSON.stringify({
-						email: normalizedEmail,
-						code: normalizedCode
-					})
-				});
-
-				if (!res.ok) {
-					const contentType = res.headers.get('content-type');
-					let errorMsg = 'Invalid verification code. Please try again.';
-
-					if (contentType && contentType.includes('application/json')) {
-						try {
-							const errorData = await res.json();
-							const backendMessage = errorData.message || errorMsg;
-
-							// Check the specific error type from backend
-							if (backendMessage.includes('expired') || backendMessage.includes('Expired')) {
-								errorMsg = 'Code has expired. Please request a new code.';
-							} else if (backendMessage.includes('invalid') || backendMessage.includes('Invalid')) {
-								errorMsg = 'Invalid code. Please try again.';
-							} else if (backendMessage.includes('mismatch') || backendMessage.includes('does not match')) {
-								errorMsg = 'Invalid code. Please try again.';
-							} else if (backendMessage.includes('No verification code found')) {
-								errorMsg = 'No verification code found. Please request a new code.';
-							} else {
-								errorMsg = backendMessage;
-							}
-
-							console.error('Auto-verify error:', errorData);
-						} catch (jsonError) {
-							console.error('Failed to parse error response:', jsonError);
-						}
-					}
-
-					setErrorMessage(errorMsg);
-					setIsSubmitting(false);
-					return;
-				}
-
-				const responseData = await res.json();
-				console.log('Auto-verify successful:', responseData);
-
-				const cleanEmail = normalizedEmail.trim();
-				const cleanUserType = userType.trim();
-				const targetUrl = `/store-setup/step-2?email=${encodeURIComponent(cleanEmail)}&userType=${encodeURIComponent(cleanUserType)}`;
-				console.log('Navigating to:', targetUrl);
-				router.push(targetUrl);
-			} catch (error: any) {
-				console.error('Error in auto-verify:', error);
-				setErrorMessage(error.message || 'An error occurred while verifying the code. Please try again.');
-				setIsSubmitting(false);
+			// Auto-focus next
+			if (digit && index < 3) {
+				inputRefs.current[index + 1]?.focus();
 			}
-		}
-	}
 
-	const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+			// Auto-verify on last digit
+			if (index === 3 && digit) {
+				setTimeout(() => submitVerify(next), 200);
+			}
+
+			return next;
+		});
+	}, [submitVerify]);
+
+	const handleKeyDown = useCallback((index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === 'Backspace' && !otp[index] && index > 0) {
-			const prevInput = document.getElementById(`otp-${index - 1}`);
-
-			if (prevInput) prevInput.focus();
+			inputRefs.current[index - 1]?.focus();
 		}
-	};
+	}, [otp]);
 
-	const handleVerify = async () => {
-		const code = otp.join('');
-		console.log('handleVerify called with code:', code);
-
-		if (code.length === 4) {
-			setIsSubmitting(true);
-			setErrorMessage('');
-
-			try {
-				// Try to get CSRF cookie first
-				try {
-					await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/sanctum/csrf-cookie`, {
-						credentials: 'include'
-					}).catch(() => {
-						console.log('CSRF cookie endpoint not available, continuing anyway');
-					});
-				} catch (csrfError) {
-					console.log('CSRF cookie request failed, continuing:', csrfError);
-				}
-
-				// Normalize the code - ensure it's exactly 4 digits
-				const normalizedCode = code
-					.trim()
-					.replace(/\s+/g, '')
-					.replace(/[^0-9]/g, '');
-				// Normalize email to lowercase to match how it was sent
-				const normalizedEmail = email.trim().toLowerCase();
-
-				// Validate code length
-				if (!normalizedCode || normalizedCode.length !== 4) {
-					setErrorMessage('Please enter a valid 4-digit verification code.');
-					setIsSubmitting(false);
-					return;
-				}
-
-				console.log('Verifying code:', {
-					email: normalizedEmail,
-					code_original: code,
-					code_normalized: normalizedCode,
-					code_length: normalizedCode.length
-				});
-
-				// Verify OTP
-				console.log('Making request to:', '/api/verify-code');
-				console.log('Request body:', { email: normalizedEmail, code: normalizedCode });
-
-				const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/verify-code`, {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Accept: 'application/json'
-					},
-					credentials: 'include',
-					body: JSON.stringify({
-						email: normalizedEmail,
-						code: normalizedCode
-					})
-				});
-
-				console.log('Response status:', res.status);
-				console.log('Response headers:', Object.fromEntries(res.headers.entries()));
-
-				if (!res.ok) {
-					const contentType = res.headers.get('content-type');
-					let errorMessage = 'Invalid verification code. Please try again.';
-					let errorDetails = null;
-
-					if (contentType && contentType.includes('application/json')) {
-						try {
-							const errorData = await res.json();
-							const backendMessage = errorData.message || errorMessage;
-
-							// Check the specific error type from backend
-							if (backendMessage.includes('expired') || backendMessage.includes('Expired')) {
-								errorMessage = 'Code has expired. Please request a new code.';
-							} else if (backendMessage.includes('invalid') || backendMessage.includes('Invalid')) {
-								errorMessage = 'Invalid code. Please try again.';
-							} else if (backendMessage.includes('mismatch') || backendMessage.includes('does not match')) {
-								errorMessage = 'Invalid code. Please try again.';
-							} else if (backendMessage.includes('No verification code found')) {
-								errorMessage = 'No verification code found. Please request a new code.';
-							} else {
-								errorMessage = backendMessage;
-							}
-
-							errorDetails = errorData.debug || errorData.errors || null;
-
-							console.error('Verification error:', {
-								status: res.status,
-								message: errorMessage,
-								details: errorDetails,
-								full_response: errorData
-							});
-						} catch (jsonError) {
-							console.error('Failed to parse error response as JSON:', jsonError);
-						}
-					} else {
-						const text = await res.text();
-						console.error('Non-JSON error response:', {
-							status: res.status,
-							statusText: res.statusText,
-							preview: text.substring(0, 200)
-						});
-					}
-
-					setErrorMessage(errorMessage);
-					setIsSubmitting(false);
-					return;
-				}
-
-				const responseData = await res.json();
-				console.log('Verification successful:', responseData);
-				console.log(
-					'About to redirect to:',
-					`/store-setup/step-2?email=${encodeURIComponent(normalizedEmail)}&userType=${userType}`
-				);
-
-				// OTP verified successfully - navigate to store setup step 2
-				console.log('About to call router.push...');
-				const cleanEmail = normalizedEmail.trim();
-				const cleanUserType = userType.trim();
-				const targetUrl = `/store-setup/step-2?email=${encodeURIComponent(cleanEmail)}&userType=${encodeURIComponent(cleanUserType)}`;
-				console.log('Navigating to:', targetUrl);
-				router.push(targetUrl);
-				console.log('router.push called');
-			} catch (error: any) {
-				console.error('Error verifying OTP:', error);
-				setErrorMessage(error.message || 'An error occurred while verifying the code. Please try again.');
-				setIsSubmitting(false);
-			}
-		}
-	};
-
-	const handleResend = async () => {
+	const handleResend = useCallback(async () => {
 		if (countdown > 0 || isResending) return;
-
 		setIsResending(true);
 		setErrorMessage('');
 
 		try {
-			// Normalize email to lowercase for consistency
-			const normalizedEmail = email.trim().toLowerCase();
-
-			// Try to get CSRF cookie first
-			try {
-				await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/sanctum/csrf-cookie`, {
-					credentials: 'include'
-				}).catch(() => {
-					console.log('CSRF cookie endpoint not available, continuing anyway');
-				});
-			} catch (csrfError) {
-				console.log('CSRF cookie request failed, continuing:', csrfError);
-			}
-
-			// Send OTP to email (use normalized email)
-			const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/send-code`, {
+			fetch(`${API_URL}/sanctum/csrf-cookie`, { credentials: 'include' }).catch(() => { });
+			const res = await fetch(`${API_URL}/api/send-code`, {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json'
-				},
+				headers: { 'Content-Type': 'application/json' },
 				credentials: 'include',
-				body: JSON.stringify({ email: normalizedEmail })
+				body: JSON.stringify({ email: normalizedEmail }),
 			});
 
 			if (!res.ok) {
-				const contentType = res.headers.get('content-type');
-				let errorMessage = 'Failed to resend verification code. Please try again.';
-
-				if (contentType && contentType.includes('application/json')) {
-					try {
-						const errorData = await res.json();
-						errorMessage = errorData.message || errorMessage;
-					} catch (jsonError) {
-						console.error('Failed to parse error response as JSON:', jsonError);
-					}
+				let msg = 'Failed to resend verification code. Please try again.';
+				if (res.headers.get('content-type')?.includes('application/json')) {
+					try { msg = (await res.json()).message || msg; } catch { }
 				}
-
-				setErrorMessage(errorMessage);
-				setIsResending(false);
+				setErrorMessage(msg);
 				return;
 			}
 
-			// Small delay to ensure code is stored
-			await new Promise((resolve) => setTimeout(resolve, 500));
-
-			// Mark as sent in sessionStorage (use normalized email)
 			sessionStorage.setItem(`otp_sent_${normalizedEmail}`, 'true');
-
-			// Set countdown to 60 seconds
 			setCountdown(60);
-			setErrorMessage('');
+			setOtp(['', '', '', '']);
+			inputRefs.current[0]?.focus();
 		} catch (error: any) {
-			console.error('Error resending OTP:', error);
-			setErrorMessage(error.message || 'An error occurred while resending the code. Please try again.');
+			setErrorMessage(error.message || 'An error occurred. Please try again.');
 		} finally {
 			setIsResending(false);
 		}
-	};
-
+	}, [countdown, isResending, normalizedEmail]);
 
 	return (
 		<div className="min-h-screen flex flex-col bg-white">
-			{/* Header - Shared Component */}
 			<Header />
-
-			{/* Main Content Area - Dark Gray Background */}
 			<main className="flex-1 flex justify-center items-center py-12 px-4 bg-white">
-				{/* White Card */}
-				<div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white !rounded-lg border border-[#D8DADC] relative">
-					{/* Back Button - Top Left */}
-					<button
-						onClick={() => router.back()}
-						className="absolute top-8 left-8 p-2 z-30 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors"
-					>
-						<ArrowBack className="h-5 w-5 text-black" />
+				<div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white rounded-lg border border-[#D8DADC] relative">
+					<button onClick={() => history.back()} className="absolute top-8 left-8 p-2 z-30 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors" aria-label="Go back" type="button">
+						<BackArrow />
 					</button>
 
-					{/* Brand Name - Centered */}
 					<div className="text-center mb-8 z-20 flex justify-center items-center">
-						<img
-							src={'/assets/images/MultiKonnect.svg'}
-							alt="MultiKonnect"
-							className="h-8 w-36 object-contain cursor-pointer"
-						/>
+						<Image src="/assets/images/MultiKonnect.svg" alt="MultiKonnect" width={144} height={32} priority className="h-8 w-36 object-contain cursor-pointer" />
 					</div>
 
-					<StepBar
-						currentStep={1}
-						totalSteps={4}
-					/>
+					<StepBar currentStep={1} totalSteps={4} />
 
-					{/* Heading - Left Aligned */}
-					<AuthTitle
-						heading="Enter the 4 Digit code Sent to you"
-						subtitle={email || 'rajasaifali125@gmail.com'}
-						align="left"
-					/>
+					<AuthTitle heading="Enter the 4 Digit code Sent to you" subtitle={normalizedEmail || 'your email'} align="left" />
 
-					{/* OTP Inputs */}
-					<style>{`
-            .otp-input:focus {
-              border-color: #F44322 !important;
-              outline: none !important;
-              border-width: 2px !important;
-            }
-          `}</style>
+					{/* OTP inputs — inline style removed, replaced with Tailwind focus-visible */}
 					<div className="flex justify-between gap-4 mb-6">
-						{otp.map((digit, index) => {
-							const isFirstInput = index === 0;
-							const hasValue = digit.length > 0;
-							return (
-								<input
-									key={index}
-									id={`otp-${index}`}
-									type="text"
-									inputMode="numeric"
-									value={digit}
-									onChange={(e) => handleOtpChange(index, e.target.value)}
-									onKeyDown={(e) => handleKeyDown(index, e)}
-									className="w-20 h-16 text-center rounded-md focus:outline-none focus:ring-0 focus:ring-vivid-red border-0 bg-gray-100"
-									maxLength={1}
-									placeholder=""
-								/>
-							);
-						})}
+						{otp.map((digit, index) => (
+							<input
+								key={index}
+								ref={(el) => { inputRefs.current[index] = el; }}
+								id={`otp-${index}`}
+								type="text"
+								inputMode="numeric"
+								value={digit}
+								onChange={(e) => handleOtpChange(index, e.target.value)}
+								onKeyDown={(e) => handleKeyDown(index, e)}
+								className="w-20 h-16 text-center rounded-md bg-gray-100 border-2 border-transparent focus:border-[#F44322] focus:outline-none transition-colors"
+								maxLength={1}
+							/>
+						))}
 					</div>
 
-					{/* Error Message */}
 					{errorMessage && (
 						<div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
 							<p className="text-sm text-red-600 font-bold">{errorMessage}</p>
 						</div>
 					)}
 
-					{/* Tip - Left Aligned */}
 					<p className="text-xs text-left text-gray-500 mb-2">
-						<span className="font-semibold">Tip :</span> Make Sure to check your inbox and spam folder
+						<span className="font-semibold">Tip:</span> Make sure to check your inbox and spam folder
 					</p>
-					{/* Buttons - Resend left, Verify Code right */}
+
 					<div className="flex gap-4 mb-6">
-						<AuthButton
-							onClick={handleResend}
-							disabled={countdown > 0 || isResending}
-							variant="secondary"
-							fullWidth={true}
-						>
-							Resend
+						<AuthButton onClick={handleResend} disabled={countdown > 0 || isResending} variant="secondary" fullWidth>
+							{countdown > 0 ? `Resend (${countdown}s)` : 'Resend'}
 						</AuthButton>
-						<AuthButton
-							onClick={handleVerify}
-							disabled={otp.join('').length !== 4 || isSubmitting}
-							variant="primary"
-							fullWidth={true}
-						>
+						<AuthButton onClick={() => submitVerify(otp)} disabled={otp.join('').length !== 4 || isPending} variant="primary" fullWidth>
 							Verify Code
 						</AuthButton>
 					</div>
 
-					{/* Footer Link */}
 					<div className="text-center text-sm text-gray-600">
 						Don't have an account?{' '}
-						<Link
-							href="/sign-up"
-							className="text-[#FF6B35] underline"
-						>
-							Sign Up
-						</Link>
+						<Link href="/sign-up" className="text-[#FF6B35] underline">Sign Up</Link>
 					</div>
 				</div>
 			</main>
-
-			{/* Footer - Dark Gray Background */}
 			<Footer />
-
 		</div>
 	);
 }

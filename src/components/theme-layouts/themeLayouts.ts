@@ -1,8 +1,10 @@
+import dynamic from 'next/dynamic';
 import React, { ComponentType } from 'react';
-import Layout1 from './layout1/Layout1';
-import Layout2 from './layout2/Layout2';
-import Layout3 from './layout3/Layout3';
-import Layout4 from './layout4/Layout4';
+
+const Layout1 = dynamic(() => import('./layout1/Layout1'));
+const Layout2 = dynamic(() => import('./layout2/Layout2'));
+const Layout3 = dynamic(() => import('./layout3/Layout3'));
+const Layout4 = dynamic(() => import('./layout4/Layout4'));
 
 /**
  * The type definition for the theme layouts.

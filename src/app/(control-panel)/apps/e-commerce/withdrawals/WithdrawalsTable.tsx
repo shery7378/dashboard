@@ -18,39 +18,31 @@ import {
 	Alert
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import FuseLoading from '@fuse/core/FuseLoading';
 import {
 	useGetWithdrawalsQuery,
 	useApproveWithdrawalMutation,
 	useRejectWithdrawalMutation,
 	type WithdrawalRequest
 } from '../apis/WithdrawalsApi';
+import { formatDate } from '@/utils/Constants';
 
-// Helper function to safely format amount - handles all possible types
-// Defined outside component to ensure it's always available
+/**
+ * Helper function to safely format amount.
+ */
 const formatAmount = (amount: number | string | undefined | null): string => {
-	// Handle null/undefined
-	if (amount === null || amount === undefined) {
-		return '0.00';
-	}
-
-	// If it's already a number, use toFixed directly
-	if (typeof amount === 'number' && !isNaN(amount)) {
-		return amount.toFixed(2);
-	}
-
-	// Convert to string and parse
-	const amountStr = String(amount);
-	const parsed = parseFloat(amountStr);
-
-	// Return formatted or default
+	if (amount === null || amount === undefined) return '0.00';
+	const parsed = typeof amount === 'number' ? amount : parseFloat(String(amount));
 	return isNaN(parsed) ? '0.00' : parsed.toFixed(2);
 };
 
+/**
+ * Table for managing seller withdrawal requests.
+ */
 function WithdrawalsTable() {
 	const { data, isLoading, error } = useGetWithdrawalsQuery({});
 	const [approveWithdrawal] = useApproveWithdrawalMutation();
 	const [rejectWithdrawal] = useRejectWithdrawalMutation();
+	
 	const [approveDialogOpen, setApproveDialogOpen] = useState(false);
 	const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
 	const [selectedWithdrawal, setSelectedWithdrawal] = useState<WithdrawalRequest | null>(null);
@@ -60,7 +52,6 @@ function WithdrawalsTable() {
 
 	const handleApprove = async () => {
 		if (!selectedWithdrawal) return;
-
 		try {
 			await approveWithdrawal({ id: selectedWithdrawal.id }).unwrap();
 			setApproveDialogOpen(false);
@@ -72,7 +63,6 @@ function WithdrawalsTable() {
 
 	const handleReject = async () => {
 		if (!selectedWithdrawal || !rejectionReason.trim()) return;
-
 		try {
 			await rejectWithdrawal({
 				id: selectedWithdrawal.id,
@@ -86,43 +76,23 @@ function WithdrawalsTable() {
 		}
 	};
 
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case 'pending':
-				return 'warning';
-			case 'processing':
-				return 'info';
-			case 'completed':
-				return 'success';
-			case 'rejected':
-				return 'error';
-			default:
-				return 'default';
-		}
-	};
-
 	const columns = useMemo<MRT_ColumnDef<WithdrawalRequest>[]>(
 		() => [
 			{
 				accessorKey: 'request_number',
 				header: 'Request #',
-				size: 120
+				size: 140,
+				Cell: ({ row }) => <span className="font-mono font-bold text-secondary">{row.original.request_number}</span>
 			},
 			{
 				accessorKey: 'user.name',
 				header: 'Seller',
 				Cell: ({ row }) => (
-					<div>
-						<Typography
-							variant="body2"
-							fontWeight="medium"
-						>
+					<div className="flex flex-col">
+						<Typography variant="body2" className="font-semibold text-13">
 							{row.original.user?.name ?? '—'}
 						</Typography>
-						<Typography
-							variant="caption"
-							color="text.secondary"
-						>
+						<Typography variant="caption" className="text-11 text-text-secondary">
 							{row.original.user?.email ?? '—'}
 						</Typography>
 					</div>
@@ -131,10 +101,11 @@ function WithdrawalsTable() {
 			{
 				accessorKey: 'amount',
 				header: 'Amount',
-				size: 100,
+				size: 120,
 				Cell: ({ row }) => (
-					<Typography fontWeight="medium">
-						{row.original.currency} {formatAmount(row.original.amount)}
+					<Typography className="font-bold text-15">
+						<span className="text-12 text-text-secondary mr-2">{row.original.currency}</span>
+						{formatAmount(row.original.amount)}
 					</Typography>
 				)
 			},
@@ -142,176 +113,166 @@ function WithdrawalsTable() {
 				accessorKey: 'status',
 				header: 'Status',
 				size: 120,
-				Cell: ({ row }) => (
-					<Chip
-						label={row.original.status.toUpperCase()}
-						color={getStatusColor(row.original.status) as any}
-						size="small"
-					/>
-				)
+				Cell: ({ row }) => {
+					const status = row.original.status?.toLowerCase();
+					const colors: Record<string, string> = {
+						pending: 'bg-orange-100 text-orange-700',
+						processing: 'bg-blue-100 text-blue-700',
+						completed: 'bg-green-100 text-green-700',
+						rejected: 'bg-red-100 text-red-700',
+					};
+					return (
+						<Chip 
+							label={row.original.status.toUpperCase()} 
+							className={`text-10 font-bold ${colors[status] || 'bg-gray-100 text-gray-700'}`}
+							size="small"
+						/>
+					);
+				}
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Requested',
-				size: 120,
-				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString()
+				size: 130,
+				Cell: ({ row }) => formatDate(row.original.created_at)
 			},
 			{
 				accessorKey: 'processed_at',
 				header: 'Processed',
-				size: 120,
-				Cell: ({ row }) =>
-					row.original.processed_at ? new Date(row.original.processed_at).toLocaleDateString() : '—'
+				size: 130,
+				Cell: ({ row }) => row.original.processed_at ? formatDate(row.original.processed_at) : <span className="text-gray-400">Not yet</span>
 			}
 		],
 		[]
 	);
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
-
-	if (error) {
-		return <Alert severity="error">Failed to load withdrawals</Alert>;
-	}
+	if (error) return (
+		<Paper className="p-24 flex flex-col items-center justify-center shadow-1 rounded-lg">
+			<Typography color="error" variant="body1" className="font-semibold text-20">Failed to load withdrawals</Typography>
+			<Typography color="text.secondary" variant="body2">Please check your connection or try again later.</Typography>
+		</Paper>
+	);
 
 	return (
 		<>
-			<Paper
-				className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full"
-				elevation={0}
-			>
+			<Paper className="flex flex-col flex-auto shadow hover:shadow-lg transition-shadow duration-300 rounded-lg overflow-hidden border-1 border-divider" elevation={0}>
 				<DataTable
-					initialState={{
-						density: 'spacious',
-						showColumnFilters: false,
-						showGlobalFilter: true,
-						pagination: {
-							pageIndex: 0,
-							pageSize: 20
-						}
-					}}
 					enableRowSelection={false}
 					enableRowActions={true}
-					data={withdrawals as any}
+					data={withdrawals}
 					columns={columns}
+					state={{ isLoading }}
 					renderRowActionMenuItems={({ closeMenu, row }) => {
 						const withdrawal = row.original;
+						if (withdrawal.status !== 'pending') return null;
 
 						return [
-							withdrawal.status === 'pending' && (
-								<MenuItem
-									key="approve"
-									onClick={() => {
-										setSelectedWithdrawal(withdrawal);
-										setApproveDialogOpen(true);
-										closeMenu();
-									}}
-								>
-									<ListItemIcon>
-										<FuseSvgIcon>heroicons-outline:check-circle</FuseSvgIcon>
-									</ListItemIcon>
-									Approve
-								</MenuItem>
-							),
-							withdrawal.status === 'pending' && (
-								<MenuItem
-									key="reject"
-									onClick={() => {
-										setSelectedWithdrawal(withdrawal);
-										setRejectDialogOpen(true);
-										closeMenu();
-									}}
-								>
-									<ListItemIcon>
-										<FuseSvgIcon>heroicons-outline:x-circle</FuseSvgIcon>
-									</ListItemIcon>
-									Reject
-								</MenuItem>
-							)
-						].filter(Boolean);
+							<MenuItem
+								key="approve"
+								onClick={() => {
+									setSelectedWithdrawal(withdrawal);
+									setApproveDialogOpen(true);
+									closeMenu();
+								}}
+								className="text-success"
+							>
+								<ListItemIcon>
+									<FuseSvgIcon color="success">heroicons-outline:check-circle</FuseSvgIcon>
+								</ListItemIcon>
+								Approve
+							</MenuItem>,
+							<MenuItem
+								key="reject"
+								onClick={() => {
+									setSelectedWithdrawal(withdrawal);
+									setRejectDialogOpen(true);
+									closeMenu();
+								}}
+								className="text-error"
+							>
+								<ListItemIcon>
+									<FuseSvgIcon color="error">heroicons-outline:x-circle</FuseSvgIcon>
+								</ListItemIcon>
+								Reject
+							</MenuItem>
+						];
 					}}
 				/>
 			</Paper>
 
 			{/* Approve Dialog */}
-			<Dialog
-				open={approveDialogOpen}
-				onClose={() => setApproveDialogOpen(false)}
-			>
-				<DialogTitle>Approve Withdrawal</DialogTitle>
-				<DialogContent>
+			<Dialog open={approveDialogOpen} onClose={() => setApproveDialogOpen(false)} maxWidth="xs" fullWidth>
+				<DialogTitle className="border-b-1 pb-16">Approve Withdrawal</DialogTitle>
+				<DialogContent className="pt-24">
 					{selectedWithdrawal && (
-						<div className="space-y-4 pt-4">
-							<Typography>
-								<strong>vendor:</strong> {selectedWithdrawal.user?.name}
-							</Typography>
-							<Typography>
-								<strong>Amount:</strong> {selectedWithdrawal.currency}{' '}
-								{formatAmount(selectedWithdrawal.amount)}
-							</Typography>
-							<Typography>
-								<strong>Request #:</strong> {selectedWithdrawal.request_number}
-							</Typography>
-							<Alert
-								severity="info"
-								className="mt-4"
-							>
+						<div className="space-y-16">
+							<div className="bg-gray-50 p-16 rounded-lg space-y-8">
+								<Typography variant="body2" className="flex justify-between">
+									<span className="text-text-secondary">Vendor:</span>
+									<span className="font-bold">{selectedWithdrawal.user?.name}</span>
+								</Typography>
+								<Typography variant="body2" className="flex justify-between">
+									<span className="text-text-secondary">Amount:</span>
+									<span className="font-bold text-success">{selectedWithdrawal.currency} {formatAmount(selectedWithdrawal.amount)}</span>
+								</Typography>
+								<Typography variant="body2" className="flex justify-between">
+									<span className="text-text-secondary">Request #:</span>
+									<span className="font-mono">{selectedWithdrawal.request_number}</span>
+								</Typography>
+							</div>
+							<Alert severity="info" className="rounded-lg shadow-sm font-medium border-1 border-blue-200">
 								Payment will be transferred to vendor's Stripe Connect account automatically.
 							</Alert>
 						</div>
 					)}
 				</DialogContent>
-				<DialogActions>
+				<DialogActions className="p-16 border-t-1">
 					<Button onClick={() => setApproveDialogOpen(false)}>Cancel</Button>
-					<Button
-						onClick={handleApprove}
-						variant="contained"
-						color="primary"
-					>
+					<Button onClick={handleApprove} variant="contained" color="primary" className="px-24">
 						Approve & Transfer
 					</Button>
 				</DialogActions>
 			</Dialog>
 
 			{/* Reject Dialog */}
-			<Dialog
-				open={rejectDialogOpen}
-				onClose={() => setRejectDialogOpen(false)}
-			>
-				<DialogTitle>Reject Withdrawal</DialogTitle>
-				<DialogContent>
+			<Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="xs" fullWidth>
+				<DialogTitle className="border-b-1 pb-16">Reject Withdrawal</DialogTitle>
+				<DialogContent className="pt-24">
 					{selectedWithdrawal && (
-						<div className="space-y-4 pt-4">
-							<Typography>
-								<strong>vendor:</strong> {selectedWithdrawal.user?.name}
-							</Typography>
-							<Typography>
-								<strong>Amount:</strong> {selectedWithdrawal.currency}{' '}
-								{formatAmount(selectedWithdrawal.amount)}
-							</Typography>
+						<div className="space-y-16">
+							<div className="bg-red-50 p-16 rounded-lg">
+								<Typography variant="body2" className="text-red-800 font-bold mb-8">Rejecting request for:</Typography>
+								<Typography variant="body2" className="flex justify-between">
+									<span className="text-red-600">Amount:</span>
+									<span className="font-bold text-red-700">{selectedWithdrawal.currency} {formatAmount(selectedWithdrawal.amount)}</span>
+								</Typography>
+							</div>
 							<TextField
 								fullWidth
 								label="Rejection Reason"
 								multiline
-								rows={4}
+								rows={3}
 								value={rejectionReason}
 								onChange={(e) => setRejectionReason(e.target.value)}
+								placeholder="Please explain why this request is being rejected..."
 								required
-								className="mt-4"
+								variant="outlined"
+								error={!rejectionReason.trim()}
+								helperText={!rejectionReason.trim() ? "Reason is required" : ""}
 							/>
 						</div>
 					)}
 				</DialogContent>
-				<DialogActions>
+				<DialogActions className="p-16 border-t-1">
 					<Button onClick={() => setRejectDialogOpen(false)}>Cancel</Button>
 					<Button
 						onClick={handleReject}
 						variant="contained"
 						color="error"
 						disabled={!rejectionReason.trim()}
+						className="px-24"
 					>
-						Reject
+						Confirm Rejection
 					</Button>
 				</DialogActions>
 			</Dialog>
@@ -320,3 +281,4 @@ function WithdrawalsTable() {
 }
 
 export default WithdrawalsTable;
+

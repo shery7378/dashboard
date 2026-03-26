@@ -29,7 +29,10 @@ const divider = (): FuseNavItemType => ({
 });
 
 const navigationConfig: FuseNavItemType[] = [
-	// Admin menu
+
+	// ─────────────────────────────────────────────
+	// ADMIN MENU
+	// ─────────────────────────────────────────────
 	{
 		id: 'admin',
 		type: 'group',
@@ -37,6 +40,8 @@ const navigationConfig: FuseNavItemType[] = [
 		translate: 'ADMIN',
 		auth: authRoles.admin,
 		children: [
+
+			// ── Dashboard ──────────────────────────
 			{
 				id: 'admin.dashboards',
 				title: 'Dashboard',
@@ -45,109 +50,177 @@ const navigationConfig: FuseNavItemType[] = [
 				url: '/dashboards/project',
 				auth: authRoles.admin
 			},
-			{
-				id: 'admin.analytics',
-				title: 'Analytics',
-				type: 'item',
-				icon: 'heroicons-outline:chart-pie',
-				url: '/dashboards/analytics',
-				auth: authRoles.admin
-			},
+
 			divider(),
+
+			// ── Marketplace ────────────────────────
 			{
-				id: 'admin.sellers',
-				title: 'Sellers',
-				type: 'item',
-				icon: 'feather:user-check',
-				url: '/sellers',
-				end: true
-			},
-			divider(),
-			{
-				id: 'admin.stores',
-				title: 'Stores',
+				id: 'admin.marketplace',
+				title: 'Marketplace',
 				type: 'collapse',
 				icon: 'heroicons-outline:building-storefront',
+				auth: authRoles.admin,
 				children: [
 					{
-						id: 'admin.stores.all',
+						id: 'admin.sellers',
+						title: 'Sellers',
+						type: 'item',
+						icon: 'feather:user-check',
+						url: '/sellers',
+						end: true
+					},
+					{
+						id: 'admin.stores',
 						title: 'Stores',
 						type: 'item',
-						url: '/apps/e-commerce/stores'
+						icon: 'heroicons-outline:building-storefront',
+						url: '/apps/e-commerce/stores',
+						end: true
+					},
+					{
+						id: 'admin.customers',
+						title: 'Customers',
+						type: 'item',
+						icon: 'heroicons-outline:users',
+						url: '/accounts',
+						end: true
 					}
 				]
 			},
+
 			divider(),
+
+			// ── Catalog ────────────────────────────
 			{
-				id: 'admin.products',
-				title: 'Products',
+				id: 'admin.catalog',
+				title: 'Catalog',
 				type: 'collapse',
 				icon: 'heroicons-outline:shopping-cart',
+				auth: authRoles.admin,
 				children: [
 					{
 						id: 'admin.products.all',
 						title: 'Products',
 						type: 'item',
+						icon: 'heroicons-outline:shopping-cart',
 						url: '/apps/e-commerce/products',
+						end: true
+					},
+					{
+						id: 'admin.categories.all',
+						title: 'Categories',
+						type: 'item',
+						icon: 'material-outline:category',
+						url: '/apps/e-commerce/categories',
+						end: true
+					},
+					{
+						id: 'admin.products.new',
+						title: 'Add Product',
+						type: 'item',
+						icon: 'heroicons-outline:plus-circle',
+						url: '/apps/e-commerce/products/new',
+						end: true
+					},
+					{
+						id: 'admin.categories.new',
+						title: 'Add Category',
+						type: 'item',
+						icon: 'heroicons-outline:plus-circle',
+						url: '/apps/e-commerce/categories/new',
 						end: true
 					}
 				]
 			},
+
 			divider(),
+
+			// ── Orders ─────────────────────────────
 			{
-				id: 'admin.orders',
+				id: 'admin.orders-group',
 				title: 'Orders',
-				type: 'item',
+				type: 'collapse',
 				icon: 'feather:package',
-				url: '/apps/e-commerce/orders',
-				end: true
-			},
-			divider(),
-			{
-				id: 'admin.withdrawals',
-				title: 'Withdrawals',
-				type: 'item',
-				icon: 'heroicons-outline:banknotes',
-				url: '/apps/e-commerce/withdrawals',
-				end: true,
-				auth: authRoles.admin
-			},
-			divider(),
-			{
-				id: 'admin.refund-requests',
-				title: 'Refund Requests',
-				type: 'item',
-				icon: 'heroicons-outline:arrow-uturn-left',
-				url: '/apps/e-commerce/refund-requests',
-				end: true,
-				auth: authRoles.admin
-			},
-			divider(),
-			{
-				id: 'admin.kyc-approvals',
-				title: 'KYC Approvals',
-				type: 'item',
-				icon: 'heroicons-outline:check-badge',
-				url: '/pages/kyc-approvals',
 				auth: authRoles.admin,
-				end: true
+				children: [
+					{
+						id: 'admin.orders',
+						title: 'All Orders',
+						type: 'item',
+						icon: 'feather:package',
+						url: '/apps/e-commerce/orders',
+						end: true
+					},
+					{
+						id: 'admin.refund-requests',
+						title: 'Refund Requests',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-uturn-left',
+						url: '/apps/e-commerce/refund-requests',
+						end: true,
+						auth: authRoles.admin
+					},
+					{
+						id: 'admin.returns-refunds',
+						title: 'Returns / Refunds',
+						type: 'item',
+						icon: 'heroicons-outline:receipt-refund',
+						url: '/apps/e-commerce/returns',
+						end: true,
+						auth: authRoles.admin
+					}
+				]
 			},
+
 			divider(),
+
+			// ── Finance ────────────────────────────
 			{
-				id: 'admin.loyalty-points',
-				title: 'Loyalty Points',
-				type: 'item',
-				icon: 'heroicons-outline:star',
-				url: '/apps/e-commerce/loyalty-points',
-				end: true,
-				auth: authRoles.admin
+				id: 'admin.finance',
+				title: 'Finance',
+				type: 'collapse',
+				icon: 'heroicons-outline:banknotes',
+				auth: authRoles.admin,
+				children: [
+					{
+						id: 'admin.withdrawals',
+						title: 'Withdrawals',
+						type: 'item',
+						icon: 'heroicons-outline:banknotes',
+						url: '/apps/e-commerce/withdrawals',
+						end: true,
+						auth: authRoles.admin
+					},
+					{
+						id: 'admin.transactions',
+						title: 'Transactions',
+						type: 'item',
+						icon: 'heroicons-outline:arrows-right-left',
+						url: '/apps/e-commerce/transactions',
+						end: true,
+						auth: authRoles.admin
+					},
+					{
+						id: 'admin.payout-requests',
+						title: 'Payout Requests',
+						type: 'item',
+						icon: 'heroicons-outline:currency-dollar',
+						url: '/apps/e-commerce/payout-requests',
+						end: true,
+						auth: authRoles.admin
+					}
+				]
 			},
+
 			divider(),
+
+			// ── Promotions ─────────────────────────
 			{
-				id: 'admin.marketing',
-				title: 'Marketing',
+				id: 'admin.promotions',
+				title: 'Promotions',
 				type: 'collapse',
 				icon: 'heroicons-outline:megaphone',
+				auth: authRoles.admin,
 				children: [
 					{
 						id: 'admin.marketing.coupons',
@@ -172,174 +245,224 @@ const navigationConfig: FuseNavItemType[] = [
 						icon: 'heroicons-outline:megaphone',
 						url: '/pages/marketing/campaigns',
 						end: true
-					}
-				]
-			},
-			divider(),
-			{
-				id: 'admin.categories',
-				title: 'Categories',
-				type: 'collapse',
-				icon: 'material-outline:category',
-				children: [
-					{
-						id: 'admin.categories.all',
-						title: 'Categories',
-						type: 'item',
-						url: '/apps/e-commerce/categories'
 					},
 					{
-						id: 'admin.categories.new',
-						title: 'New category',
+						id: 'admin.loyalty-points',
+						title: 'Loyalty Points',
 						type: 'item',
-						url: '/apps/e-commerce/categories/new'
+						icon: 'heroicons-outline:star',
+						url: '/apps/e-commerce/loyalty-points',
+						end: true,
+						auth: authRoles.admin
 					}
 				]
 			},
+
 			divider(),
+
+			// ── Reports & Analytics ────────────────
 			{
-				id: 'admin.reports',
-				title: 'Reports',
-				type: 'item',
+				id: 'admin.reports-analytics',
+				title: 'Reports & Analytics',
+				type: 'collapse',
 				icon: 'heroicons-outline:arrow-trending-up',
-				url: '/reports',
-				end: true
+				auth: authRoles.admin,
+				children: [
+					{
+						id: 'admin.analytics',
+						title: 'Analytics',
+						type: 'item',
+						icon: 'heroicons-outline:chart-pie',
+						url: '/dashboards/analytics',
+						auth: authRoles.admin
+					},
+					{
+						id: 'admin.reports',
+						title: 'Reports',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-trending-up',
+						url: '/reports',
+						end: true
+					}
+				]
 			},
+
 			divider(),
+
+			// ── User Management ────────────────────
 			{
-				id: 'admin.users',
-				title: 'Users',
-				type: 'item',
+				id: 'admin.user-management',
+				title: 'User Management',
+				type: 'collapse',
 				icon: 'material-outline:supervised_user_circle',
-				url: '/accounts',
-				end: true
+				auth: authRoles.admin,
+				children: [
+					{
+						id: 'admin.users',
+						title: 'Users',
+						type: 'item',
+						icon: 'material-outline:supervised_user_circle',
+						url: '/accounts',
+						end: true
+					},
+					{
+						id: 'admin.kyc-approvals',
+						title: 'KYC Approvals',
+						type: 'item',
+						icon: 'heroicons-outline:check-badge',
+						url: '/pages/kyc-approvals',
+						auth: authRoles.admin,
+						end: true
+					}
+				]
 			},
+
 			divider(),
+
+			// ── System ─────────────────────────────
 			{
-				id: 'admin.settings',
-				title: 'Settings',
+				id: 'admin.system',
+				title: 'System',
 				type: 'collapse',
 				icon: 'material-outline:settings',
 				auth: authRoles.admin,
 				children: [
 					{
-						id: 'admin.currency-settings',
-						title: 'Currency Settings',
+						id: 'admin.messages',
+						title: 'Messages',
 						type: 'item',
-						icon: 'heroicons-outline:currency-dollar',
-						url: '/pages/settings/currency',
-						auth: authRoles.admin,
+						icon: 'heroicons-outline:chat-bubble-left-right',
+						url: '/apps/messages',
 						end: true
 					},
 					{
-						id: 'admin.notification-settings',
-						title: 'Notification Settings',
-						type: 'item',
-						icon: 'heroicons-outline:bell-alert',
-						url: '/pages/settings/notifications',
+						id: 'admin.settings',
+						title: 'Settings',
+						type: 'collapse',
+						icon: 'material-outline:settings',
 						auth: authRoles.admin,
-						end: true
-					},
-					{
-						id: 'admin.maps-radius-settings',
-						title: 'Maps & Radius Search',
-						type: 'item',
-						icon: 'heroicons-outline:map',
-						url: '/pages/settings/radius',
-						auth: authRoles.admin,
-						end: true
-					},
-					{
-						id: 'admin.currency-rates-settings',
-						title: 'Currency Rates',
-						type: 'item',
-						icon: 'heroicons-outline:currency-dollar',
-						url: '/pages/settings/currency-rates',
-						auth: authRoles.admin,
-						end: true
-					},
-					{
-						id: 'admin.product-fees-settings',
-						title: 'Product Fees',
-						type: 'item',
-						icon: 'heroicons-outline:currency-dollar',
-						url: '/pages/settings/product-fees',
-						auth: authRoles.admin,
-						end: true
-					},
-					divider(),
-					{
-						id: 'admin.payment-methods-settings',
-						title: 'Payment Methods',
-						type: 'item',
-						icon: 'heroicons-outline:credit-card',
-						url: '/apps/settings/payment-methods',
-						auth: authRoles.admin,
-						end: true
+						children: [
+							{
+								id: 'admin.currency-settings',
+								title: 'Currency Settings',
+								type: 'item',
+								icon: 'heroicons-outline:currency-dollar',
+								url: '/pages/settings/currency',
+								auth: authRoles.admin,
+								end: true
+							},
+							{
+								id: 'admin.notification-settings',
+								title: 'Notification Settings',
+								type: 'item',
+								icon: 'heroicons-outline:bell-alert',
+								url: '/pages/settings/notifications',
+								auth: authRoles.admin,
+								end: true
+							},
+							{
+								id: 'admin.maps-radius-settings',
+								title: 'Maps & Radius Search',
+								type: 'item',
+								icon: 'heroicons-outline:map',
+								url: '/pages/settings/radius',
+								auth: authRoles.admin,
+								end: true
+							},
+							{
+								id: 'admin.currency-rates-settings',
+								title: 'Currency Rates',
+								type: 'item',
+								icon: 'heroicons-outline:currency-dollar',
+								url: '/pages/settings/currency-rates',
+								auth: authRoles.admin,
+								end: true
+							},
+							{
+								id: 'admin.product-fees-settings',
+								title: 'Product Fees',
+								type: 'item',
+								icon: 'heroicons-outline:currency-dollar',
+								url: '/pages/settings/product-fees',
+								auth: authRoles.admin,
+								end: true
+							},
+							divider(),
+							{
+								id: 'admin.payment-methods-settings',
+								title: 'Payment Methods',
+								type: 'item',
+								icon: 'heroicons-outline:credit-card',
+								url: '/apps/settings/payment-methods',
+								auth: authRoles.admin,
+								end: true
+							}
+						]
 					}
 				]
 			}
 		]
 	},
 
-	// Seller menu (sellers can buy from suppliers - wholesale catalog access)
+	// ─────────────────────────────────────────────
+	// SELLER / SUPPLIER MENU  (shared — same sidebar for both roles)
+	// ─────────────────────────────────────────────
 	{
 		id: 'seller',
 		type: 'group',
 		icon: 'heroicons-outline:shopping-bag',
-		auth: [...authRoles.vendor, ...authRoles.supplier], // Allow seller and supplier roles only
+		auth: [...authRoles.vendor, ...authRoles.supplier],
 		children: [
+
+			// ── Dashboard ──────────────────────────
 			{
 				id: 'seller.dashboards',
 				title: 'Dashboard',
 				type: 'item',
 				icon: 'heroicons-outline:clipboard-document-check',
 				url: '/dashboards/seller',
-				auth: authRoles.vendor
-			},
-			{
-				id: 'supplier.dashboards',
-				title: 'Dashboard',
-				type: 'item',
-				icon: 'heroicons-outline:clipboard-document-check',
-				url: '/dashboards/supplier',
-				auth: authRoles.supplier
-			},
-			{
-				id: 'seller.analytics',
-				title: 'Analytics',
-				type: 'item',
-				icon: 'heroicons-outline:chart-bar',
-				url: '/dashboards/seller-analytics',
-				auth: authRoles.vendor
-			},
-			{
-				id: 'supplier.analytics',
-				title: 'Analytics',
-				type: 'item',
-				icon: 'heroicons-outline:chart-bar',
-				url: '/dashboards/supplier-analytics',
-				auth: authRoles.supplier
-			},
-			divider(),
-			{
-				id: 'seller.store-settings',
-				title: 'Store Settings',
-				type: 'item',
-				icon: 'heroicons-outline:cog-6-tooth',
-				url: '/apps/e-commerce/my-store',
 				end: true
 			},
+
 			divider(),
+
+			// ── Store ──────────────────────────────
 			{
-				id: 'seller.orders',
-				title: 'Orders',
-				type: 'item',
-				icon: 'feather:package',
-				url: '/apps/e-commerce/orders',
-				end: true
+				id: 'seller.store',
+				title: 'Store',
+				type: 'collapse',
+				icon: 'heroicons-outline:building-storefront',
+				children: [
+					{
+						id: 'seller.store.profile',
+						title: 'Store Profile',
+						type: 'item',
+						icon: 'heroicons-outline:identification',
+						url: '/apps/e-commerce/my-store/profile',
+						end: true
+					},
+					{
+						id: 'seller.store.settings',
+						title: 'Store Settings',
+						type: 'item',
+						icon: 'heroicons-outline:cog-6-tooth',
+						url: '/apps/e-commerce/my-store',
+						end: true
+					},
+					{
+						id: 'seller.store.hours',
+						title: 'Business Hours',
+						type: 'item',
+						icon: 'heroicons-outline:clock',
+						url: '/apps/e-commerce/my-store/hours',
+						end: true
+					}
+				]
 			},
+
 			divider(),
+
+			// ── Products ───────────────────────────
 			{
 				id: 'seller.products',
 				title: 'Products',
@@ -348,9 +471,25 @@ const navigationConfig: FuseNavItemType[] = [
 				children: [
 					{
 						id: 'seller.products.all',
-						title: 'Products',
+						title: 'All Products',
 						type: 'item',
 						url: '/apps/e-commerce/products',
+						end: true
+					},
+					{
+						id: 'seller.products.new',
+						title: 'Add Product',
+						type: 'item',
+						icon: 'heroicons-outline:plus-circle',
+						url: '/apps/e-commerce/products/new',
+						end: true
+					},
+					{
+						id: 'seller.products.categories',
+						title: 'Categories',
+						type: 'item',
+						icon: 'material-outline:category',
+						url: '/apps/e-commerce/categories',
 						end: true
 					},
 					{
@@ -358,97 +497,219 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Wholesale Catalog',
 						type: 'item',
 						url: '/apps/e-commerce/wholesale-catalog',
-						auth: authRoles.vendor,
 						end: true
 					}
 				]
 			},
+
 			divider(),
+
+			// ── Orders ─────────────────────────────
 			{
-				id: 'seller.live-selling',
-				title: 'Live Selling',
-				type: 'item',
-				url: '/apps/e-commerce/live-selling',
-				icon: 'heroicons-outline:video-camera',
-				auth: [...authRoles.vendor], // Seller only
-				end: true
+				id: 'seller.orders-group',
+				title: 'Orders',
+				type: 'collapse',
+				icon: 'feather:package',
+				children: [
+					{
+						id: 'seller.orders.all',
+						title: 'All Orders',
+						type: 'item',
+						icon: 'feather:package',
+						url: '/apps/e-commerce/orders',
+						end: true
+					},
+					{
+						id: 'seller.orders.pending',
+						title: 'Pending Orders',
+						type: 'item',
+						icon: 'heroicons-outline:clock',
+						url: '/apps/e-commerce/orders?status=pending',
+						end: true
+					},
+					{
+						id: 'seller.orders.completed',
+						title: 'Completed Orders',
+						type: 'item',
+						icon: 'heroicons-outline:check-circle',
+						url: '/apps/e-commerce/orders?status=completed',
+						end: true
+					},
+					{
+						id: 'seller.orders.refunds',
+						title: 'Refund Requests',
+						type: 'item',
+						icon: 'heroicons-outline:arrow-uturn-left',
+						url: '/apps/e-commerce/refund-requests',
+						end: true
+					}
+				]
 			},
+
 			divider(),
+
+			// ── Earnings ───────────────────────────
 			{
-				id: 'seller.payouts',
-				title: 'Payouts',
-				type: 'item',
-				url: '/apps/e-commerce/payouts',
+				id: 'seller.earnings',
+				title: 'Earnings',
+				type: 'collapse',
 				icon: 'heroicons-outline:currency-dollar',
-				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
-				end: true
+				children: [
+					{
+						id: 'seller.earnings.overview',
+						title: 'Earnings Overview',
+						type: 'item',
+						icon: 'heroicons-outline:chart-bar',
+						url: '/dashboards/seller-analytics',
+						end: true
+					},
+					{
+						id: 'seller.earnings.withdraw',
+						title: 'Withdraw Funds',
+						type: 'item',
+						icon: 'heroicons-outline:banknotes',
+						url: '/apps/e-commerce/payouts',
+						end: true
+					},
+					{
+						id: 'seller.earnings.withdrawal-history',
+						title: 'Withdrawal History',
+						type: 'item',
+						icon: 'heroicons-outline:clock',
+						url: '/apps/e-commerce/withdrawal-history',
+						end: true
+					},
+					{
+						id: 'seller.earnings.transactions',
+						title: 'Transactions',
+						type: 'item',
+						icon: 'heroicons-outline:arrows-right-left',
+						url: '/apps/e-commerce/transactions',
+						end: true
+					}
+				]
 			},
-			// {
-			// 	id: 'seller.order-settings',
-			// 	title: 'Order Options',
-			// 	type: 'item',
-			// 	url: '/apps/e-commerce/order-settings',
-			// 	icon: 'heroicons-outline:cog-6-tooth',
-			// 	auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
-			// 	end: true,
-			// },
+
 			divider(),
+
+			// ── Marketing ──────────────────────────
 			{
-				id: 'supplier.credit-terms',
-				title: 'Credit Terms',
-				type: 'item',
-				url: '/apps/e-commerce/credit-terms',
-				icon: 'heroicons-outline:credit-card',
-				auth: authRoles.supplier, // Only suppliers can manage credit terms
-				end: true
+				id: 'seller.marketing',
+				title: 'Marketing',
+				type: 'collapse',
+				icon: 'heroicons-outline:megaphone',
+				children: [
+					{
+						id: 'seller.marketing.coupons',
+						title: 'Coupons',
+						type: 'item',
+						icon: 'heroicons-outline:ticket',
+						url: '/pages/marketing/coupons',
+						end: true
+					},
+					{
+						id: 'seller.marketing.flashsales',
+						title: 'Flash Sales',
+						type: 'item',
+						icon: 'heroicons-outline:bolt',
+						url: '/pages/marketing/flash-sales',
+						end: true
+					},
+					{
+						id: 'seller.marketing.campaigns',
+						title: 'Campaigns',
+						type: 'item',
+						icon: 'heroicons-outline:megaphone',
+						url: '/pages/marketing/campaigns',
+						end: true
+					},
+					{
+						id: 'seller.marketing.loyalty',
+						title: 'Loyalty Points',
+						type: 'item',
+						icon: 'heroicons-outline:star',
+						url: '/apps/e-commerce/loyalty-points',
+						end: true
+					},
+					{
+						id: 'seller.live-selling',
+						title: 'Live Selling',
+						type: 'item',
+						icon: 'heroicons-outline:video-camera',
+						url: '/apps/e-commerce/live-selling',
+						end: true
+					}
+				]
 			},
-			{
-				id: 'supplier.wholesale-orders',
-				title: 'Wholesale Orders',
-				type: 'item',
-				url: '/apps/e-commerce/wholesale-orders',
-				icon: 'heroicons-outline:shopping-cart',
-				auth: authRoles.supplier, // Only suppliers can view wholesale orders
-				end: true
-			},
+
 			divider(),
+
+			// ── Messages ───────────────────────────
 			{
 				id: 'seller.messages',
 				title: 'Messages',
 				type: 'item',
 				icon: 'heroicons-outline:chat-bubble-left-right',
 				url: '/apps/messages',
-				auth: [...authRoles.vendor, ...authRoles.supplier], // Allow both seller and supplier roles
 				end: true
 			},
-			divider(),
-			{
-				id: 'seller.kyc',
-				title: 'KYC Verification',
-				type: 'item',
-				icon: 'heroicons-outline:identification',
-				url: '/pages/kyc',
-				auth: [...authRoles.vendor, ...authRoles.supplier] // Allow both seller and supplier roles
-			},
+
 			divider(),
 
+			// ── Reports ────────────────────────────
 			{
-				id: 'user-account',
+				id: 'seller.reports',
+				title: 'Reports',
+				type: 'item',
+				icon: 'heroicons-outline:arrow-trending-up',
+				url: '/reports',
+				end: true
+			},
+
+			divider(),
+
+			// ── Account ────────────────────────────
+			{
+				id: 'seller.account',
 				title: 'Account',
-				translate: 'USER_ACCOUNT',
 				type: 'collapse',
 				icon: 'heroicons-outline:user-circle',
 				children: [
+					{
+						id: 'seller.account.profile',
+						title: 'Profile',
+						type: 'item',
+						icon: 'heroicons-outline:user',
+						url: '/accounts/profile',
+						end: true
+					},
+					{
+						id: 'seller.account.settings',
+						title: 'Settings',
+						type: 'item',
+						icon: 'heroicons-outline:cog-6-tooth',
+						url: '/accounts/settings',
+						end: true
+					},
+					{
+						id: 'seller.kyc',
+						title: 'KYC Verification',
+						type: 'item',
+						icon: 'heroicons-outline:identification',
+						url: '/pages/kyc'
+					},
 					{
 						id: 'user-password',
 						title: 'Change Password',
 						translate: 'USER_PASSWORD',
 						type: 'item',
+						icon: 'heroicons-outline:lock-closed',
 						url: '/accounts/profile#change-password'
 					}
 				]
 			},
-			divider() // 👈 divider added here too
+
+			divider()
 		]
 	}
 ];

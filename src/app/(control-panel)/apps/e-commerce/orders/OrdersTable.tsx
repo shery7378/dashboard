@@ -1,23 +1,41 @@
-//src/app/(control-panel)/apps/e-commerce/orders/OrdersTable.tsx
-import { useMemo, useState } from 'react';
+'use client';
+
+import { useMemo } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
 import { ListItemIcon, MenuItem, Paper, Typography, Button } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
-// import FuseLoading from '@fuse/core/FuseLoading';
 import {
 	EcommerceOrder,
 	useDeleteECommerceOrderMutation,
 	useGetECommerceOrdersQuery
 } from '../apis/ECommerceOrdersApi';
 import OrdersStatus from './OrdersStatus';
+import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
+import { useAdminTable } from '@/hooks/useAdminTable';
+import { formatDate } from '@/utils/Constants';
 
+/**
+ * Table showing e-commerce orders with customer and seller details.
+ */
 function OrdersTable() {
-	// 🔹 Pagination state
-	const [pagination, setPagination] = useState({
-		pageIndex: 0, // MRT uses 0-based indexing
-		pageSize: 20
+	const [removeOrders] = useDeleteECommerceOrderMutation();
+
+	const {
+		pagination,
+		setPagination,
+		confirmDialogOpen,
+		isDeleting,
+		handleCloseSuccessDialog,
+		handleCloseConfirmDialog,
+		handleRemoveConfirmed,
+		openDeleteDialog,
+		successDialogOpen,
+		successMessage,
+	} = useAdminTable({
+		deleteMutation: removeOrders,
+		entityName: 'Order',
 	});
 
 	const {
@@ -30,169 +48,150 @@ function OrdersTable() {
 	}, {
 		refetchOnFocus: false,
 		refetchOnReconnect: false,
-		refetchOnMountOrArgChange: 300 // Cache for 5 minutes
+		refetchOnMountOrArgChange: 300
 	});
-	const [removeOrders] = useDeleteECommerceOrderMutation();
 
 	const columns = useMemo<MRT_ColumnDef<EcommerceOrder>[]>(
 		() => [
 			{
 				accessorKey: 'order_number',
 				header: 'Order Number',
-				size: 64,
+				size: 140,
 				Cell: ({ row }) => (
 					<Typography
 						component={Link}
 						to={`/apps/e-commerce/orders/${row.original.id}`}
-						role="button"
+						className="font-semibold hover:underline decoration-secondary"
 					>
-						<u>{row.original.order_number}</u>
+						{row.original.order_number}
 					</Typography>
 				)
 			},
 			{
 				accessorKey: 'user.name',
 				header: 'Customer',
-				Cell: ({ row }) => row.original.user?.name ?? '—'
+				Cell: ({ row }) => <span className="font-medium">{row.original.user?.name || '—'}</span>
 			},
 			{
 				accessorKey: 'vendor.name',
 				header: 'Seller',
-				Cell: ({ row }) => row.original.vendor?.name ?? row.original.store?.name ?? '—'
+				Cell: ({ row }) => {
+					const sellerName = row.original.vendor?.name || row.original.store?.name || '—';
+					return <span className="text-text-secondary">{sellerName}</span>;
+				}
 			},
 			{
 				accessorKey: 'price',
 				header: 'Total',
-				size: 64,
+				size: 100,
 				Cell: ({ row }) => {
 					const rawPrice = row.original.price;
-					const priceValue = rawPrice?.toString().replace(/[£$,\s]/g, '') || '0';
-					const formatted = `£${parseFloat(priceValue).toFixed(2)}`;
-					return formatted;
+					const priceValue = parseFloat(rawPrice?.toString().replace(/[£$,\s]/g, '') || '0');
+					return <span className="font-bold text-secondary">£{priceValue.toFixed(2)}</span>;
 				}
 			},
 			{
 				accessorKey: 'payment_status',
 				header: 'Payment',
-				size: 128,
-				// Cell: ({ row }) => row.original.payment_status ?? '—'
+				size: 120,
 				Cell: ({ row }) => <OrdersStatus name={row.original.payment_status} />
 			},
 			{
 				accessorKey: 'shipping_status',
 				header: 'Status',
+				size: 120,
 				Cell: ({ row }) => <OrdersStatus name={row.original.shipping_status} />
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Order Date',
-				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString()
+				Cell: ({ row }) => formatDate(row.original.created_at)
 			},
 			{
-				accessorKey: 'product_detail',
+				id: 'products_summary',
 				header: 'Products',
-				Cell: ({ row }) => (
-					<div>
-						{Array.isArray(row.original.product_detail) && row.original.product_detail.length > 0 ? (
-							row.original.product_detail.map((item, index) => {
-								if (item.product_detail && typeof item.product_detail === 'object') {
-									return (
-										<Typography
-											key={index}
-											variant="body2"
-											className="border-b-1 mb-1"
-										>
-											{Object.entries(item.product_detail).map(([key, value]) =>
-												['name', 'quantity'].includes(key) ? (
-													<span
-														key={key}
-														style={{ marginRight: '8px' }}
-													>
-														{key == 'quantity'
-															? '(Qty:' + String(value) + ')'
-															: String(value)}
-													</span>
-												) : null
-											)}
-										</Typography>
-									);
-								}
-
-								return null;
-							})
-						) : (
-							<Typography variant="body2">—</Typography>
-						)}
-					</div>
-				)
+				Cell: ({ row }) => {
+					const products = row.original.product_detail || [];
+					if (!Array.isArray(products) || products.length === 0) return <span className="text-gray-400">—</span>;
+					
+					return (
+						<div className="flex flex-col gap-2">
+							{products.slice(0, 2).map((item: any, idx) => (
+								<Typography key={idx} variant="caption" className="text-11 leading-tight text-gray-600 truncate max-w-xs">
+									{item.product_detail?.name} {item.product_detail?.quantity && `(x${item.product_detail.quantity})`}
+								</Typography>
+							))}
+							{products.length > 2 && (
+								<Typography variant="caption" className="text-10 text-primary font-bold">
+									+ {products.length - 2} more items
+								</Typography>
+							)}
+						</div>
+					);
+				}
 			}
 		],
 		[]
 	);
 
-	// No full screen loading; let DataTable handle it for a smoother experience
-	// if (isLoading) {
-	// 	return <FuseLoading />;
-	// }
+	const renderRowActionMenuItems = useMemo(() => ({ closeMenu, row, table }: any) => [
+		<MenuItem
+			key="delete"
+			onClick={() => {
+				openDeleteDialog([row.original.id], table);
+				closeMenu();
+			}}
+			className="text-error"
+		>
+			<ListItemIcon>
+				<FuseSvgIcon color="error">heroicons-outline:trash</FuseSvgIcon>
+			</ListItemIcon>
+			Delete
+		</MenuItem>
+	], [openDeleteDialog]);
 
-	if (error) {
-		return <Typography color="error">Failed to load orders</Typography>;
-	}
+	const renderTopToolbarCustomActions = useMemo(() => ({ table }: any) => {
+		const { rowSelection } = table.getState();
+		if (Object.keys(rowSelection).length === 0) return null;
+
+		return (
+			<Button
+				variant="contained"
+				size="small"
+				color="error"
+				onClick={() => openDeleteDialog(table.getSelectedRowModel().flatRows.map((r) => r.original.id), table)}
+				startIcon={<FuseSvgIcon size={16}>heroicons-outline:trash</FuseSvgIcon>}
+			>
+				Delete selected orders
+			</Button>
+		);
+	}, [openDeleteDialog]);
+
+	if (error) return (
+		<Paper className="p-24 flex flex-col items-center justify-center shadow-1 rounded-lg">
+			<Typography color="error" variant="body1" className="font-semibold text-20">Failed to load orders</Typography>
+			<Typography color="text.secondary" variant="body2">Please check your connection or try again later.</Typography>
+		</Paper>
+	);
 
 	return (
-		<Paper
-			className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full"
-			elevation={0}
-		>
+		<Paper className="flex flex-col flex-auto shadow hover:shadow-lg transition-shadow duration-300 rounded-lg overflow-hidden border-1 border-divider" elevation={0}>
 			<DataTable
+				data={orders?.data ?? []}
+				columns={columns}
 				manualPagination
 				rowCount={orders?.pagination?.total ?? 0}
 				state={{ pagination, isLoading }}
 				onPaginationChange={setPagination}
-				data={orders?.data ?? []}
-				columns={columns}
-				renderRowActionMenuItems={({ closeMenu, row, table }) => [
-					<MenuItem
-						key="delete"
-						onClick={() => {
-							removeOrders([row.original.id]);
-							closeMenu();
-							table.resetRowSelection();
-						}}
-					>
-						<ListItemIcon>
-							<FuseSvgIcon>heroicons-outline:trash</FuseSvgIcon>
-						</ListItemIcon>
-						Delete
-					</MenuItem>
-				]}
-				renderTopToolbarCustomActions={({ table }) => {
-					const { rowSelection } = table.getState();
-
-					if (Object.keys(rowSelection).length === 0) {
-						return null;
-					}
-
-					return (
-						<Button
-							variant="contained"
-							size="small"
-							onClick={() => {
-								const selectedRows = table.getSelectedRowModel().rows;
-								removeOrders(selectedRows.map((row) => row.original.id));
-								table.resetRowSelection();
-							}}
-							className="flex shrink min-w-9 ltr:mr-2 rtl:ml-2"
-							color="secondary"
-						>
-							<FuseSvgIcon size={16}>heroicons-outline:trash</FuseSvgIcon>
-							<span className="hidden sm:flex mx-2">Delete selected items</span>
-						</Button>
-					);
-				}}
+				renderRowActionMenuItems={renderRowActionMenuItems}
+				renderTopToolbarCustomActions={renderTopToolbarCustomActions}
 			/>
+
+			<SuccessDialog open={successDialogOpen} onClose={handleCloseSuccessDialog} message={successMessage} />
+			<ConfirmDialog open={confirmDialogOpen} onClose={handleCloseConfirmDialog} onConfirm={handleRemoveConfirmed} isDeleting={isDeleting} />
 		</Paper>
 	);
 }
 
 export default OrdersTable;
+

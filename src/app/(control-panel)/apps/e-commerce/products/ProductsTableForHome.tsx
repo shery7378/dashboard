@@ -1,18 +1,34 @@
 //src/app/(control-panel)/apps/e-commerce/products/ProductsTableForHome.tsx
 import { useMemo } from 'react';
+import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { type MRT_ColumnDef } from 'material-react-table';
-import DataTable from 'src/components/data-table/DataTable';
+import dynamic from 'next/dynamic';
+import Skeleton from '@mui/material/Skeleton';
+
+const DataTable = dynamic(() => import('src/components/data-table/DataTable'), {
+	ssr: false,
+	loading: () => (
+		<div className="p-4">
+			<Skeleton
+				variant="rounded"
+				height={400}
+			/>
+		</div>
+	)
+});
 import FuseLoading from '@fuse/core/FuseLoading';
 import { Chip, Paper } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
 import Typography from '@mui/material/Typography';
 import clsx from 'clsx';
+import { formatImageUrl } from '@/utils/Constants';
 import {
 	EcommerceProduct,
 	useGetECommerceProductsQuery
 } from '../apis/ProductsLaravelApi';
+
 import ProductModel from './models/ProductModel';
 import { getContrastColor } from '@/utils/colorUtils';
 
@@ -39,30 +55,22 @@ function ProductsTableForHome() {
 				Cell: ({ row }) => {
 					const imageUrl = row.original.featured_image?.url;
 
-					const buildImageUrl = (url: string | undefined) => {
-						if (!url) return '/assets/images/apps/ecommerce/product-image-placeholder.png';
-						if (url.startsWith('http://') || url.startsWith('https://')) return url;
-						const apiBase = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
-						if (apiBase) {
-							return url.startsWith('/') ? `${apiBase}${url}` : `${apiBase}/${url}`;
-						}
-						return url.startsWith('/') ? url : `/${url}`;
-					};
-
 					return (
-						<div className="flex items-center justify-center">
+						<div className="flex items-center justify-center relative w-16 h-16">
 							<img
-								className="w-full max-h-16 max-w-16 block rounded-sm object-cover"
-								src={buildImageUrl(imageUrl)}
-								alt={row.original.name}
+								className="rounded-sm object-cover w-full h-full"
+								src={formatImageUrl(imageUrl)}
+								alt={row.original.name || 'Product Image'}
 								onError={(e) => {
 									const target = e.target as HTMLImageElement;
 									target.src = '/assets/images/apps/ecommerce/product-image-placeholder.png';
 								}}
 							/>
 						</div>
+
 					);
 				}
+
 			},
 			{
 				accessorKey: 'name',

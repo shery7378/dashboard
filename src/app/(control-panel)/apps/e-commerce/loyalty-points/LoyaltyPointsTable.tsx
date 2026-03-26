@@ -22,7 +22,6 @@ import {
 	Box
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import FuseLoading from '@fuse/core/FuseLoading';
 import { useSnackbar } from 'notistack';
 import {
 	useGetLoyaltyPointsQuery,
@@ -31,6 +30,7 @@ import {
 	type LoyaltyPoint
 } from './apis/LoyaltyPointsApi';
 import LoyaltyPointsSettingsDialog from './LoyaltyPointsSettingsDialog';
+import { formatDate } from '@/utils/Constants';
 
 interface LoyaltyPointsTableProps {
 	settingsDialogOpen?: boolean;
@@ -38,6 +38,9 @@ interface LoyaltyPointsTableProps {
 	onSettingsDialogOpen?: () => void;
 }
 
+/**
+ * Table showing loyalty points transactions with points adjustment and settings functionality.
+ */
 function LoyaltyPointsTable({
 	settingsDialogOpen = false,
 	onSettingsDialogClose,
@@ -60,7 +63,6 @@ function LoyaltyPointsTable({
 		date_to: ''
 	});
 
-	// Use the API hook instead of manual axios calls
 	const { data, isLoading, error } = useGetLoyaltyPointsQuery({
 		user_id: filters.user_id,
 		type: filters.type || undefined,
@@ -68,25 +70,13 @@ function LoyaltyPointsTable({
 		date_to: filters.date_to || undefined
 	});
 
-	// Get current settings to display - always fetch, don't skip
 	const {
 		data: settingsData,
-		refetch: refetchSettings,
 		isLoading: isLoadingSettingsQuery
 	} = useGetLoyaltyPointsSettingsQuery(undefined, {
 		refetchOnMountOrArgChange: true,
 		refetchOnFocus: true
 	});
-
-	// Log when query state changes
-	useEffect(() => {
-		console.log('📡 Settings query state changed:', {
-			hasData: !!settingsData,
-			isLoading: isLoadingSettingsQuery,
-			data: settingsData,
-			enabled: settingsData?.data?.loyalty_points_enabled
-		});
-	}, [settingsData, isLoadingSettingsQuery]);
 
 	const [adjustUserPoints] = useAdjustUserPointsMutation();
 
@@ -123,50 +113,23 @@ function LoyaltyPointsTable({
 		}
 	};
 
-	const getTypeColor = (type: string) => {
-		switch (type) {
-			case 'earned':
-				return 'success';
-			case 'redeemed':
-				return 'warning';
-			case 'expired':
-				return 'error';
-			case 'adjusted':
-				return 'info';
-			default:
-				return 'default';
-		}
-	};
-
-	// Debug log to see what settings we're getting - MUST be before early returns
-	useEffect(() => {
-		console.log('📊 Settings data changed:', {
-			hasData: !!settingsData,
-			data: settingsData?.data,
-			enabled: settingsData?.data?.loyalty_points_enabled,
-			fullResponse: settingsData
-		});
-	}, [settingsData]);
-
-	// Process settings data - MUST be before early returns
 	const currentSettings = settingsData?.data;
 	const currencySymbol = currentSettings?.currency_symbol || '$';
 	const defaultCurrency = currentSettings?.default_currency || 'USD';
 	const isLoadingSettings = isLoadingSettingsQuery || (!settingsData && !error);
 
-	// Ensure loyalty_points_enabled is a proper boolean
 	const normalizedSettings = currentSettings
 		? {
 				...currentSettings,
-				loyalty_points_enabled:
+				loyalty_points_enabled: !!(
 					currentSettings.loyalty_points_enabled === true ||
 					currentSettings.loyalty_points_enabled === 'true' ||
 					currentSettings.loyalty_points_enabled === 1 ||
 					currentSettings.loyalty_points_enabled === '1'
+				)
 			}
 		: null;
 
-	// Default settings if not loaded yet
 	const displaySettings = normalizedSettings || {
 		loyalty_points_enabled: false,
 		loyalty_points_per_dollar: 1.0,
@@ -177,54 +140,25 @@ function LoyaltyPointsTable({
 		default_currency: 'USD'
 	};
 
-	// Critical debug: Log every render to see if displaySettings is updating
-	useEffect(() => {
-		console.log(
-			'🎨 RENDER: displaySettings.loyalty_points_enabled =',
-			displaySettings.loyalty_points_enabled,
-			'type:',
-			typeof displaySettings.loyalty_points_enabled
-		);
-		console.log('🎨 RENDER: currentSettings =', currentSettings);
-		console.log('🎨 RENDER: normalizedSettings =', normalizedSettings);
-		console.log('🎨 RENDER: settingsData =', settingsData);
-	}, [displaySettings, currentSettings, normalizedSettings, settingsData]);
-
-	// Debug logging - log every time settingsData changes
-	useEffect(() => {
-		console.log('📊 Table: Settings data updated!', {
-			hasSettingsData: !!settingsData,
-			settingsData: settingsData,
-			currentSettings: currentSettings,
-			displaySettings: displaySettings,
-			enabled: displaySettings.loyalty_points_enabled,
-			enabledType: typeof displaySettings.loyalty_points_enabled,
-			enabledValue: displaySettings.loyalty_points_enabled
-		});
-	}, [settingsData, currentSettings, displaySettings]);
-
 	const columns = useMemo<MRT_ColumnDef<LoyaltyPoint>[]>(
 		() => [
 			{
 				accessorKey: 'id',
 				header: 'ID',
-				size: 80
+				size: 80,
+				Cell: ({ row }) => <span className="font-mono text-gray-400">#{row.original.id}</span>
 			},
 			{
 				accessorKey: 'user',
 				header: 'User',
-				size: 200,
+				size: 220,
 				Cell: ({ row }) => {
 					const user = row.original.user;
-
-					if (!user) return 'N/A';
-
+					if (!user) return <span className="text-gray-400">—</span>;
 					return (
-						<div>
-							<div>
-								{user.first_name} {user.last_name}
-							</div>
-							<div style={{ fontSize: '0.75rem', color: '#666' }}>{user.email}</div>
+						<div className="flex flex-col">
+							<span className="font-semibold text-13">{user.first_name} {user.last_name}</span>
+							<span className="text-11 text-text-secondary">{user.email}</span>
 						</div>
 					);
 				}
@@ -233,84 +167,83 @@ function LoyaltyPointsTable({
 				accessorKey: 'type',
 				header: 'Type',
 				size: 120,
-				Cell: ({ row }) => (
-					<Chip
-						label={row.original.type.charAt(0).toUpperCase() + row.original.type.slice(1)}
-						color={getTypeColor(row.original.type) as any}
-						size="small"
-					/>
-				)
+				Cell: ({ row }) => {
+					const type = row.original.type;
+					const colors: Record<string, string> = {
+						earned: 'bg-green-100 text-green-700',
+						redeemed: 'bg-orange-100 text-orange-700',
+						expired: 'bg-red-100 text-red-700',
+						adjusted: 'bg-blue-100 text-blue-700',
+					};
+					return (
+						<Chip
+							label={type.toUpperCase()}
+							className={`text-10 font-bold ${colors[type] || 'bg-gray-100 text-gray-700'}`}
+							size="small"
+						/>
+					);
+				}
 			},
 			{
 				accessorKey: 'points',
 				header: 'Points',
-				size: 120,
-				Cell: ({ row }) => (
-					<Typography
-						color={row.original.points > 0 ? 'success.main' : 'error.main'}
-						fontWeight="bold"
-					>
-						{row.original.points > 0 ? '+' : ''}
-						{row.original.points.toLocaleString()}
-					</Typography>
-				)
+				size: 140,
+				Cell: ({ row }) => {
+					const points = row.original.points;
+					const isPositive = points > 0;
+					return (
+						<Typography
+							className={`font-bold text-15 ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+						>
+							{isPositive ? '+' : ''}{points.toLocaleString()}
+						</Typography>
+					);
+				}
 			},
 			{
 				accessorKey: 'balance_after',
-				header: 'Balance After',
+				header: 'New Balance',
 				size: 120,
-				Cell: ({ row }) => row.original.balance_after.toLocaleString()
+				Cell: ({ row }) => <span className="font-medium">{row.original.balance_after.toLocaleString()}</span>
 			},
 			{
 				accessorKey: 'description',
 				header: 'Description',
-				size: 250
+				Cell: ({ row }) => <span className="text-12 text-text-secondary leading-tight italic">{row.original.description}</span>
 			},
 			{
-				accessorKey: 'order',
+				accessorKey: 'order.order_number',
 				header: 'Order',
 				size: 120,
 				Cell: ({ row }) => {
 					const order = row.original.order;
-
-					if (!order) return '-';
-
-					return `#${order.order_number || order.id}`;
+					if (!order) return <span className="text-gray-400">—</span>;
+					return <span className="font-mono text-12 font-bold text-primary">#{order.order_number || order.id}</span>;
 				}
 			},
 			{
 				accessorKey: 'expires_at',
 				header: 'Expires At',
-				size: 120,
-				Cell: ({ row }) => {
-					if (!row.original.expires_at) return 'Never';
-
-					return new Date(row.original.expires_at).toLocaleDateString();
-				}
+				size: 130,
+				Cell: ({ row }) => row.original.expires_at ? formatDate(row.original.expires_at) : <span className="text-gray-400">Never</span>
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Date',
 				size: 150,
-				Cell: ({ row }) => new Date(row.original.created_at).toLocaleString()
+				Cell: ({ row }) => formatDate(row.original.created_at)
 			}
 		],
 		[]
 	);
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
+	if (error) return (
+		<Paper className="p-24 flex flex-col items-center justify-center shadow-1 rounded-lg">
+			<Typography color="error" variant="body1" className="font-semibold text-20">Failed to load loyalty points</Typography>
+			<Typography color="text.secondary" variant="body2">Please check your connection or try again later.</Typography>
+		</Paper>
+	);
 
-	if (error) {
-		return (
-			<Paper className="flex flex-col items-center justify-center p-24">
-				<Alert severity="error">
-					{(error as any)?.data?.message || (error as any)?.message || 'Failed to load loyalty points'}
-				</Alert>
-			</Paper>
-		);
-	}
 
 	return (
 		<div className="flex flex-col space-y-4">
@@ -1111,112 +1044,120 @@ function LoyaltyPointsTable({
 				</Grid>
 			</Paper>
 
-			{/* Data Table */}
-			<DataTable
-				data={loyaltyPoints}
-				columns={columns}
-				enableRowActions
-				renderRowActionMenuItems={({ row }) => [
-					<MenuItem
-						key="view-history"
-						onClick={() => {
-							window.location.href = `/apps/e-commerce/loyalty-points/user/${row.original.user_id}/history`;
-						}}
-					>
-						<ListItemIcon>
-							<FuseSvgIcon>heroicons-outline:eye</FuseSvgIcon>
-						</ListItemIcon>
-						View User History
-					</MenuItem>
-				]}
-			/>
-
-			{/* Settings Dialog */}
-			<LoyaltyPointsSettingsDialog
-				open={settingsDialogOpen}
-				onClose={async () => {
-					console.log('🔵 Dialog closing, refetching settings...');
-					onSettingsDialogClose?.();
-
-					// Force a hard refetch by invalidating cache and refetching
-					console.log('🟠 Starting aggressive refetch...');
-
-					// First refetch immediately
-					const result1 = await refetchSettings();
-					console.log('🟢 First refetch result:', result1);
-					console.log('🟢 First refetch data:', result1?.data);
-					console.log('🟢 First refetch enabled:', result1?.data?.data?.loyalty_points_enabled);
-
-					// Second refetch after short delay
-					setTimeout(async () => {
-						const result2 = await refetchSettings();
-						console.log('🟡 Second refetch result:', result2);
-						console.log('🟡 Second refetch data:', result2?.data);
-						console.log('🟡 Second refetch enabled:', result2?.data?.data?.loyalty_points_enabled);
-
-						// Third refetch to be absolutely sure
-						setTimeout(async () => {
-							const result3 = await refetchSettings();
-							console.log('🟣 Third refetch result:', result3);
-							console.log('🟣 Third refetch data:', result3?.data);
-							console.log('🟣 Third refetch enabled:', result3?.data?.data?.loyalty_points_enabled);
-						}, 300);
-					}, 500);
-				}}
-			/>
+			<Paper className="flex flex-col flex-auto shadow hover:shadow-lg transition-shadow duration-300 rounded-lg overflow-hidden border-1 border-divider" elevation={0}>
+				<DataTable
+					data={loyaltyPoints}
+					columns={columns}
+					state={{ isLoading }}
+					enableRowSelection={false}
+					enableRowActions={true}
+					renderRowActionMenuItems={({ closeMenu, row }) => [
+						<MenuItem
+							key="adjust"
+							onClick={() => {
+								const user = row.original.user;
+								if (user) {
+									setSelectedUser({
+										id: user.id,
+										name: `${user.first_name} ${user.last_name}`,
+										email: user.email,
+										balance: row.original.balance_after
+									});
+									setAdjustDialogOpen(true);
+								}
+								closeMenu();
+							}}
+						>
+							<ListItemIcon>
+								<FuseSvgIcon>heroicons-outline:adjustments-horizontal</FuseSvgIcon>
+							</ListItemIcon>
+							Adjust Points
+						</MenuItem>,
+						<MenuItem
+							key="view-history"
+							onClick={() => {
+								window.location.href = `/apps/e-commerce/loyalty-points/user/${row.original.user_id}/history`;
+								closeMenu();
+							}}
+						>
+							<ListItemIcon>
+								<FuseSvgIcon>heroicons-outline:eye</FuseSvgIcon>
+							</ListItemIcon>
+							View User History
+						</MenuItem>
+					]}
+				/>
+			</Paper>
 
 			{/* Adjust Points Dialog */}
-			<Dialog
-				open={adjustDialogOpen}
+			<Dialog 
+				open={adjustDialogOpen} 
 				onClose={() => setAdjustDialogOpen(false)}
-				maxWidth="sm"
+				maxWidth="xs"
 				fullWidth
-				aria-labelledby="adjust-points-dialog-title"
-				disableAutoFocus={false}
-				disableEnforceFocus={false}
 			>
-				<DialogTitle id="adjust-points-dialog-title">Adjust Points</DialogTitle>
-				<DialogContent>
+				<DialogTitle className="border-b-1 pb-16">Adjust User Points</DialogTitle>
+				<DialogContent className="pt-24">
 					{selectedUser && (
-						<Alert
-							severity="info"
-							sx={{ mb: 2 }}
-						>
-							Current Balance: <strong>{selectedUser.balance.toLocaleString()} points</strong>
-						</Alert>
+						<div className="space-y-16">
+							<div className="bg-blue-50 p-16 rounded-lg space-y-4">
+								<Typography variant="body2" className="flex justify-between">
+									<span className="text-blue-600">User:</span>
+									<span className="font-bold text-blue-800">{selectedUser.name}</span>
+								</Typography>
+								<Typography variant="body2" className="flex justify-between">
+									<span className="text-blue-600">Current Balance:</span>
+									<span className="font-bold text-blue-800">{selectedUser.balance.toLocaleString()} pts</span>
+								</Typography>
+							</div>
+							
+							<TextField
+								fullWidth
+								label="Points to Add/Subtract"
+								type="number"
+								value={adjustPoints}
+								onChange={(e) => setAdjustPoints(e.target.value)}
+								helperText="Use negative numbers to subtract points (e.g. -100)"
+								variant="outlined"
+								autoFocus
+							/>
+							
+							<TextField
+								fullWidth
+								label="Description / Reason"
+								multiline
+								rows={2}
+								value={adjustDescription}
+								onChange={(e) => setAdjustDescription(e.target.value)}
+								placeholder="e.g. Manual correction, Promotion bonus..."
+								required
+							/>
+						</div>
 					)}
-					<TextField
-						fullWidth
-						label="Points"
-						type="number"
-						value={adjustPoints}
-						onChange={(e) => setAdjustPoints(e.target.value)}
-						helperText="Enter positive number to add, negative to subtract"
-						sx={{ mb: 2 }}
-					/>
-					<TextField
-						fullWidth
-						label="Description"
-						multiline
-						rows={3}
-						value={adjustDescription}
-						onChange={(e) => setAdjustDescription(e.target.value)}
-						helperText="Reason for adjustment"
-					/>
 				</DialogContent>
-				<DialogActions>
+				<DialogActions className="p-16 border-t-1">
 					<Button onClick={() => setAdjustDialogOpen(false)}>Cancel</Button>
-					<Button
-						onClick={handleAdjustPoints}
-						variant="contained"
+					<Button 
+						onClick={handleAdjustPoints} 
+						variant="contained" 
 						color="primary"
+						disabled={!adjustPoints || !adjustDescription.trim()}
+						className="px-24"
 					>
 						Adjust Points
 					</Button>
 				</DialogActions>
 			</Dialog>
+
+			{/* Settings Dialog */}
+			<LoyaltyPointsSettingsDialog
+				open={settingsDialogOpen}
+				onClose={() => onSettingsDialogClose?.()}
+				currentSettings={displaySettings as any}
+			/>
 		</div>
 	);
 }
 
 export default LoyaltyPointsTable;
+

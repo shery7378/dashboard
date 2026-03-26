@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { MRT_ColumnDef, MRT_TableInstance } from 'material-react-table';
+import { useMemo } from 'react';
+import { MRT_ColumnDef } from 'material-react-table';
 import DataTable from 'src/components/data-table/DataTable';
-import FuseLoading from '@fuse/core/FuseLoading';
 import { ListItemIcon, MenuItem, Paper, Typography, Button, Avatar } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Link from '@fuse/core/Link';
@@ -11,36 +10,32 @@ import {
 	EcommerceCategory,
 	useGetECommerceCategoriesQuery,
 	useDeleteECommerceCategoryMutation,
-	useDeleteECommerceCategoriesMutation
 } from '../apis/CategoriesLaravelApi';
-import { useIsMounted } from 'src/hooks/useIsMounted';
 import { ConfirmDialog, SuccessDialog } from '@/components/DialogComponents';
-import { useEntityManager } from 'src/hooks/useEntityManager';
+import { useAdminTable } from '@/hooks/useAdminTable';
+import { formatDate, formatImageUrl } from '@/utils/Constants';
 
+/**
+ * Table showing e-commerce categories and sub-categories.
+ */
 function CategoriesTable() {
-	const isMountedRef = useIsMounted();
-	const {
-		confirmOpen,
-		confirmTitle,
-		confirmMessage,
-		loading,
-		successMessage,
-		clearSuccessMessage,
-		requestAction,
-		confirmAction,
-		cancelAction
-	} = useEntityManager();
-
-	const [tableInstance, setTableInstance] = useState<MRT_TableInstance<EcommerceCategory> | null>(null);
-	const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
-
-	const [pagination, setPagination] = useState({
-		pageIndex: 0, // MRT uses 0-based indexing
-		pageSize: 1000 // Increased to show all categories
-	});
-
 	const [deleteCategory] = useDeleteECommerceCategoryMutation();
-	const [deleteCategories] = useDeleteECommerceCategoriesMutation();
+
+	const {
+		pagination,
+		setPagination,
+		confirmDialogOpen,
+		isDeleting,
+		handleCloseSuccessDialog,
+		handleCloseConfirmDialog,
+		handleRemoveConfirmed,
+		openDeleteDialog,
+		successDialogOpen,
+		successMessage,
+	} = useAdminTable({
+		deleteMutation: deleteCategory,
+		entityName: 'Category',
+	});
 
 	const {
 		data: categoriesRes,
@@ -69,51 +64,14 @@ function CategoriesTable() {
 				header: 'Image',
 				enableSorting: false,
 				size: 64,
-				Cell: ({ row }) => {
-					const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-					let img: string | null = null;
-
-					// Check image_url first (from API response)
-					if (row.original.image_url) {
-						if (
-							row.original.image_url.startsWith('http://') ||
-							row.original.image_url.startsWith('https://')
-						) {
-							img = row.original.image_url;
-						} else if (row.original.image_url.startsWith('/')) {
-							img = `${apiBaseUrl}${row.original.image_url}`;
-						} else {
-							img = row.original.image_url;
-						}
-					} else if (row.original.image) {
-						// Fall back to image field
-						if (
-							row.original.image.startsWith('http://') ||
-							row.original.image.startsWith('https://') ||
-							row.original.image.startsWith('data:')
-						) {
-							img = row.original.image;
-						} else if (row.original.image.startsWith('/')) {
-							img = `${apiBaseUrl}${row.original.image}`;
-						} else {
-							// Relative path - assume it's in storage
-							img = `${apiBaseUrl}/storage/${row.original.image}`;
-						}
-					}
-
-					if (!img) {
-						img = '/assets/images/apps/ecommerce/product-image-placeholder.png';
-					}
-
-					return (
-						<Avatar
-							variant="rounded"
-							src={img}
-							alt={row.original.name}
-							sx={{ width: 40, height: 40 }}
-						/>
-					);
-				}
+				Cell: ({ row }) => (
+					<Avatar
+						variant="rounded"
+						src={formatImageUrl(row.original.image_url || row.original.image)}
+						alt={row.original.name}
+						sx={{ width: 44, height: 44, borderRadius: 1 }}
+					/>
+				)
 			},
 			{
 				accessorKey: 'name',
@@ -122,22 +80,24 @@ function CategoriesTable() {
 					<Typography
 						component={Link}
 						to={`/apps/e-commerce/categories/${row.original.id}/${row.original.slug}`}
-						role="button"
+						className="font-semibold hover:underline decoration-secondary"
 					>
-						<u>{row.original.name}</u>
+						{row.original.name}
 					</Typography>
 				)
 			},
 			{ accessorKey: 'slug', header: 'Slug' },
-			{ accessorKey: 'description', header: 'Description' },
+			{ 
+				accessorKey: 'description', 
+				header: 'Description',
+				Cell: ({ row }) => <span className="text-13 text-text-secondary truncate max-w-xs block">{row.original.description || '—'}</span>
+			},
 			{
 				accessorKey: 'active',
 				header: 'Status',
 				Cell: ({ row }) => (
 					<Typography
-						variant="body2"
-						color={row.original.active === 1 ? 'success.main' : 'error.main'}
-						fontWeight="normal"
+						className={`text-12 font-bold px-2 py-0.5 rounded inline-block ${row.original.active === 1 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
 					>
 						{row.original.active === 1 ? 'Active' : 'Inactive'}
 					</Typography>
@@ -145,172 +105,82 @@ function CategoriesTable() {
 			},
 			{
 				accessorKey: 'parent_id',
-				header: 'Parent Category',
+				header: 'Parent',
 				Cell: ({ row }) => {
-					// Show parent category name if parent_id exists, otherwise show dash
 					if (row.original.parent_id) {
 						const parentName = parentCategoryMap.get(row.original.parent_id);
-						return parentName || row.original.parent_id;
+						return <span className="text-13 bg-gray-100 px-2 py-0.5 rounded">{parentName || row.original.parent_id}</span>;
 					}
-
-					return '—';
+					return <span className="text-gray-400">—</span>;
 				}
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Created At',
-				Cell: ({ row }) =>
-					row.original.created_at ? new Date(row.original.created_at).toLocaleDateString() : '—'
+				Cell: ({ row }) => formatDate(row.original.created_at)
 			}
 		],
 		[parentCategoryMap]
 	);
 
-	useEffect(() => {
-		if (!isMountedRef.current) return;
+	const renderRowActionMenuItems = useMemo(() => ({ closeMenu, row, table }: any) => [
+		<MenuItem
+			key="delete"
+			onClick={() => {
+				openDeleteDialog([row.original.id], table);
+				closeMenu();
+			}}
+			className="text-error"
+		>
+			<ListItemIcon>
+				<FuseSvgIcon color="error">heroicons-outline:trash</FuseSvgIcon>
+			</ListItemIcon>
+			Delete
+		</MenuItem>
+	], [openDeleteDialog]);
 
-		if (categoriesRes) {
-			setRowSelection({});
-		}
+	const renderTopToolbarCustomActions = useMemo(() => ({ table }: any) => {
+		const { rowSelection } = table.getState();
+		if (Object.keys(rowSelection).length === 0) return null;
 
-		if (error) {
-			console.error('Failed to load categories:', error);
-		}
-	}, [categoriesRes, error, isMountedRef]);
+		return (
+			<Button
+				variant="contained"
+				size="small"
+				color="error"
+				onClick={() => openDeleteDialog(table.getSelectedRowModel().flatRows.map((r) => r.original.id), table)}
+				startIcon={<FuseSvgIcon size={16}>heroicons-outline:trash</FuseSvgIcon>}
+			>
+				Delete selected items
+			</Button>
+		);
+	}, [openDeleteDialog]);
 
-	const handleDelete = (rows: EcommerceCategory[]) => {
-		console.log(rows, 'slected rows');
-		const ids = rows.map((r) => r.id);
-		console.log(ids, 'slected ids');
-		let confirmTitle = '';
-
-		if (ids.length > 1) {
-			if (rows.every((r) => r.parent_id)) {
-				confirmTitle = 'Delete Child Categories';
-			} else if (rows.every((r) => !r.parent_id)) {
-				confirmTitle = 'Delete Parent Categories';
-			} else {
-				confirmTitle = 'Delete Categories';
-			}
-		} else {
-			const row = rows[0];
-			confirmTitle = row?.parent_id ? 'Delete Child Category' : 'Delete Parent Category';
-		}
-
-		requestAction({
-			ids,
-			action: deleteCategory,
-			// bulkAction: deleteCategories,
-			entityLabel: 'category',
-			actionLabel: 'deleted',
-			confirmTitle,
-			confirmMessage: `Are you sure you want to delete ${ids.length > 1 ? ids.length + ' categories' : 'this category'}?`,
-			onSuccess: () => {
-				if (isMountedRef.current) {
-					setRowSelection({});
-				}
-			},
-			onError: (failed, errors) => {
-				console.error('Deletion errors:', errors);
-			},
-			onCancel: () => {
-				setTableInstance(null);
-				setRowSelection({});
-			},
-			snackbarOptions: { autoHideDuration: 5000 }
-		});
-	};
-
-	if (isLoading) return <FuseLoading />;
-
-	if (error) return <Typography color="error">Failed to load categories</Typography>;
+	if (error) return (
+		<Paper className="p-24 flex flex-col items-center justify-center shadow-1 rounded-lg">
+			<Typography color="error" variant="body1" className="font-semibold text-20">Failed to load categories</Typography>
+			<Typography color="text.secondary" variant="body2">Please check your connection or try again later.</Typography>
+		</Paper>
+	);
 
 	return (
-		<Paper
-			className="flex flex-col flex-auto shadow-1 rounded-t-lg overflow-hidden rounded-b-none w-full h-full"
-			elevation={0}
-		>
+		<Paper className="flex flex-col flex-auto shadow hover:shadow-lg transition-shadow duration-300 rounded-lg overflow-hidden border-1 border-divider" elevation={0}>
 			<DataTable
 				data={categories}
-				columns={[...columns]}
+				columns={columns}
 				manualPagination
 				rowCount={categoriesRes?.pagination.total ?? 0}
-				state={{ pagination, rowSelection }}
+				state={{ pagination, isLoading }}
 				onPaginationChange={setPagination}
-				onRowSelectionChange={setRowSelection}
-				enableExpanding={false}
-				getRowId={(row) => row.id.toString()}
-				enableRowSelection={(row) => true}
-				enableMultiRowSelection
-				renderRowActionMenuItems={({ closeMenu, row, table }) => [
-					// <MenuItem
-					// 	key="edit"
-					// 	onClick={() => {
-					// 		console.log('Edit', row.original.id);
-					// 		closeMenu();
-					// 	}}
-					// >
-					// 	<ListItemIcon>
-					// 		<FuseSvgIcon>heroicons-outline:pencil</FuseSvgIcon>
-					// 	</ListItemIcon>
-					// 	Edit
-					// </MenuItem>,
-					<MenuItem
-						key="delete"
-						onClick={() => {
-							setTableInstance(table);
-							handleDelete([row.original]);
-							closeMenu();
-						}}
-					>
-						<ListItemIcon>
-							<FuseSvgIcon>heroicons-outline:trash</FuseSvgIcon>
-						</ListItemIcon>
-						Delete
-					</MenuItem>
-				]}
-				renderTopToolbarCustomActions={({ table }) => {
-					const { rowSelection } = table.getState();
-
-					if (Object.keys(rowSelection).length === 0) return null;
-
-					const selectedRows = table.getSelectedRowModel().flatRows.map((r) => r.original);
-
-					return (
-						<Button
-							variant="contained"
-							size="small"
-							onClick={() => {
-								setTableInstance(table);
-								handleDelete(selectedRows);
-							}}
-							className="flex shrink min-w-9 ltr:mr-2 rtl:ml-2"
-							color="secondary"
-							disabled={loading}
-						>
-							<FuseSvgIcon size={16}>heroicons-outline:trash</FuseSvgIcon>
-							<span className="hidden sm:flex mx-2">Delete selected</span>
-						</Button>
-					);
-				}}
+				renderRowActionMenuItems={renderRowActionMenuItems}
+				renderTopToolbarCustomActions={renderTopToolbarCustomActions}
 			/>
 
-			<SuccessDialog
-				open={!!successMessage}
-				onClose={clearSuccessMessage}
-				message={successMessage}
-			/>
-
-			<ConfirmDialog
-				open={confirmOpen}
-				title={confirmTitle}
-				message={confirmMessage}
-				onConfirm={confirmAction}
-				onClose={cancelAction}
-				isDeleting={loading}
-			/>
+			<SuccessDialog open={successDialogOpen} onClose={handleCloseSuccessDialog} message={successMessage} />
+			<ConfirmDialog open={confirmDialogOpen} onClose={handleCloseConfirmDialog} onConfirm={handleRemoveConfirmed} isDeleting={isDeleting} />
 		</Paper>
 	);
 }
 
 export default CategoriesTable;
+

@@ -32,7 +32,7 @@ function calcVisitorsTotal(widget?: VisitorsOverviewWidgetType) {
 	return series.reduce((sum, p) => sum + (p?.y || 0), 0);
 }
 
-export default function KpiSummary() {
+export default function KpiSummary({ isLoading = false }: { isLoading?: boolean }) {
 	const visitors = useAppSelector(selectVisitors);
 	const visits = useAppSelector(selectVisits);
 	const impressions = useAppSelector(selectImpressions);
@@ -46,28 +46,28 @@ export default function KpiSummary() {
 	const items = [
 		{
 			label: 'Users',
-			value: formatNumber(totalVisitors),
+			value: totalVisitors,
 			color: '#6366f1',
 			bg: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(99,102,241,0.06))',
 			bar: totalVisitors % 100 || 40
 		},
 		{
 			label: 'Sessions',
-			value: formatNumber(totalSessions),
+			value: totalSessions,
 			color: '#06b6d4',
 			bg: 'linear-gradient(135deg, rgba(6,182,212,0.18), rgba(6,182,212,0.06))',
 			bar: totalSessions % 100 || 55
 		},
 		{
 			label: 'Page Views',
-			value: formatNumber(totalViews),
+			value: totalViews,
 			color: '#22c55e',
 			bg: 'linear-gradient(135deg, rgba(34,197,94,0.18), rgba(34,197,94,0.06))',
 			bar: totalViews % 100 || 70
 		},
 		{
 			label: 'Conversions',
-			value: formatNumber(totalConversions),
+			value: totalConversions,
 			color: '#f97316',
 			bg: 'linear-gradient(135deg, rgba(249,115,22,0.18), rgba(249,115,22,0.06))',
 			bar: totalConversions % 100 || 20
@@ -104,27 +104,35 @@ export default function KpiSummary() {
 					>
 						<Typography
 							variant="body2"
-							sx={{ color: (t) => alpha(t.palette.text.primary, 0.7) }}
+							sx={{ color: (t) => alpha(t.palette.text.primary, 0.7), fontWeight: 500, opacity: 0.8 }}
 						>
 							{kpi.label}
 						</Typography>
-						<Typography
-							variant="h4"
-							sx={{ fontWeight: 800, mt: 0.5 }}
-						>
-							{kpi.value}
-						</Typography>
-						<Box sx={{ mt: 1.5 }}>
-							<LinearProgress
-								variant="determinate"
-								value={Math.min(100, kpi.bar)}
-								sx={{
-									height: 8,
-									borderRadius: 6,
-									backgroundColor: (t) => alpha(t.palette.common.black, 0.06),
-									'& .MuiLinearProgress-bar': { backgroundColor: kpi.color, borderRadius: 6 }
-								}}
-							/>
+						{isLoading ? (
+							<Skeleton variant="text" width="60%" height={48} />
+						) : (
+							<Typography
+								variant="h4"
+								sx={{ fontWeight: 800, mt: 0.5, color: 'text.primary' }}
+							>
+								{formatNumber(kpi.value)}
+							</Typography>
+						)}
+						<Box sx={{ mt: 1.8 }}>
+							{isLoading ? (
+								<Skeleton variant="rounded" height={8} />
+							) : (
+								<LinearProgress
+									variant="determinate"
+									value={Math.min(100, kpi.bar)}
+									sx={{
+										height: 8,
+										borderRadius: 6,
+										backgroundColor: (t) => alpha(t.palette.common.black, 0.05),
+										'& .MuiLinearProgress-bar': { backgroundColor: kpi.color, borderRadius: 6 }
+									}}
+								/>
+							)}
 						</Box>
 					</Paper>
 				</Grid>
@@ -132,3 +140,4 @@ export default function KpiSummary() {
 		</Grid>
 	);
 }
+

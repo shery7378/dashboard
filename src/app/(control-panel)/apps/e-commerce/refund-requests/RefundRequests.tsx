@@ -1,7 +1,6 @@
 'use client';
 
-import GlobalStyles from '@mui/material/GlobalStyles';
-import RefundRequestsHeader from './RefundRequestsHeader';
+import PageHeader from '@/components/PageHeader';
 import RefundRequestsTable from './RefundRequestsTable';
 
 /**
@@ -9,20 +8,24 @@ import RefundRequestsTable from './RefundRequestsTable';
  */
 function RefundRequests() {
 	return (
-		<>
-			<GlobalStyles
-				styles={() => ({
-					'#root': {
-						maxHeight: '100vh'
+		<div className="w-full h-full flex flex-col">
+			<PageHeader 
+				title="Refund Requests" 
+				subtitle="Manage and process customer refund and return requests"
+				actions={[
+					{
+						label: 'Export CSV',
+						icon: 'heroicons-outline:arrow-down-tray',
+						color: 'secondary'
 					}
-				})}
+				]}
 			/>
-			<div className="w-full h-full flex flex-col px-4">
-				<RefundRequestsHeader />
+			<div className="flex-auto p-24 pt-0">
 				<RefundRequestsTable />
 			</div>
-		</>
+		</div>
 	);
 }
 
 export default RefundRequests;
+

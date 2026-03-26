@@ -10,7 +10,11 @@ import Link from '@fuse/core/Link';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { CardContent, Alert } from '@mui/material';
-import { useState } from 'react';
+import { useState, memo } from 'react';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+import Image from 'next/image';
+import { AuthTitle } from '@/components/auth';
 
 /**
  * Form Validation Schema
@@ -22,6 +26,24 @@ const schema = z.object({
 const defaultValues = {
 	email: ''
 };
+
+const BackArrow = memo(() => (
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width="20"
+		height="20"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		strokeWidth="2"
+		strokeLinecap="round"
+		strokeLinejoin="round"
+		aria-hidden="true"
+	>
+		<path d="M19 12H5M12 5l-7 7 7 7" />
+	</svg>
+));
+BackArrow.displayName = 'BackArrow';
 
 /**
  * The classic forgot password page.
@@ -71,24 +93,36 @@ function ClassicForgotPasswordPage() {
 	}
 
 	return (
-		<div className="flex min-w-0 flex-auto flex-col items-center sm:justify-center bg-[#F7F7F8]">
-			<Paper className="min-h-full w-full rounded-none px-4 py-8 sm:min-h-auto sm:w-[420px] sm:rounded-xl sm:p-7.5 sm:shadow-sm border border-gray-200 bg-white">
-				<CardContent className="w-full flex flex-col items-center p-0">
-					<Typography
-						color="primary"
-						className="text-4xl font-extrabold leading-[1.25] tracking-tight text-center"
-					>
-						MultiKonnect
-					</Typography>
+		<div className="min-h-screen flex flex-col bg-gray-50">
+			<Header />
 
-					<Typography className="text-3xl font-bold tracking-tight text-center">Forgot password?</Typography>
-
-					<Typography
-						color="textSecondary"
-						className="mt-2 text-sm text-center"
+			<main className="flex flex-1 items-center justify-center px-4 py-12">
+				<div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white rounded-lg border border-[#D8DADC] relative">
+					<button
+						onClick={() => history.back()}
+						className="absolute top-8 left-8 p-2 rounded-full border border-gray-200 hover:bg-gray-50 flex items-center justify-center transition-colors z-10"
+						aria-label="Go back"
+						type="button"
 					>
-						Fill the email to reset your password
-					</Typography>
+						<BackArrow />
+					</button>
+
+					<div className="mb-6 text-center flex justify-center items-center">
+						<Image
+							src="/assets/images/MultiKonnect.svg"
+							alt="MultiKonnect"
+							width={144}
+							height={32}
+							priority
+							className="object-contain cursor-pointer"
+						/>
+					</div>
+
+					<AuthTitle
+						heading="Forgot password?"
+						subtitle="Fill the email to reset your password"
+						align="center"
+					/>
 
 					{alert && (
 						<Alert
@@ -148,15 +182,17 @@ function ClassicForgotPasswordPage() {
 								Return to
 							</Typography>
 							<Link
-								className="font-semibold"
+								className="font-semibold text-red-600 hover:text-red-700"
 								to="/sign-in"
 							>
 								Sign in
 							</Link>
 						</div>
 					</form>
-				</CardContent>
-			</Paper>
+				</div>
+			</main>
+
+			<Footer />
 		</div>
 	);
 }

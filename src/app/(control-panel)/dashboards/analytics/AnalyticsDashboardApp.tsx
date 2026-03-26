@@ -6,20 +6,22 @@ import { motion } from 'motion/react';
 import Typography from '@mui/material/Typography';
 import Skeleton from '@mui/material/Skeleton';
 import Box from '@mui/material/Box';
-import AnalyticsDashboardAppHeader from './AnalyticsDashboardAppHeader';
+import PageHeader from '@/components/PageHeader';
 import { useGetAnalyticsDashboardWidgetsQuery } from './AnalyticsDashboardApi';
 import KpiSummary from './KpiSummary';
 
-// Lazy-load heavy chart widgets so the page shell renders immediately
-const VisitorsOverviewWidget = lazy(() => import('./widgets/VisitorsOverviewWidget'));
-const ConversionsWidget = lazy(() => import('./widgets/ConversionsWidget'));
-const ImpressionsWidget = lazy(() => import('./widgets/ImpressionsWidget'));
-const VisitsWidget = lazy(() => import('./widgets/VisitsWidget'));
-const VisitorsVsPageViewsWidget = lazy(() => import('./widgets/VisitorsVsPageViewsWidget'));
+import VisitorsOverviewWidget from './widgets/VisitorsOverviewWidget';
+import ConversionsWidget from './widgets/ConversionsWidget';
+import ImpressionsWidget from './widgets/ImpressionsWidget';
+import VisitsWidget from './widgets/VisitsWidget';
+import VisitorsVsPageViewsWidget from './widgets/VisitorsVsPageViewsWidget';
+
+// Lazy-load audience widgets which are below the fold
 const NewVsReturningWidget = lazy(() => import('./widgets/NewVsReturningWidget'));
 const AgeWidget = lazy(() => import('./widgets/AgeWidget'));
 const LanguageWidget = lazy(() => import('./widgets/LanguageWidget'));
 const GenderWidget = lazy(() => import('./widgets/GenderWidget'));
+
 
 const container = {
 	show: {
@@ -51,12 +53,29 @@ function WidgetSkeleton({ height = 200 }: { height?: number }) {
  * Heavy GA4 widgets stream in as their data resolves.
  */
 function AnalyticsDashboardApp() {
-	// Fire the single GA4 fetch; RTK Query handles caching (10 min TTL)
-	useGetAnalyticsDashboardWidgetsQuery();
+	// Fire the single GA4 fetch; RTK Query handles caching (1 hour TTL)
+	const { isLoading } = useGetAnalyticsDashboardWidgetsQuery();
 
 	return (
 		<FusePageSimple
-			header={<AnalyticsDashboardAppHeader />}
+			header={
+				<PageHeader 
+					title="Analytics Dashboard" 
+					subtitle="Monitor metrics, check reports and review performance"
+					actions={[
+						{
+							label: 'Settings',
+							icon: 'heroicons-solid:cog-6-tooth',
+							color: 'primary'
+						},
+						{
+							label: 'Export',
+							icon: 'heroicons-solid:arrow-up-tray',
+							color: 'secondary'
+						}
+					]}
+				/>
+			}
 			content={
 				<motion.div
 					className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 w-full p-6 md:p-8"
@@ -64,22 +83,21 @@ function AnalyticsDashboardApp() {
 					initial="hidden"
 					animate="show"
 				>
-					{/* KPI Summary – reads from Redux store, shows 0s until data arrives */}
+					{/* KPI Summary – shows skeletons while data is loading */}
 					<motion.div
 						variants={item}
 						className="sm:col-span-2 lg:col-span-3"
 					>
-						<KpiSummary />
+						<KpiSummary isLoading={isLoading} />
 					</motion.div>
+
 
 					{/* Visitors Overview */}
 					<motion.div
 						variants={item}
 						className="sm:col-span-2 lg:col-span-3"
 					>
-						<Suspense fallback={<WidgetSkeleton height={280} />}>
-							<VisitorsOverviewWidget />
-						</Suspense>
+						<VisitorsOverviewWidget />
 					</motion.div>
 
 					{/* Three compact trend cards */}
@@ -87,27 +105,21 @@ function AnalyticsDashboardApp() {
 						variants={item}
 						className="sm:col-span-2 lg:col-span-1"
 					>
-						<Suspense fallback={<WidgetSkeleton height={180} />}>
-							<ConversionsWidget />
-						</Suspense>
+						<ConversionsWidget />
 					</motion.div>
 
 					<motion.div
 						variants={item}
 						className="sm:col-span-2 lg:col-span-1"
 					>
-						<Suspense fallback={<WidgetSkeleton height={180} />}>
-							<ImpressionsWidget />
-						</Suspense>
+						<ImpressionsWidget />
 					</motion.div>
 
 					<motion.div
 						variants={item}
 						className="sm:col-span-2 lg:col-span-1"
 					>
-						<Suspense fallback={<WidgetSkeleton height={180} />}>
-							<VisitsWidget />
-						</Suspense>
+						<VisitsWidget />
 					</motion.div>
 
 					{/* Visitors vs Page Views */}
@@ -115,10 +127,9 @@ function AnalyticsDashboardApp() {
 						variants={item}
 						className="sm:col-span-2 lg:col-span-3"
 					>
-						<Suspense fallback={<WidgetSkeleton height={280} />}>
-							<VisitorsVsPageViewsWidget />
-						</Suspense>
+						<VisitorsVsPageViewsWidget />
 					</motion.div>
+
 
 					{/* Audience section */}
 					<Box className="w-full mt-4 sm:col-span-3">

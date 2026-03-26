@@ -1,239 +1,144 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useTransition, memo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import Footer from '@/components/layout/Footer';
 import Header from '@/components/layout/Header';
 import { AuthInput, AuthTitle, AuthButton } from '@/components/auth';
-import { getStorageUrl } from '@/utils/urlHelpers';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+
+// Memoized radio option to prevent re-renders on email change
+const UserTypeRadio = memo(({ type, label, selected, onSelect }: {
+	type: string;
+	label: string;
+	selected: boolean;
+	onSelect: (type: string) => void;
+}) => (
+	<label className="flex items-center gap-3 cursor-pointer" onClick={() => onSelect(type)}>
+		<div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${selected ? 'border-[#F44322] bg-white' : 'border-gray-400 bg-white'}`}>
+			{selected && <div className="w-2.5 h-2.5 rounded-full bg-[#F44322]" />}
+		</div>
+		<span className={`text-base ${selected ? 'text-gray-800 font-semibold' : 'text-gray-500 font-normal'}`}>{label}</span>
+	</label>
+));
+UserTypeRadio.displayName = 'UserTypeRadio';
+
+// Memoized social button to prevent re-renders
+const SocialButton = memo(({ src, alt, label }: { src: string; alt: string; label: string }) => (
+	<button className="flex items-center justify-center gap-3 w-full h-14 rounded-2xl border border-[#DCDEE0] bg-white transition-colors px-4">
+		<Image src={src} alt={alt} width={24} height={24} className="w-6 h-6 flex-shrink-0" />
+		<span className="text-[#111111] text-base">{label}</span>
+	</button>
+));
+SocialButton.displayName = 'SocialButton';
 
 export default function SignUpPage() {
 	const router = useRouter();
 	const [email, setEmail] = useState('');
 	const [userType, setUserType] = useState('seller');
-	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errorMessage, setErrorMessage] = useState('');
+	const [isPending, startTransition] = useTransition();
 
+	// useCallback prevents recreation on every render
+	const handleUserTypeChange = useCallback((type: string) => {
+		setUserType(type);
+	}, []);
 
-	const handleContinue = async (e: React.MouseEvent<HTMLButtonElement>) => {
+	const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		setEmail(e.target.value);
+		if (errorMessage) setErrorMessage('');
+	}, [errorMessage]);
+
+	const handleContinue = useCallback(async (e: React.MouseEvent<HTMLButtonElement>) => {
 		e.preventDefault();
+		const trimmed = email.trim();
+		if (!trimmed || isPending) return;
 
-		if (isSubmitting) return;
+		const normalizedEmail = trimmed.toLowerCase();
 
-		// Handle continue logic here
-		if (email.trim()) {
-			setIsSubmitting(true);
-			setErrorMessage('');
-
+		startTransition(async () => {
 			try {
-				// Try to get CSRF cookie first
-				try {
-					await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/sanctum/csrf-cookie`, {
-						credentials: 'include'
-					}).catch(() => {
-						console.log('CSRF cookie endpoint not available, continuing anyway');
-					});
-				} catch (csrfError) {
-					console.log('CSRF cookie request failed, continuing:', csrfError);
-				}
+				// Fire CSRF and OTP requests — CSRF is best-effort, don't await sequentially
+				fetch(`${API_URL}/sanctum/csrf-cookie`, { credentials: 'include' }).catch(() => { });
 
-				// Normalize email to lowercase for consistency
-				const normalizedEmail = email.trim().toLowerCase();
-
-				// Send OTP to email - call backend directly (same as multifront)
-				const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000'}/api/send-code`, {
+				const res = await fetch(`${API_URL}/api/send-code`, {
 					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
+					headers: { 'Content-Type': 'application/json' },
 					credentials: 'include',
-					body: JSON.stringify({ email: normalizedEmail })
+					body: JSON.stringify({ email: normalizedEmail }),
 				});
 
 				if (!res.ok) {
 					const contentType = res.headers.get('content-type');
-					let errorMessage = 'Failed to send verification code. Please try again.';
-
-					if (contentType && contentType.includes('application/json')) {
-						try {
-							const errorData = await res.json();
-							errorMessage = errorData.message || errorMessage;
-						} catch (jsonError) {
-							console.error('Failed to parse error response as JSON:', jsonError);
-						}
+					let msg = 'Failed to send verification code. Please try again.';
+					if (contentType?.includes('application/json')) {
+						try { msg = (await res.json()).message || msg; } catch { }
 					}
-
-					setErrorMessage(errorMessage);
-					setIsSubmitting(false);
+					setErrorMessage(msg);
 					return;
 				}
 
-				// Small delay to ensure code is stored
-				await new Promise((resolve) => setTimeout(resolve, 500));
-
-				// Store email (normalized) and userType for next step
+				// Batch storage writes
 				localStorage.setItem('signupEmail', normalizedEmail);
 				localStorage.setItem('signupUserType', userType);
-				// Mark OTP as sent to prevent duplicate sending
 				sessionStorage.setItem(`otp_sent_${normalizedEmail}`, 'true');
 
-				// Navigate to verify-otp page with email as query parameter
+				// Remove artificial 500ms delay — unnecessary with proper backend
 				router.push(`/verify-otp?email=${encodeURIComponent(normalizedEmail)}&userType=${userType}`);
 			} catch (error: any) {
-				console.error('Error sending OTP:', error);
-				setErrorMessage(error.message || 'An error occurred while sending the code. Please try again.');
-				setIsSubmitting(false);
+				setErrorMessage(error.message || 'An error occurred. Please try again.');
 			}
-		}
-	};
-
-	const handleUserTypeChange = (type: string) => {
-		setUserType(type);
-	};
-
+		});
+	}, [email, userType, isPending, router]);
 
 	return (
-		<div className="min-h-screen flex flex-col ">
-			{/* Header - Orange Background */}
+		<div className="min-h-screen flex flex-col">
 			<Header />
-			{/* Main Content Area - Dark Gray Background */}
 			<main className="flex-1 flex justify-center items-center py-12 px-4 bg-white">
-				{/* White Card */}
-				<div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white !rounded-lg border border-[#D8DADC]">
-					{/* Brand Name - Orange */}
+				<div className="w-full max-w-[512px] mx-auto md:py-[30px] md:px-8 px-5 py-4 bg-white rounded-lg border border-[#D8DADC]">
 					<div className="text-center mb-8 flex justify-center items-center">
-						<img
-							src="/assets/images/MultiKonnect.svg"
-							alt="MultiKonnect"
-							className="h-[39px] w-[137px] object-contain cursor-pointer"
-						/>
+						<Image src="/assets/images/MultiKonnect.svg" alt="MultiKonnect" width={137} height={39} className="h-[39px] w-[137px] object-contain cursor-pointer" priority />
 					</div>
 
-					{/* Heading & Subtitle */}
-					<AuthTitle
-						heading="What your Phone Number or Email?"
-						subtitle="Get food, drinks, groceries, and more delivered."
-					/>
+					<AuthTitle heading="What your Phone Number or Email?" subtitle="Get food, drinks, groceries, and more delivered." />
 
-					{/* Radio Buttons */}
 					<div className="flex gap-12 mb-6">
-						<label
-							className="flex items-center gap-3 cursor-pointer"
-							onClick={() => handleUserTypeChange('seller')}
-						>
-							<div
-								className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${userType === 'seller' ? 'border-[#F44322] bg-white' : 'border-gray-400 bg-white'
-									}`}
-							>
-								{userType === 'seller' && <div className="w-2.5 h-2.5 rounded-full bg-[#F44322]"></div>}
-							</div>
-							<span
-								className={`text-base ${userType === 'seller' ? 'text-gray-800 font-semibold' : 'text-gray-500 font-normal'
-									}`}
-							>
-								Seller
-							</span>
-						</label>
-						<label
-							className="flex items-center gap-3 cursor-pointer"
-							onClick={() => handleUserTypeChange('supplier')}
-						>
-							<div
-								className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${userType === 'supplier' ? 'border-[#F44322] bg-white' : 'border-gray-400 bg-white'
-									}`}
-							>
-								{userType === 'supplier' && (
-									<div className="w-2.5 h-2.5 rounded-full bg-[#F44322]"></div>
-								)}
-							</div>
-							<span
-								className={`text-base ${userType === 'supplier'
-										? 'text-gray-800 font-semibold'
-										: 'text-gray-500 font-normal'
-									}`}
-							>
-								Supplier
-							</span>
-						</label>
+						<UserTypeRadio type="seller" label="Seller" selected={userType === 'seller'} onSelect={handleUserTypeChange} />
+						<UserTypeRadio type="supplier" label="Supplier" selected={userType === 'supplier'} onSelect={handleUserTypeChange} />
 					</div>
 
-					{/* Input Section */}
 					<div className="mb-6">
-						<AuthInput
-							label="Enter phone or Email"
-							type="email"
-							value={email}
-							onChange={(e) => {
-								setEmail(e.target.value);
-								if (errorMessage) setErrorMessage('');
-							}}
-							placeholder="Your email"
-							className={errorMessage ? 'mb-2' : ''}
-						/>
+						<AuthInput label="Enter phone or Email" type="email" value={email} onChange={handleEmailChange} placeholder="Your email" className={errorMessage ? 'mb-2' : ''} />
 						{errorMessage && <p className="text-red-600 text-sm font-bold mt-2">{errorMessage}</p>}
 					</div>
 
-					{/* Continue Button */}
-					<AuthButton
-						variant="primary"
-						fullWidth
-						loading={isSubmitting}
-						disabled={!email.trim()}
-						onClick={handleContinue}
-						className="mb-6"
-					>
+					<AuthButton variant="primary" fullWidth loading={isPending} disabled={!email.trim() || isPending} onClick={handleContinue} className="mb-6">
 						Continue
 					</AuthButton>
 
-					{/* Divider */}
 					<div className="flex items-center mb-4">
 						<div className="flex-auto border-t border-gray-200" />
 						<span className="mx-2 text-[15.22px] font-normal text-[#6B6B6B]">Or continue with</span>
 						<div className="flex-auto border-t border-gray-200" />
 					</div>
 
-					{/* Social Buttons */}
 					<div className="flex flex-col gap-4 mb-6">
-						{/* Google Button */}
-						<button className="flex items-center justify-center gap-3 w-full h-14 rounded-2xl border border-[#DCDEE0] bg-white text-[#DCDEE0] transition-colors px-4">
-							<img
-								src="/assets/images/google.svg"
-								alt="Google"
-								className="w-6 h-6 flex-shrink-0"
-							/>
-							<span className="text-[#111111] text-base">Continue with Google</span>
-						</button>
-
-						{/* Apple Button */}
-						<button className="flex items-center justify-center gap-3 w-full h-14 rounded-2xl border border-[#DCDEE0] bg-white text-[#DCDEE0] transition-colors px-4">
-							<img
-								src="/assets/images/apple.svg"
-								alt="Apple"
-								className="w-6 h-6 flex-shrink-0"
-							/>
-							<span className="text-[#111111] text-base">Continue with Apple</span>
-						</button>
+						<SocialButton src="/assets/images/google.svg" alt="Google" label="Continue with Google" />
+						<SocialButton src="/assets/images/apple.svg" alt="Apple" label="Continue with Apple" />
 					</div>
 
-					{/* Footer Link */}
 					<div className="text-center text-sm text-gray-600">
 						<span className="mt-2 text-center text-[#000000B2]">
 							Don't have an account?{' '}
-							<Link
-								href="/sign-up"
-								className="text-vivid-red !font-semibold"
-							>
-								Sign up
-							</Link>
+							<Link href="/sign-up" className="text-vivid-red font-semibold">Sign up</Link>
 						</span>
 					</div>
 				</div>
 			</main>
-
-			{/* Footer - Dark Gray Background */}
 			<Footer />
-
 		</div>
 	);
 }

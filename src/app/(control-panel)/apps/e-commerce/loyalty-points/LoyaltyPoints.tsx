@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import GlobalStyles from '@mui/material/GlobalStyles';
-import LoyaltyPointsHeader from './LoyaltyPointsHeader';
+import PageHeader from '@/components/PageHeader';
 import LoyaltyPointsTable from './LoyaltyPointsTable';
 
 /**
@@ -12,24 +11,29 @@ function LoyaltyPoints() {
 	const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
 
 	return (
-		<>
-			<GlobalStyles
-				styles={() => ({
-					'#root': {
-						maxHeight: '100vh'
+		<div className="w-full h-full flex flex-col">
+			<PageHeader 
+				title="Loyalty Points" 
+				subtitle="Monitor earnings, manage redemptions and configure point rules"
+				actions={[
+					{
+						label: 'Settings',
+						onClick: () => setSettingsDialogOpen(true),
+						icon: 'heroicons-outline:cog-8-tooth',
+						color: 'secondary'
 					}
-				})}
+				]}
 			/>
-			<div className="w-full h-full flex flex-col px-4">
-				<LoyaltyPointsHeader onSettingsClick={() => setSettingsDialogOpen(true)} />
+			<div className="flex-auto p-24 pt-0">
 				<LoyaltyPointsTable
 					settingsDialogOpen={settingsDialogOpen}
 					onSettingsDialogClose={() => setSettingsDialogOpen(false)}
 					onSettingsDialogOpen={() => setSettingsDialogOpen(true)}
 				/>
 			</div>
-		</>
+		</div>
 	);
 }
 
 export default LoyaltyPoints;
+

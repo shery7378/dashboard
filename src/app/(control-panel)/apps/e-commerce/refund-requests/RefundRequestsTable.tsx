@@ -19,7 +19,6 @@ import {
 	IconButton
 } from '@mui/material';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
-import FuseLoading from '@fuse/core/FuseLoading';
 import { useSession } from 'next-auth/react';
 import {
 	useGetRefundRequestsQuery,
@@ -29,186 +28,19 @@ import {
 	useRejectRefundMutation,
 	type RefundRequest
 } from '../apis/RefundRequestsApi';
+import { formatDate } from '@/utils/Constants';
 
+/**
+ * Helper to safely format currency amount.
+ */
 const formatAmount = (amount: number | string | undefined | null): string => {
-	if (amount === null || amount === undefined) {
-		return '0.00';
-	}
-
-	if (typeof amount === 'number' && !isNaN(amount)) {
-		return amount.toFixed(2);
-	}
-
-	const amountStr = String(amount);
-	const parsed = parseFloat(amountStr);
+	const parsed = parseFloat(String(amount || '0'));
 	return isNaN(parsed) ? '0.00' : parsed.toFixed(2);
 };
 
-// Helper function to normalize file paths - replaces localhost/127.0.0.1 with API URL from env
-function normalizeFileUrl(filePath: string | undefined): string | null {
-	if (!filePath) return null;
-
-	// Get API URL from environment
-	const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-	// Extract the base URL from the API URL (remove trailing slashes and ensure clean format)
-	let apiBaseUrl = apiUrl.replace(/\/+$/, '');
-
-	// Ensure apiBaseUrl doesn't have duplicate ports (clean it up)
-	// Remove any trailing :port if it exists incorrectly
-	apiBaseUrl = apiBaseUrl.replace(/:(\d+):(\d+)/, ':$1'); // Fix double ports like :8000:8000
-
-	try {
-		// Try to parse the URL to extract components
-		const url = new URL(filePath);
-
-		// Parse the API base URL to get its components
-		const apiUrlObj = new URL(apiBaseUrl);
-
-		// If it's localhost or 127.0.0.1, replace with API URL from env
-		if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-			// Reconstruct URL with the API base URL, preserving path, search, and hash
-			return `${apiUrlObj.protocol}//${apiUrlObj.host}${url.pathname}${url.search}${url.hash}`;
-		}
-
-		// If already using the correct domain, return as is
-		return filePath;
-	} catch (e) {
-		// If URL parsing fails, try regex replacement as fallback
-		// Match: protocol://host/path?query#hash
-		const urlMatch = filePath.match(/^(https?:\/\/)([^\/]+)(\/.*)$/);
-
-		if (urlMatch) {
-			const [, protocol, host, path] = urlMatch;
-
-			// Check if host is localhost or 127.0.0.1 (with or without port)
-			if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
-				// Parse API base URL if possible
-				try {
-					const apiUrlObj = new URL(apiBaseUrl);
-					return `${apiUrlObj.protocol}//${apiUrlObj.host}${path}`;
-				} catch {
-					// If parsing fails, use simple replacement
-					// Extract just the host from apiBaseUrl
-					const apiHostMatch = apiBaseUrl.match(/^https?:\/\/([^\/]+)/);
-
-					if (apiHostMatch) {
-						return `${protocol}${apiHostMatch[1]}${path}`;
-					}
-				}
-			}
-		}
-
-		// If it's a relative path, make it absolute using the API URL
-		if (filePath.startsWith('/')) {
-			try {
-				const apiUrlObj = new URL(apiBaseUrl);
-				return `${apiUrlObj.protocol}//${apiUrlObj.host}${filePath}`;
-			} catch {
-				return `${apiBaseUrl}${filePath}`;
-			}
-		}
-
-		// Return original if we can't normalize
-		return filePath;
-	}
-}
-
-// Component to display images with authentication
-function ImageWithAuth({
-	fileId,
-	filename,
-	refundId,
-	token,
-	filePath
-}: {
-	fileId: number;
-	filename: string;
-	refundId: number;
-	token: string | null;
-	filePath?: string;
-}) {
-	const [imageSrc, setImageSrc] = useState<string>('');
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(false);
-
-	useEffect(() => {
-		if (!token) {
-			setError(true);
-			setLoading(false);
-			return;
-		}
-
-		const fetchImage = async () => {
-			try {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-
-				// Always use API endpoint to avoid CORS issues with storage URLs
-				// The API endpoint properly handles authentication and CORS headers
-				const url = `${apiUrl}/api/admin/refunds/${refundId}/download-attachment/${encodeURIComponent(filename)}`;
-
-				const response = await fetch(url, {
-					headers: {
-						Authorization: `Bearer ${token}`
-					}
-				});
-
-				if (!response.ok) {
-					throw new Error('Failed to fetch image');
-				}
-
-				// Always use blob URL for API responses
-				const blob = await response.blob();
-				const blobUrl = window.URL.createObjectURL(blob);
-				setImageSrc(blobUrl);
-				setLoading(false);
-			} catch (err) {
-				console.error('Error loading image:', err);
-				setError(true);
-				setLoading(false);
-			}
-		};
-
-		fetchImage();
-
-		// Cleanup
-		return () => {
-			if (imageSrc && imageSrc.startsWith('blob:')) {
-				window.URL.revokeObjectURL(imageSrc);
-			}
-		};
-	}, [fileId, filename, refundId, token, filePath]);
-
-	if (loading) {
-		return (
-			<div className="w-full h-32 bg-gray-100 flex items-center justify-center">
-				<Typography
-					variant="caption"
-					color="text.secondary"
-				>
-					Loading...
-				</Typography>
-			</div>
-		);
-	}
-
-	if (error || !imageSrc) {
-		return (
-			<div className="w-full h-32 bg-gray-100 flex items-center justify-center">
-				<FuseSvgIcon className="text-gray-400">heroicons-outline:photograph</FuseSvgIcon>
-			</div>
-		);
-	}
-
-	return (
-		<img
-			src={imageSrc}
-			alt={filename}
-			className="w-full h-32 object-cover"
-		/>
-	);
-}
-
+/**
+ * Table for managing customer refund requests.
+ */
 function RefundRequestsTable() {
 	const { data: session } = useSession();
 	const { data, isLoading, error } = useGetRefundRequestsQuery({});
@@ -225,166 +57,29 @@ function RefundRequestsTable() {
 	const [selectedRefund, setSelectedRefund] = useState<RefundRequest | null>(null);
 	const [selectedRefundId, setSelectedRefundId] = useState<number | null>(null);
 	const { data: fullRefundData } = useGetRefundRequestQuery(selectedRefundId as number, { skip: !selectedRefundId });
+	
 	const [adminQuestion, setAdminQuestion] = useState('');
 	const [adminNotes, setAdminNotes] = useState('');
 	const [rejectionReason, setRejectionReason] = useState('');
 
 	const refundRequests = data?.data ?? [];
-
-	// Use full refund data if available, otherwise use selected refund
 	const displayRefund = selectedRefundId && fullRefundData?.data ? fullRefundData.data : selectedRefund;
-
-	// Get authentication token from session or localStorage
-	const getAuthToken = () => {
-		if (typeof window === 'undefined') return null;
-
-		// Try session first (NextAuth)
-		const sessionToken = (session as any)?.accessAuthToken || (session as any)?.accessToken;
-
-		if (sessionToken) return sessionToken;
-
-		// Fallback to localStorage
-		return (
-			localStorage.getItem('token') || localStorage.getItem('auth_token') || localStorage.getItem('access_token')
-		);
-	};
-
-	const handleRequestMoreDetails = async () => {
-		if (!selectedRefund || !adminQuestion.trim()) return;
-
-		try {
-			await requestMoreDetails({
-				id: selectedRefund.id,
-				admin_question: adminQuestion,
-				admin_notes: adminNotes || undefined
-			}).unwrap();
-			setRequestDetailsDialogOpen(false);
-			setSelectedRefund(null);
-			setAdminQuestion('');
-			setAdminNotes('');
-		} catch (err) {
-			console.error('Failed to request more details:', err);
-		}
-	};
-
-	const handleApprove = async () => {
-		if (!displayRefund) return;
-
-		try {
-			await approveRefund({
-				id: displayRefund.id,
-				admin_notes: adminNotes || undefined
-			}).unwrap();
-			setApproveDialogOpen(false);
-			setSelectedRefund(null);
-			setSelectedRefundId(null);
-			setAdminNotes('');
-		} catch (err) {
-			console.error('Failed to approve refund:', err);
-		}
-	};
-
-	const handleReject = async () => {
-		if (!selectedRefund || !rejectionReason.trim()) return;
-
-		// Check if refund can be rejected (must be pending status)
-		if (selectedRefund.status !== 'pending') {
-			alert(
-				`This refund request cannot be rejected. Current status: ${selectedRefund.status.toUpperCase()}. Only pending refund requests can be rejected.`
-			);
-			return;
-		}
-
-		// Validate minimum length (backend requires min 10 characters)
-		if (rejectionReason.trim().length < 10) {
-			alert('Rejection reason must be at least 10 characters long.');
-			return;
-		}
-
-		// Validate maximum length (backend requires max 1000 characters)
-		if (rejectionReason.trim().length > 1000) {
-			alert('Rejection reason must be less than 1000 characters.');
-			return;
-		}
-
-		try {
-			await rejectRefund({
-				id: selectedRefund.id,
-				admin_notes: rejectionReason.trim()
-			}).unwrap();
-			setRejectDialogOpen(false);
-			setSelectedRefund(null);
-			setRejectionReason('');
-		} catch (err: any) {
-			console.error('Failed to reject refund:', err);
-			console.error('Error details:', JSON.stringify(err, null, 2));
-
-			// Show user-friendly error message
-			let errorMessage = 'Failed to reject refund. Please try again.';
-
-			if (err?.data) {
-				if (err.data.message) {
-					errorMessage = err.data.message;
-				} else if (err.data.errors) {
-					// Show validation errors
-					const errorMessages = Object.values(err.data.errors).flat().join('\n');
-					errorMessage = errorMessages || errorMessage;
-				} else if (err.data.status === 400) {
-					errorMessage =
-						err.data.message ||
-						'This refund request cannot be rejected. It may have already been processed or is in an invalid state.';
-				}
-			} else if (err?.message) {
-				errorMessage = err.message;
-			}
-
-			alert(errorMessage);
-		}
-	};
-
-	const getStatusColor = (status: string) => {
-		switch (status) {
-			case 'pending':
-				return 'warning';
-			case 'approved':
-				return 'info';
-			case 'processing':
-				return 'info';
-			case 'completed':
-				return 'success';
-			case 'rejected':
-				return 'error';
-			case 'cancelled':
-				return 'default';
-			default:
-				return 'default';
-		}
-	};
 
 	const columns = useMemo<MRT_ColumnDef<RefundRequest>[]>(
 		() => [
 			{
 				accessorKey: 'request_number',
 				header: 'Request #',
-				size: 120
+				size: 140,
+				Cell: ({ row }) => <span className="font-mono font-bold text-secondary">{row.original.request_number}</span>
 			},
 			{
 				accessorKey: 'user.name',
 				header: 'Customer',
 				Cell: ({ row }) => (
-					<div>
-						<Typography
-							variant="body2"
-							fontWeight="medium"
-						>
-							{row.original.user?.name ?? '—'}
-						</Typography>
-						<Typography
-							variant="caption"
-							color="text.secondary"
-						>
-							{row.original.user?.email ?? '—'}
-						</Typography>
+					<div className="flex flex-col">
+						<span className="font-semibold text-13">{row.original.user?.name || '—'}</span>
+						<span className="text-11 text-text-secondary">{row.original.user?.email || '—'}</span>
 					</div>
 				)
 			},
@@ -392,95 +87,74 @@ function RefundRequestsTable() {
 				accessorKey: 'order.order_number',
 				header: 'Order #',
 				size: 120,
-				Cell: ({ row }) => row.original.order?.order_number ?? `#${row.original.order_id}`
+				Cell: ({ row }) => <span className="text-primary font-medium">{row.original.order?.order_number || `#${row.original.order_id}`}</span>
 			},
 			{
 				accessorKey: 'requested_amount',
 				header: 'Amount',
 				size: 100,
-				Cell: ({ row }) => (
-					<Typography fontWeight="medium">£{formatAmount(row.original.requested_amount)}</Typography>
-				)
+				Cell: ({ row }) => <span className="font-bold text-secondary">£{formatAmount(row.original.requested_amount)}</span>
 			},
 			{
 				accessorKey: 'reason',
 				header: 'Reason',
-				size: 150,
 				Cell: ({ row }) => (
-					<Typography
-						variant="body2"
-						sx={{ textTransform: 'capitalize' }}
-					>
-						{row.original.reason?.replace(/_/g, ' ') ?? '—'}
+					<Typography variant="body2" className="text-12 capitalize leading-snug max-w-xs truncate">
+						{row.original.reason?.replace(/_/g, ' ') || '—'}
 					</Typography>
 				)
 			},
 			{
 				accessorKey: 'status',
 				header: 'Status',
-				size: 120,
-				Cell: ({ row }) => (
-					<Chip
-						label={row.original.status.toUpperCase()}
-						color={getStatusColor(row.original.status) as any}
-						size="small"
-					/>
-				)
+				size: 140,
+				Cell: ({ row }) => {
+					const status = row.original.status?.toLowerCase();
+					const colors: Record<string, string> = {
+						pending: 'bg-orange-100 text-orange-700',
+						approved: 'bg-blue-100 text-blue-700',
+						processing: 'bg-blue-200 text-blue-800',
+						completed: 'bg-green-100 text-green-700',
+						rejected: 'bg-red-100 text-red-700',
+						cancelled: 'bg-gray-200 text-gray-700',
+					};
+					return (
+						<Chip 
+							label={row.original.status.toUpperCase()} 
+							className={`text-10 font-bold ${colors[status] || 'bg-gray-100 text-gray-500'}`}
+							size="small"
+						/>
+					);
+				}
 			},
 			{
 				accessorKey: 'needs_more_details',
-				header: 'Needs Info',
-				size: 100,
+				header: 'Info State',
+				size: 120,
 				Cell: ({ row }) => {
 					const refund = row.original;
-
-					if (refund.needs_more_details) {
-						return (
-							<Chip
-								label="Yes"
-								color="warning"
-								size="small"
-							/>
-						);
-					}
-
-					if (refund.has_customer_response || refund.customer_responded_at) {
-						return (
-							<Chip
-								label="Received"
-								color="success"
-								size="small"
-							/>
-						);
-					}
-
-					return (
-						<Typography
-							variant="body2"
-							color="text.secondary"
-						>
-							—
-						</Typography>
-					);
+					if (refund.needs_more_details) return <Chip label="WAITING" className="bg-amber-100 text-amber-700 text-10 font-bold" size="small" />;
+					if (refund.has_customer_response || refund.customer_responded_at) return <Chip label="RECEIVED" className="bg-purple-100 text-purple-700 text-10 font-bold" size="small" />;
+					return <span className="text-gray-400">—</span>;
 				}
 			},
 			{
 				accessorKey: 'created_at',
 				header: 'Requested',
-				size: 120,
-				Cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString()
+				size: 130,
+				Cell: ({ row }) => formatDate(row.original.created_at)
 			}
 		],
 		[]
 	);
 
-	if (isLoading) {
-		return <FuseLoading />;
-	}
+	if (error) return (
+		<Paper className="p-24 flex flex-col items-center justify-center shadow-1 rounded-lg">
+			<Typography color="error" variant="body1" className="font-semibold text-20">Failed to load refund requests</Typography>
+			<Typography color="text.secondary" variant="body2">Please check your connection or try again later.</Typography>
+		</Paper>
+	);
 
-	if (error) {
-		return <Alert severity="error">Failed to load refund requests</Alert>;
-	}
 
 	return (
 		<>

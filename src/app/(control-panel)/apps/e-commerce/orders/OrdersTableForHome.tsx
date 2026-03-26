@@ -1,10 +1,21 @@
 //src/app/(control-panel)/apps/e-commerce/orders/OrdersTableForHome.tsx
 import { useMemo } from 'react';
 import { type MRT_ColumnDef } from 'material-react-table';
-import DataTable from 'src/components/data-table/DataTable';
-import { Paper, Typography } from '@mui/material';
+import { Paper, Typography, Skeleton } from '@mui/material';
 import Link from '@fuse/core/Link';
-import FuseLoading from '@fuse/core/FuseLoading';
+import dynamic from 'next/dynamic';
+
+const DataTable = dynamic(() => import('src/components/data-table/DataTable'), {
+	ssr: false,
+	loading: () => (
+		<div className="p-4">
+			<Skeleton
+				variant="rounded"
+				height={400}
+			/>
+		</div>
+	)
+});
 import { useSession } from 'next-auth/react';
 import {
 	EcommerceOrder,
@@ -132,8 +143,13 @@ function OrdersTableForHome() {
 		[session]
 	);
 
-	if (sessionStatus === 'loading') {
-		return <FuseLoading />;
+	if (sessionStatus === 'loading' || isLoading) {
+		return (
+			<Paper className="flex flex-col flex-auto p-4 shadow-sm min-h-[400px]">
+				<Skeleton variant="text" width="40%" height={40} className="mb-4" />
+				<Skeleton variant="rounded" height={320} />
+			</Paper>
+		);
 	}
 
 	if (!hasToken) {
@@ -145,10 +161,6 @@ function OrdersTableForHome() {
 				<Typography color="error">Authentication required. Please log in again.</Typography>
 			</Paper>
 		);
-	}
-
-	if (isLoading) {
-		return <FuseLoading />;
 	}
 
 	if (error) {
