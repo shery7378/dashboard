@@ -15,17 +15,17 @@ export default function Footer() {
 	];
 
 	const usefulLinks = [
-		{ label: 'Store Near me', href: '#' },
-		{ label: 'View all cities', href: '#' },
-		{ label: 'Pickup near me', href: '#' },
-		{ label: 'View all countries', href: '#' }
+		{ label: 'Store Near me', href: '/stores' },
+		{ label: 'Browse Stores', href: '/browse-stores' },
+		{ label: 'Pickup near me', href: '/pick-up' },
+		{ label: 'Live Selling', href: '/live-selling' }
 	];
 
 	const policyLinks = [
-		{ label: 'Privacy Policy', href: '#' },
-		{ label: 'Terms & Conditions', href: '#' },
-		{ label: 'Cookie Policy', href: '#' },
-		{ label: 'Refund Policy', href: '#' }
+		{ label: 'Privacy Policy', href: '/privacy-policy' },
+		{ label: 'Terms & Conditions', href: '/terms-conditions' },
+		{ label: 'Cookie Policy', href: '/cookie-policy' },
+		{ label: 'Refund Requests', href: '/refund-requests' }
 	];
 
 	return (
