@@ -181,11 +181,11 @@ function GithubIssuesWidget() {
 								(_theme) =>
 									_theme.palette.mode === 'light'
 										? {
-												backgroundColor: lighten(_theme.palette.background.default, 0.4)
-											}
+											backgroundColor: lighten(_theme.palette.background.default, 0.4)
+										}
 										: {
-												backgroundColor: lighten(_theme.palette.background.default, 0.02)
-											}
+											backgroundColor: lighten(_theme.palette.background.default, 0.02)
+										}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
@@ -199,11 +199,11 @@ function GithubIssuesWidget() {
 								(theme) =>
 									theme.palette.mode === 'light'
 										? {
-												backgroundColor: lighten(theme.palette.background.default, 0.4)
-											}
+											backgroundColor: lighten(theme.palette.background.default, 0.4)
+										}
 										: {
-												backgroundColor: lighten(theme.palette.background.default, 0.02)
-											}
+											backgroundColor: lighten(theme.palette.background.default, 0.02)
+										}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
@@ -217,11 +217,11 @@ function GithubIssuesWidget() {
 								(_theme) =>
 									_theme.palette.mode === 'light'
 										? {
-												backgroundColor: lighten(_theme.palette.background.default, 0.4)
-											}
+											backgroundColor: lighten(_theme.palette.background.default, 0.4)
+										}
 										: {
-												backgroundColor: lighten(_theme.palette.background.default, 0.02)
-											}
+											backgroundColor: lighten(_theme.palette.background.default, 0.02)
+										}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>
@@ -235,11 +235,11 @@ function GithubIssuesWidget() {
 								(_theme) =>
 									_theme.palette.mode === 'light'
 										? {
-												backgroundColor: lighten(_theme.palette.background.default, 0.4)
-											}
+											backgroundColor: lighten(_theme.palette.background.default, 0.4)
+										}
 										: {
-												backgroundColor: lighten(_theme.palette.background.default, 0.02)
-											}
+											backgroundColor: lighten(_theme.palette.background.default, 0.02)
+										}
 							]}
 							className="col-span-2 sm:col-span-1 flex flex-col items-center justify-center py-8 px-1 rounded-xl"
 						>

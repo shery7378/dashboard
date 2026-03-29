@@ -7,25 +7,28 @@ import { Instagram } from '@mui/icons-material';
  * Footer component matching the provided design image exactly.
  */
 export default function Footer() {
+	const frontendUrl = process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:3000';
+
 	const discoverLinks = [
-		{ label: 'Sign up to deliver', href: '/sign-up' },
+		{ label: 'Back to Marketplace', href: frontendUrl },
+		{ label: 'Sign up to deliver', href: `${frontendUrl}/sign-up` },
 		{ label: 'Add your Shop', href: '/sign-up' },
 		{ label: 'Promotions', href: '#' },
 		{ label: 'Create a Business account', href: '/sign-up' }
 	];
 
 	const usefulLinks = [
-		{ label: 'Store Near me', href: '/stores' },
-		{ label: 'Browse Stores', href: '/browse-stores' },
-		{ label: 'Pickup near me', href: '/pick-up' },
-		{ label: 'Live Selling', href: '/live-selling' }
+		{ label: 'Store Near me', href: `${frontendUrl}/stores` },
+		{ label: 'Browse Stores', href: `${frontendUrl}/browse-stores` },
+		{ label: 'Pickup near me', href: `${frontendUrl}/pick-up` },
+		{ label: 'Live Selling', href: `${frontendUrl}/live-selling` }
 	];
 
 	const policyLinks = [
-		{ label: 'Privacy Policy', href: '/privacy-policy' },
-		{ label: 'Terms & Conditions', href: '/terms-conditions' },
-		{ label: 'Cookie Policy', href: '/cookie-policy' },
-		{ label: 'Refund Requests', href: '/refund-requests' }
+		{ label: 'Privacy Policy', href: `${frontendUrl}/privacy-policy` },
+		{ label: 'Terms & Conditions', href: `${frontendUrl}/terms-conditions` },
+		{ label: 'Cookie Policy', href: `${frontendUrl}/cookie-policy` },
+		{ label: 'Refund Requests', href: `${frontendUrl}/refund-requests` }
 	];
 
 	return (
@@ -136,12 +139,14 @@ export default function Footer() {
 					{/* Column 1 - Brand */}
 					<div className="w-full sm:w-auto flex-shrink-0 sm:max-w-xs">
 						<div className="mb-8 pt-8">
-							<img
-								src={'/assets/images/MultiKonnect.svg'}
-								alt="MultiKonnect"
-								className="h-6 w-auto object-contain brightness-0 invert"
-								style={{ filter: 'brightness(0) invert(1)' }}
-							/>
+							<Link href={frontendUrl}>
+								<img
+									src={'/assets/images/MultiKonnect.svg'}
+									alt="MultiKonnect"
+									className="h-6 w-auto object-contain brightness-0 invert"
+									style={{ filter: 'brightness(0) invert(1)' }}
+								/>
+							</Link>
 						</div>
 						<p
 							style={{
@@ -227,7 +232,7 @@ export default function Footer() {
 								letterSpacing: '-1.7px'
 							}}
 						>
-							Privacy Policy
+							Policies
 						</h3>
 						<ul className="space-y-3">
 							{policyLinks.map(({ label, href }, idx) => (
