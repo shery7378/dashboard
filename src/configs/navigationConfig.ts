@@ -438,7 +438,7 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Store Profile',
 						type: 'item',
 						icon: 'heroicons-outline:identification',
-						url: '/apps/e-commerce/my-store/profile',
+						url: '/apps/e-commerce/my-store',
 						end: true
 					},
 					{
@@ -454,7 +454,7 @@ const navigationConfig: FuseNavItemType[] = [
 						title: 'Business Hours',
 						type: 'item',
 						icon: 'heroicons-outline:clock',
-						url: '/apps/e-commerce/my-store/hours',
+						url: '/apps/e-commerce/my-store',
 						end: true
 					}
 				]
