@@ -441,6 +441,7 @@ const navigationConfig: FuseNavItemType[] = [
 						url: '/apps/e-commerce/my-store',
 						end: true
 					},
+
 					{
 						id: 'seller.store.settings',
 						title: 'Store Settings',
