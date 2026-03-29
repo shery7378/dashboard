@@ -381,7 +381,7 @@ function AuthJsCredentialsSignUpForm() {
 			// Use window.location.href for more reliable redirect and longer delay
 			// to ensure session is fully established
 			setTimeout(() => {
-				window.location.href = '/dashboards';
+				window.location.href = '/apps/e-commerce/my-store';
 			}, 1000);
 			return true;
 		} catch (error) {

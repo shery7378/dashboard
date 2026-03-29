@@ -158,7 +158,7 @@ export default function StoreSetupStep4() {
 						localStorage.setItem('auth_token', session.accessAuthToken);
 						localStorage.setItem('token', session.accessAuthToken);
 					}
-					window.location.href = '/dashboards';
+					window.location.href = '/apps/e-commerce/my-store';
 				} else {
 					setErrorMessage('Account created successfully! Please sign in.');
 					setTimeout(() => router.push('/sign-in'), 2000);
