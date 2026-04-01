@@ -21,7 +21,7 @@ export default function StoreSetupStep3() {
 	const addressInputRef = useRef<HTMLInputElement | null>(null);
 
 	const [phone, setPhone] = useState('');
-	const [countryCode, setCountryCode] = useState('+92'); // Default to Pakistan
+	const [countryCode, setCountryCode] = useState('+44'); // Default to UK
 	const [city, setCity] = useState('');
 	const [zipCode, setZipCode] = useState('');
 	const [address, setAddress] = useState('');
@@ -37,32 +37,6 @@ export default function StoreSetupStep3() {
 		searchParams.get('userType') ||
 		(typeof window !== 'undefined' ? localStorage.getItem('signupUserType') : 'seller') ||
 		'seller';
-
-	// Fetch country code from IP on component mount
-	useEffect(() => {
-		const fetchCountryCode = async () => {
-			try {
-				const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-				const response = await fetch(`${apiUrl}/api/country-code`, {
-					method: 'GET',
-					credentials: 'include',
-				});
-
-				if (response.ok) {
-					const data = await response.json();
-					if (data.data && data.data.phone_code) {
-						setCountryCode(data.data.phone_code);
-						console.log('Country code fetched:', data.data.phone_code);
-					}
-				}
-			} catch (error) {
-				console.error('Error fetching country code:', error);
-				// Silently fail and use default
-			}
-		};
-
-		fetchCountryCode();
-	}, []);
 
 	// Load saved values from localStorage (e.g. when user navigates back)
 	useEffect(() => {
