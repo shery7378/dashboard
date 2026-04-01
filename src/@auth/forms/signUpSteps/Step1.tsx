@@ -29,7 +29,7 @@ export default function Step1({ control, errors, email, isSendingCode, countdown
 
 			{/* Title */}
 			<AuthTitle
-				heading="What your Phone Number or Email?"
+				heading="What your Phone Number (7700 900123) or Email?"
 				subtitle="Get food, drinks, groceries, and more delivered."
 			/>
 			{/* Form Fields */}
@@ -69,7 +69,7 @@ export default function Step1({ control, errors, email, isSendingCode, countdown
 					render={({ field }) => (
 						<AuthInput
 							{...field}
-							label="Email"
+							label="Phone Number (7700 900123) or Email"
 							type="email"
 							placeholder="name@example.com"
 							error={errors.email?.message}

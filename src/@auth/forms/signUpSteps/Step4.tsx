@@ -469,9 +469,9 @@ export default function Step4({ control, errors, setValue, handleNextStep, handl
 					render={({ field }) => (
 						<AuthInput
 							{...field}
-							label="Phone Number"
+							label="Phone Number (7700 900123)"
 							type="tel"
-							placeholder="Your phone number"
+							placeholder="7700 900123"
 							error={errors.phone?.message}
 						/>
 					)}

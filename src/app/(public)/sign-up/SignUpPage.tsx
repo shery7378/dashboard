@@ -111,7 +111,7 @@ export default function SignUpPage() {
 					</div>
 
 					<div className="mb-6">
-						<AuthInput label="Enter phone or Email" type="email" value={email} onChange={handleEmailChange} placeholder="Your email" className={errorMessage ? 'mb-2' : ''} />
+						<AuthInput label="Enter phone (7700 900123) or Email" type="email" value={email} onChange={handleEmailChange} placeholder="Your email" className={errorMessage ? 'mb-2' : ''} />
 						{errorMessage && <p className="text-red-600 text-sm font-bold mt-2">{errorMessage}</p>}
 					</div>
 
