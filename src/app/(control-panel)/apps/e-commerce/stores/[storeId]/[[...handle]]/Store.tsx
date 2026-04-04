@@ -43,9 +43,14 @@ const schema = z.object({
 	delivery_slots: z.array(z.string()).optional()
 });
 
-function Store() {
+interface StoreProps {
+	storeId?: string;
+}
+
+function Store({ storeId: propsStoreId }: StoreProps) {
 	const isMobile = useThemeMediaQuery((theme) => theme.breakpoints.down('lg'));
-	const { storeId } = useParams<{ storeId: string }>();
+	const params = useParams<{ storeId: string }>();
+	const storeId = propsStoreId || params?.storeId;
 
 	const {
 		data: store,
@@ -105,6 +110,7 @@ function Store() {
 							...methods.getValues()
 						})}
 						originalValues={originalValues}
+						storeId={storeId}
 					/>
 				}
 				content={

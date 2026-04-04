@@ -23,6 +23,7 @@ interface StoreHeaderProps {
 	activeTab: string;
 	getValues: () => EcommerceStore;
 	originalValues: Partial<EcommerceStore>;
+	storeId?: string;
 }
 
 // Field map per tab
@@ -42,11 +43,11 @@ const tabFields: Record<string, (keyof EcommerceStore)[]> = {
 	'seo-settings': ['meta_title', 'meta_description', 'meta_keywords']
 };
 
-export default function StoreHeader({ activeTab, getValues, originalValues }: StoreHeaderProps) {
+export default function StoreHeader({ activeTab, getValues, originalValues, storeId: propsStoreId }: StoreHeaderProps) {
 	const navigate = useNavigate();
 	const { enqueueSnackbar } = useSnackbar();
 	const routeParams = useParams<{ storeId: string }>();
-	const { storeId } = routeParams;
+	const storeId = propsStoreId || routeParams?.storeId;
 
 	const [createStore, { isLoading: isCreating }] = useCreateECommerceStoreMutation();
 	const [updateStore, { isLoading: isUpdating }] = useUpdateECommerceStoreMutation();
@@ -168,8 +169,13 @@ export default function StoreHeader({ activeTab, getValues, originalValues }: St
 					enqueueSnackbar('Store created successfully', { variant: 'success' });
 
 					// Navigate to the created store's edit page
-					if (response?.data?.id) {
-						navigate(`/apps/e-commerce/stores/${response.data.id}`);
+					const newStoreId = response?.data?.id || (response?.data as any)?.data?.id || response?.id;
+					
+					if (newStoreId && newStoreId !== 'undefined') {
+						navigate(`/apps/e-commerce/stores/${newStoreId}`);
+					} else {
+						console.error('Failed to get new store ID from response:', response);
+						enqueueSnackbar('Store created, but failed to redirect. Please refresh the stores list.', { variant: 'warning' });
 					}
 				})
 				.catch((error) => {

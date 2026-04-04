@@ -12,7 +12,7 @@ const NewStorePage = () => {
 			auth={[...authRoles.admin]}
 			from="storeCreate"
 		>
-			<Store />
+			<Store storeId="new" />
 		</AuthGuard>
 	);
 };

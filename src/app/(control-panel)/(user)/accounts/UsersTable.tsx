@@ -88,8 +88,9 @@ function UsersTable() {
 				)
 			},
 			{
-				accessorKey: 'user.roles',
+				id: 'roles',
 				header: 'Roles',
+				accessorFn: (row) => row.user?.roles?.map(r => r === 'vendor' ? 'seller' : r).join(', '),
 				Cell: ({ row }) => {
 					const roles = row.original.user?.roles;
 					if (!roles || roles.length === 0) return <span className="text-gray-400">—</span>;
@@ -98,7 +99,7 @@ function UsersTable() {
 							{roles.map((role) => (
 								<Chip
 									key={role}
-									label={role}
+									label={role === 'vendor' ? 'seller' : role}
 									size="small"
 									className="bg-primary/10 text-primary font-bold text-10 uppercase tracking-widest"
 								/>

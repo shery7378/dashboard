@@ -84,10 +84,10 @@ function SellersTable() {
 		{
 			id: 'roles',
 			header: 'Role',
-			accessorFn: (row) => row.user?.roles?.join(', '),
+			accessorFn: (row) => row.user?.roles?.map(r => r === 'vendor' ? 'seller' : r).join(', '),
 			Cell: ({ row }) => (
-				<Typography className="text-12 bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-medium">
-					{row.original.user?.roles?.join(', ') || 'Vendor'}
+				<Typography className="text-12 bg-gray-100 px-2 py-0.5 rounded text-gray-700 font-medium capitalize">
+					{row.original.user?.roles?.map(r => r === 'vendor' ? 'seller' : r).join(', ') || 'Seller'}
 				</Typography>
 			),
 		},
