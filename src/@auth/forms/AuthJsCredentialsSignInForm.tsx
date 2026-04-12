@@ -31,13 +31,16 @@ type FormType = z.infer<typeof schema>;
 const defaultValues = {
 	email: '',
 	password: '',
-	remember: true
+	remember: false
 };
 
 function AuthJsCredentialsSignInForm() {
 	const { control, formState, handleSubmit, setValue, setError } = useForm<FormType>({
 		mode: 'onChange',
-		defaultValues,
+		defaultValues: {
+			...defaultValues,
+			remember: false
+		},
 		resolver: zodResolver(schema)
 	});
 
@@ -142,6 +145,7 @@ function AuthJsCredentialsSignInForm() {
 									<Checkbox
 										size="small"
 										{...field}
+										checked={field.value}
 									/>
 								}
 							/>

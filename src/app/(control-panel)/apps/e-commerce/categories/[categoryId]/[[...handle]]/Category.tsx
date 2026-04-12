@@ -14,10 +14,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import FuseTabs from 'src/components/tabs/FuseTabs';
 import FuseTab from 'src/components/tabs/FuseTab';
-import CategoryHeader from './CategoryHeader';
-import BasicInfoTab from './tabs/BasicInfoTab';
-import CategoryImagesTab from './tabs/CategoryImagesTab';
 import CategorySeoTab from './tabs/CategorySeoTab';
+import CategoryAttributesTab from './tabs/CategoryAttributesTab';
 import { useGetECommerceCategoryQuery } from '../../../apis/CategoriesLaravelApi';
 import { createDefaultCategory } from '../../models/CategoryModel';
 import { sanitizeCategory } from '../../models/sanitizeCategory';
@@ -180,6 +178,10 @@ function Category() {
 								value="seo-settings"
 								label="SEO Settings"
 							/>
+							<FuseTab
+								value="attributes"
+								label="Attributes (Addons)"
+							/>
 						</FuseTabs>
 
 						<div>
@@ -194,6 +196,9 @@ function Category() {
 							</div>
 							<div className={tabValue !== 'seo-settings' ? 'hidden' : ''}>
 								<CategorySeoTab />
+							</div>
+							<div className={tabValue !== 'attributes' ? 'hidden' : ''}>
+								<CategoryAttributesTab />
 							</div>
 						</div>
 					</div>
