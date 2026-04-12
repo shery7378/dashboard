@@ -25,10 +25,7 @@ import { sanitizeCategory } from '../../models/sanitizeCategory';
 // ✅ Form validation schema
 const schema = z
 	.object({
-		name: z
-			.string()
-			.nonempty('You must enter a category name')
-			.min(5, 'The category name must be at least 5 characters'),
+		name: z.string().nonempty('You must enter a category name'),
 		slug: z.string().optional(),
 		description: z.string().optional(),
 
@@ -44,11 +41,24 @@ const schema = z
 		meta_keywords: z.string().optional()
 	})
 	.superRefine((data, ctx) => {
+		// ✅ Parent category required for child categories
 		if (data.category_type === 'child' && !data.parent_id) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
 				message: 'Parent category is required for child categories',
 				path: ['parent_id']
+			});
+		}
+
+		// ✅ Sub-category name must be at least 5 characters
+		if (data.category_type === 'child' && data.name.length < 5) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.too_small,
+				minimum: 5,
+				type: 'string',
+				inclusive: true,
+				message: 'The sub-category name must be at least 5 characters',
+				path: ['name']
 			});
 		}
 	});

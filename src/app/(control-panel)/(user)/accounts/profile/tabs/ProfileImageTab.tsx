@@ -3,6 +3,7 @@ import { lighten, styled } from '@mui/material/styles';
 import { Controller, useFormContext } from 'react-hook-form';
 import FuseSvgIcon from '@fuse/core/FuseSvgIcon';
 import Box from '@mui/material/Box';
+import Avatar from '@mui/material/Avatar';
 
 const Root = styled('div')(({ theme }) => ({
 	'& .productImageFeaturedStar': {
@@ -57,15 +58,10 @@ function ProfileImagesTab() {
 					render={({ field: { onChange, value } }) => (
 						<>
 							<Box
-								sx={(theme) => ({
-									backgroundColor: lighten(theme.palette.background.default, 0.02),
-									...theme.applyStyles('light', {
-										backgroundColor: lighten(theme.palette.background.default, 0.2)
-									})
-								})}
 								component="label"
 								htmlFor="button-file"
-								className="productImageUpload flex items-center justify-center relative w-32 h-32 rounded-lg mx-3 mb-6 overflow-hidden cursor-pointer shadow-sm hover:shadow-lg"
+								className="productImageUpload relative mx-3 mb-6 cursor-pointer"
+								sx={{ display: 'inline-block' }}
 							>
 								<input
 									accept="image/*"
@@ -85,31 +81,48 @@ function ProfileImagesTab() {
 										reader.readAsBinaryString(file);
 									}}
 								/>
-								<FuseSvgIcon
-									size={32}
-									color="action"
-								>
-									heroicons-outline:arrow-up-on-square
-								</FuseSvgIcon>
-							</Box>
-
-							{value && (
+								{/* Default avatar — same as profile header */}
+								<Avatar
+									src={value || '/assets/images/apps/profile/profile-placeholder.jpg'}
+									alt="Profile"
+									sx={{
+										width: 128,
+										height: 128,
+										borderRadius: '50%',
+										boxShadow: 3,
+										border: '3px solid',
+										borderColor: 'divider',
+										transition: 'opacity 0.2s',
+										'&:hover': { opacity: 0.85 }
+									}}
+								/>
+								{/* Camera overlay badge */}
 								<Box
 									sx={(theme) => ({
-										backgroundColor: lighten(theme.palette.background.default, 0.02),
-										...theme.applyStyles('light', {
-											backgroundColor: lighten(theme.palette.background.default, 0.2)
-										})
+										position: 'absolute',
+										bottom: 4,
+										right: 4,
+										width: 32,
+										height: 32,
+										borderRadius: '50%',
+										backgroundColor: theme.palette.background.paper,
+										border: `2px solid ${theme.palette.divider}`,
+										display: 'flex',
+										alignItems: 'center',
+										justifyContent: 'center',
+										boxShadow: theme.shadows[2]
 									})}
-									className="productImageItem flex items-center justify-center relative w-32 h-32 rounded-lg mx-3 mb-6 overflow-hidden shadow-sm"
 								>
-									<img
-										className="max-w-none w-auto h-full"
-										src={value}
-										alt="category"
-									/>
+									<FuseSvgIcon size={16} color="action">
+										heroicons-outline:camera
+									</FuseSvgIcon>
 								</Box>
-							)}
+							</Box>
+
+							{/* Preview label below avatar */}
+							<Box className="mt-2 text-center" sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
+								{value ? 'Click to change photo' : 'Click to upload photo'}
+							</Box>
 						</>
 					)}
 				/>

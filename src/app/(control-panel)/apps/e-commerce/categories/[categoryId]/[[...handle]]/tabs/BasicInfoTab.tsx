@@ -166,7 +166,7 @@ function BasicInfoTab({
 						{...field}
 						className="mt-2 mb-2"
 						required
-						label="Name"
+						label={formCategoryType === 'child' ? 'Sub-category Name' : 'Category Name'}
 						autoFocus
 						id="name"
 						variant="outlined"

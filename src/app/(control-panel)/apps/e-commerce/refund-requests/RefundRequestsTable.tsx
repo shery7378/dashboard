@@ -29,6 +29,93 @@ import {
 	type RefundRequest
 } from '../apis/RefundRequestsApi';
 import { formatDate } from '@/utils/Constants';
+import { getAuthToken } from '@/store/apiServiceLaravel';
+
+/**
+ * Helper to normalize file URLs for attachments.
+ */
+const normalizeFileUrl = (path: string | undefined | null): string => {
+	if (!path) return '';
+	const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+	
+	// If it's already a full URL, return it
+	if (path.startsWith('http')) return path;
+	
+	// Ensure path starts with a slash
+	const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+	return `${apiUrl}${normalizedPath}`;
+};
+
+/**
+ * Helper to get status color for chips.
+ */
+const getStatusColor = (status: string | undefined | null): string => {
+	const s = String(status || '').toLowerCase();
+	switch (s) {
+		case 'pending': return 'warning';
+		case 'approved':
+		case 'completed': return 'success';
+		case 'rejected':
+		case 'cancelled': return 'error';
+		case 'processing': return 'info';
+		default: return 'default';
+	}
+};
+
+/**
+ * Image component that handles authenticated requests for protected files.
+ */
+const ImageWithAuth = ({ fileId, filename, refundId, token, filePath }: any) => {
+	const [imgSrc, setImgSrc] = useState<string>('');
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const fetchImage = async () => {
+			if (!token) return;
+			
+			try {
+				let resolvedToken = token;
+				if (typeof token === 'object' && token?.then) {
+					resolvedToken = await token;
+				}
+
+				const url = normalizeFileUrl(filePath);
+				const separator = url.includes('?') ? '&' : '?';
+				const authUrl = `${url}${separator}token=${encodeURIComponent(resolvedToken)}`;
+				
+				const response = await fetch(authUrl, {
+					headers: { Authorization: `Bearer ${resolvedToken}` }
+				});
+				
+				if (response.ok) {
+					const blob = await response.blob();
+					const blobUrl = URL.createObjectURL(blob);
+					setImgSrc(blobUrl);
+				}
+			} catch (error) {
+				console.error('Error fetching image with auth:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchImage();
+		
+		return () => {
+			if (imgSrc) URL.revokeObjectURL(imgSrc);
+		};
+	}, [fileId, token, filePath]);
+
+	if (loading) return <div className="w-full h-32 bg-gray-100 animate-pulse flex items-center justify-center font-bold text-gray-400">LOADING...</div>;
+	
+	return (
+		<img 
+			src={imgSrc || '/assets/images/apps/ecommerce/product-image-placeholder.png'} 
+			alt={filename} 
+			className="w-full h-32 object-cover"
+		/>
+	);
+};
 
 /**
  * Helper to safely format currency amount.
@@ -64,6 +151,53 @@ function RefundRequestsTable() {
 
 	const refundRequests = data?.data ?? [];
 	const displayRefund = selectedRefundId && fullRefundData?.data ? fullRefundData.data : selectedRefund;
+
+	const handleRequestMoreDetails = async () => {
+		if (!selectedRefund || !adminQuestion.trim()) return;
+
+		try {
+			await requestMoreDetails({
+				id: selectedRefund.id,
+				admin_question: adminQuestion,
+				admin_notes: adminNotes
+			}).unwrap();
+			setRequestDetailsDialogOpen(false);
+			setAdminQuestion('');
+			setAdminNotes('');
+		} catch (error) {
+			console.error('Failed to request details:', error);
+		}
+	};
+
+	const handleApprove = async () => {
+		if (!displayRefund) return;
+
+		try {
+			await approveRefund({
+				id: displayRefund.id,
+				admin_notes: adminNotes
+			}).unwrap();
+			setApproveDialogOpen(false);
+			setAdminNotes('');
+		} catch (error) {
+			console.error('Failed to approve refund:', error);
+		}
+	};
+
+	const handleReject = async () => {
+		if (!selectedRefund || !rejectionReason.trim()) return;
+
+		try {
+			await rejectRefund({
+				id: selectedRefund.id,
+				admin_notes: rejectionReason
+			}).unwrap();
+			setRejectDialogOpen(false);
+			setRejectionReason('');
+		} catch (error) {
+			console.error('Failed to reject refund:', error);
+		}
+	};
 
 	const columns = useMemo<MRT_ColumnDef<RefundRequest>[]>(
 		() => [
@@ -154,7 +288,6 @@ function RefundRequestsTable() {
 			<Typography color="text.secondary" variant="body2">Please check your connection or try again later.</Typography>
 		</Paper>
 	);
-
 
 	return (
 		<>
@@ -367,12 +500,10 @@ function RefundRequestsTable() {
 											<div className="flex flex-wrap gap-3">
 												{displayRefund.attachment_files.map((file: any) => {
 													// Get token from session or localStorage
-													const token = getAuthToken();
-													const isImage =
-														file.filename?.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i);
-
 													const handleFileClick = async (e: React.MouseEvent) => {
 														e.preventDefault();
+														
+														const token = await getAuthToken();
 
 														if (!token) {
 															alert('Authentication required. Please log in again.');
@@ -707,7 +838,7 @@ function RefundRequestsTable() {
 											</Typography>
 											<div className="flex flex-wrap gap-2">
 												{displayRefund.attachment_files.map((file: any) => {
-													// Get token from session or localStorage
+													// Get token synchronously from localStorage fallback
 													const token = getAuthToken();
 
 													// Normalize file path and append token if needed
@@ -740,6 +871,8 @@ function RefundRequestsTable() {
 														e: React.MouseEvent<HTMLAnchorElement>
 													) => {
 														e.preventDefault();
+														
+														const token = await getAuthToken();
 
 														if (!token) {
 															alert('Authentication required. Please log in again.');

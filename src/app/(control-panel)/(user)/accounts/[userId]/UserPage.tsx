@@ -156,38 +156,28 @@ function UserPage() {
 	useEffect(() => {
 		if (!profile || initialized) return;
 
-		const role = profile?.user?.roles?.[0];
-		let defaultValues: any = {
+		const role = profile?.user?.roles?.[0] || 'customer';
+		
+		const defaultValues = {
 			user_type: role,
 			email: profile?.user?.email || '',
 			status: profile?.status ?? 'active',
 			password: '',
-			confirm_password: ''
+			confirm_password: '',
+			first_name: profile?.first_name || '',
+			last_name: profile?.last_name || '',
+			phone: profile?.phone || '',
+			name: profile?.user?.name || '',
+			store_name: profile?.store_name || '',
+			city: profile?.city || '',
+			address: profile?.address || '',
+			state: profile?.state || '',
+			country: profile?.country || '',
+			postal_code: profile?.postal_code || '',
+			latitude: profile?.latitude || undefined,
+			longitude: profile?.longitude || undefined,
+			delivery_radius: profile?.delivery_radius || 10
 		};
-
-		if (role === 'customer') {
-			defaultValues = {
-				...defaultValues,
-				first_name: profile?.first_name || '',
-				last_name: profile?.last_name || '',
-				phone: profile?.phone || ''
-			};
-		} else if (role === 'vendor' || role === 'supplier') {
-			defaultValues = {
-				...defaultValues,
-				name: profile?.user?.name || '',
-				store_name: profile?.store_name || '',
-				phone: profile?.phone || '',
-				city: profile?.city || '',
-				address: profile?.address || '',
-				state: profile?.state || '',
-				country: profile?.country || '',
-				postal_code: profile?.postal_code || '',
-				latitude: profile?.latitude || undefined,
-				longitude: profile?.longitude || undefined,
-				delivery_radius: profile?.delivery_radius || 10
-			};
-		}
 
 		reset(defaultValues);
 		setInitialized(true);
