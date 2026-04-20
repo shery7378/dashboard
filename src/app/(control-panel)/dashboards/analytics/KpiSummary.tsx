@@ -5,6 +5,7 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import LinearProgress from '@mui/material/LinearProgress';
+import Skeleton from '@mui/material/Skeleton';
 import Grid from '@mui/material/Grid';
 import { useAppSelector } from 'src/store/hooks';
 import { selectWidget } from './AnalyticsDashboardApi';
